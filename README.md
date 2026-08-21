@@ -35,7 +35,8 @@ Das Script bringt ihn - zusammen mit ein paar optionalen Extra Features - wieder
 
   Der Kalender sucht jetzt den ganzen Monat statt nur eine Woche.
   Optional für alle 4 Kabinen und mit Bestpreissuche für das ganze Jahr (von der M&M Hauptseite, nicht für alle Routen verfügbar und oft veraltet)
-  
+  <img width="600" src="https://github.com/user-attachments/assets/19a40afa-6f1c-40b6-b645-9a7b02fc4081" />
+
 - **verbesserte Ergebnisliste**
 
   Verbesserte Darstellung von Zeitleiste und Umsteigezeiten.
@@ -44,6 +45,7 @@ Das Script bringt ihn - zusammen mit ein paar optionalen Extra Features - wieder
 - **Seatmaps für jeden Flug**
 
   Anklicken des Flugzeugs öffnet die jeweilige Seatmap und zeigt an welche Plätze noch frei sind.
+<img width="600" src="https://github.com/user-attachments/assets/1897dde3-756c-4056-ae9a-226b1cf3c2a2" />
 
 - **Zuzahlung in Euro**
 
