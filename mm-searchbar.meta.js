@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
 // @version      1.0.0
-// @description  Schaltet die Suchmaske auf der Prämienflug-Ergebnisseite frei, ersetzt die 7-Tage-Preisleiste durch einen Monatskalender und die Trefferliste durch eigene Karten mit Tarifvergleich, Sortierung und Euro-Gegenwert der Zuzahlung
+// @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
 // @supportURL   https://github.com/wedge256/mm-patcher/issues
