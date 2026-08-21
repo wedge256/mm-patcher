@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.0.0
+// @version      1.0.1
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -15,6 +15,8 @@
 // @noframes
 // ==/UserScript==
 
+(function () {
+    function __mmMain() {
 (() => {
     "use strict";
     const VERSION = 1;
@@ -4026,7 +4028,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 12;
+    const VERSION = 15;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -4377,7 +4379,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     const TOKEN_PATH = "/auth/token";
     const TOK_KEY = "gateway-auth-tokens";
     const RT_KEY = "refresh_token";
-    const SKEW_MS = 4 * 60 * 1e3;
+    const SKEW_MS = 8 * 60 * 1e3;
     const TOKEN_TTL_S = 899;
     const auth = {
         form: null,
@@ -4602,7 +4604,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 84;
+    const VERSION = 90;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -4691,6 +4693,47 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         GBP: "£",
         JPY: "¥"
     };
+    const MCT = {
+        BER: 65,
+        BKK: 80,
+        BLQ: 60,
+        BOS: 67,
+        BRU: 50,
+        CAI: 70,
+        CGN: 50,
+        DEN: 111,
+        DUS: 45,
+        EWR: 94,
+        FCO: 60,
+        FRA: 45,
+        GRU: 120,
+        GVA: 105,
+        HAM: 60,
+        IAD: 63,
+        IAH: 110,
+        JNB: 65,
+        KIX: 80,
+        LAS: 66,
+        LAX: 110,
+        LHR: 70,
+        LIN: 60,
+        MUC: 40,
+        ORD: 85,
+        PMI: 95,
+        PRG: 35,
+        SPU: 85,
+        STR: 50,
+        VIE: 25,
+        WAW: 50,
+        WDH: 115,
+        YUL: 44,
+        YYC: 95,
+        ZAG: 40,
+        ZRH: 40
+    };
+    const MCT_DEFAULT = 60;
+    const RUN_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false">' + '<path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9' + "l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1" + '-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>';
+    const LOUNGE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">' + '<path fill="currentColor" d="M5.35 5.64c-.9-.64-1.12-1.88-.49-2.79.63-.9 1.88-1.12 2.79-.49.9.64 1.12' + " 1.88.49 2.79-.64.9-1.89 1.12-2.79.49zM16 19H8.93c-1.48 0-2.74-1.08-2.96-2.54L4 7H2l1.99 9.76A5.01 5.01" + " 0 0 0 8.94 21H16v-2zm.23-4h-4.88l-1.03-4.1c1.58.89 3.28 1.54 5.15 1.22V19h2v-7c-2.5.4-4.9-.85-6.03-2.72" + 'l-.98-1.63c-.42-.71-1.31-1-2.06-.68-.85.36-1.28 1.33-.99 2.21L9.9 15c.3 1.13 1.32 1.94 2.5 1.94h3.83V15z"/></svg>';
     const cashLabel = (amount, currency) => {
         if (null == amount) return "";
         if (!currency || "EUR" === currency) return money(amount) + " €";
@@ -4923,7 +4966,6 @@ html.mmrc-active .upsell-premium-pres-container > mat-accordion { display: none 
                  padding: 2px 0 2px; }
 .mmrc-seathead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .mmrc-seattitle { font-size: 12.5px; font-weight: 700; color: ${INK_primary}; }
-.mmrc-seatdir { margin-left: auto; font-size: 10px; color: ${INK_muted}; letter-spacing: .05em; }
 .mmrc-seatstats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px;
                   color: ${INK_secondary}; margin: 6px 0 4px; }
 .mmrc-seatstats i { display: inline-block; width: 10px; height: 10px; border-radius: 3px;
@@ -5136,6 +5178,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
 .mmrc-tsame { font-size: 10.5px; color: ${INK_muted}; font-variant-numeric: tabular-nums; }
 .mmrc-row.is-lay.is-long .mmrc-laymeta b,
 .mmrc-row.is-lay.is-tight .mmrc-laymeta b { color: #b02a2a; }
+.mmrc-run, .mmrc-lounge { display: inline-flex; vertical-align: -2px; margin-right: 1px; color: #b02a2a; }
 
 .mmrc-cols { display: grid; gap: 6px; grid-template-rows: auto auto auto 1fr auto;
              align-content: stretch; }
@@ -5788,7 +5831,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         const noPrice = data.warnings.indexOf("8700") >= 0;
         const failed = (data.failedCabins || []).filter(c => CABIN[c]);
         const nameOf = c => seatCabinName(leg, c);
-        return '<div class="mmrc-seathead">' + '<span class="mmrc-seattitle">Sitzplan ' + esc(leg.flightNo) + " · " + esc(leg.from) + " → " + esc(leg.to) + "</span>" + '<span class="mmrc-seatdir">Flugrichtung ✈</span></div>' + '<div class="mmrc-seatstats">' + function(decks, nameOf) {
+        return '<div class="mmrc-seathead">' + '<span class="mmrc-seattitle">Sitzplan ' + esc(leg.flightNo) + " · " + esc(leg.from) + " → " + esc(leg.to) + "</span></div>" + '<div class="mmrc-seatstats">' + function(decks, nameOf) {
             const per = {};
             decks.forEach(d => d.rows.forEach(r => Object.values(r.seats).forEach(s => {
                 const e = per[r.cabin] = per[r.cabin] || {
@@ -5915,7 +5958,8 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             const layHtml = ((lo, leg, next) => {
                 const dur = lo ? lo.duration : null;
                 const long = null != dur && dur >= 4 * 3600;
-                const tight = null != dur && dur <= 45 * 60;
+                const mct = MCT[String(leg.to || "").toUpperCase()] || MCT_DEFAULT;
+                const tight = null != dur && dur <= 60 * (mct + 15);
                 const airportChanged = leg.to && next && next.from && leg.to !== next.from;
                 const changed = !airportChanged && leg.termArr && next && next.termDep && leg.termArr !== next.termDep;
                 const place = (() => {
@@ -5926,7 +5970,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                     } catch (e) {}
                     return properCase(leg.toCity || leg.to || "");
                 })();
-                const time = null != dur ? `<b>${esc(fmtDur(dur))}</b>` : "";
+                const time = null != dur ? `${tight ? `<span class="mmrc-run" title="Kurze Umstiegszeit">${RUN_SVG}</span>` : long ? `<span class="mmrc-lounge" title="Langer Aufenthalt">${LOUNGE_SVG}</span>` : ""}<b>${esc(fmtDur(dur))}</b>` : "";
                 let cls = "", lead = "", mark = "";
                 if (airportChanged) {
                     cls = " is-apchange";
@@ -7955,7 +7999,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 2;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.0.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.0.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
@@ -8181,4 +8225,39 @@ jederzeit von Hand starten.</p>` : ""}
             }
         });
     } catch (e) {}
+})();
+    }
+
+    var sandboxed = false;
+    try {
+        sandboxed = (typeof window.wrappedJSObject !== 'undefined') ||
+            (typeof unsafeWindow !== 'undefined' && unsafeWindow !== window);
+    } catch (e) { }
+
+    if (!sandboxed) { __mmMain(); return; }
+
+    var code = '(' + __mmMain.toString() + ')();';
+    var injected = false;
+    function inject(root) {
+        if (injected) return true;
+        try {
+            var s = document.createElement('script');
+            s.textContent = code;
+            root.appendChild(s);
+            s.remove();
+            injected = true;
+            return true;
+        } catch (e) { return false; }
+    }
+
+    var root = document.documentElement || document.head;
+    if (root && inject(root)) return;
+
+    try {
+        var obs = new MutationObserver(function () {
+            var r = document.documentElement || document.head;
+            if (r && inject(r)) obs.disconnect();
+        });
+        obs.observe(document, { childList: true, subtree: true });
+    } catch (e) { }
 })();
