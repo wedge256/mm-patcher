@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 — 2026-08-22
+
+### Behoben
+
+- **Hin- und Rückflug sollten jetzt normal funktionieren**
+- **Tarifwahl funktioniert auch in englischsprachigen Sitzungen**
+- **Sitzplan: Preise werden auch in Euro umgerechnet**
+
+### Hinzugefügt
+
+- **Hinweis auf das aktive Buchungsbüro**, falls Zuzahlungen in Fremdwährung
+  berechnet werden
+
+### Geändert
+
+- **Tarif-Details nennen bei Fremdwährung zusätzlich den Originalbetrag**
+
 ## 1.0.2 — 2026-08-22
 
 ### Behoben
