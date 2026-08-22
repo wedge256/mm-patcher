@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.0.2
+// @version      1.1.0
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -115,7 +115,7 @@
 
 (() => {
     "use strict";
-    const VERSION = "1.10.6";
+    const VERSION = "1.11.1";
     const vnum = s => String(s || "0").split(".").reduce((a, n) => 1e3 * a + (parseInt(n, 10) || 0), 0);
     if (window.mmSearchUnlock && vnum(window.mmSearchUnlock.version) >= vnum(VERSION)) return;
     const FLAGS = [ "enableOriginDestinationModification", "showModifyExpansionButton", "showModifyCancelButton" ];
@@ -168,28 +168,7 @@
             const legs = body && body.itineraries;
             if (!legs || !legs.length) return null;
             const shown = shownRoute();
-            const date = function() {
-                const el = dateField();
-                const v = el && el.value || "";
-                let m = /(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/.exec(v);
-                if (m) return `${m[3]}-${String(m[2]).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
-                m = /(\d{4})-(\d{2})-(\d{2})/.exec(v);
-                if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-                m = /(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]{3})[A-Za-zÄÖÜäöü]*\.?\s*(\d{4})?/.exec(v);
-                if (m) {
-                    const mi = MONTHS_DE.indexOf(m[2].toLowerCase());
-                    if (mi >= 0) {
-                        let year = m[3] ? +m[3] : null;
-                        if (!year) {
-                            const now = new Date;
-                            year = now.getFullYear();
-                            (mi < now.getMonth() || mi === now.getMonth() && +m[1] < now.getDate()) && year++;
-                        }
-                        return `${year}-${String(mi + 1).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
-                    }
-                }
-                return null;
-            }();
+            const date = readDateField(dateField());
             const cabin = function() {
                 const el = document.querySelector(".cabin-field .mat-mdc-select-value, .cabin-field, .cabin-select");
                 const txt = el && el.textContent || "";
@@ -217,6 +196,11 @@
                 legs[0].departureDateTime = date + "T00:00:00.000";
                 changed = !0;
             }
+            const rdate = isReturnPair(legs) ? readDateField(returnField()) : null;
+            if (rdate && String(legs[1].departureDateTime || "").slice(0, 10) !== rdate) {
+                legs[1].departureDateTime = rdate + "T00:00:00.000";
+                changed = !0;
+            }
             let cabinChanged = !1;
             if (cabin && body.cabin && body.cabin !== cabin) {
                 body.cabin = cabin;
@@ -240,6 +224,7 @@
                     }
                 }
                 date && stored[0] && (stored[0].departureDateTime = date + "T00:00:00.000");
+                rdate && stored[1] && isReturnPair(stored) && (stored[1].departureDateTime = rdate + "T00:00:00.000");
                 if (cabin && cabinChanged) {
                     e.cabin = cabin;
                     const cff = cffFor(cabin);
@@ -596,7 +581,47 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         return lastRoute;
     }
     const dateField = () => document.querySelector('input[formcontrolname="departureDate"], .departure-date-ow input');
-    const MONTHS_DE = [ "jan", "feb", "mär", "apr", "mai", "jun", "jul", "aug", "sep", "okt", "nov", "dez" ];
+    const returnField = () => document.querySelector('input[formcontrolname="returnDate"], .return-date-rt input');
+    const MONTHS = {
+        jan: 0,
+        feb: 1,
+        "mär": 2,
+        mar: 2,
+        apr: 3,
+        mai: 4,
+        may: 4,
+        jun: 5,
+        jul: 6,
+        aug: 7,
+        sep: 8,
+        okt: 9,
+        oct: 9,
+        nov: 10,
+        dez: 11,
+        dec: 11
+    };
+    function readDateField(el) {
+        if (el && el.classList && el.classList.contains("ng-pristine")) return null;
+        const v = el && el.value || "";
+        let m = /(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/.exec(v);
+        if (m) return `${m[3]}-${String(m[2]).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+        m = /(\d{4})-(\d{2})-(\d{2})/.exec(v);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+        m = /(\d{1,2})\.?\s*([A-Za-zÄÖÜäöü]{3})[A-Za-zÄÖÜäöü]*\.?\s*(\d{4})?/.exec(v);
+        if (m) {
+            const mi = MONTHS[m[2].toLowerCase()];
+            if (mi >= 0) {
+                let year = m[3] ? +m[3] : null;
+                if (!year) {
+                    const now = new Date;
+                    year = now.getFullYear();
+                    (mi < now.getMonth() || mi === now.getMonth() && +m[1] < now.getDate()) && year++;
+                }
+                return `${year}-${String(mi + 1).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+            }
+        }
+        return null;
+    }
     const CFF_FALLBACK = {
         ECONOMY: "CFFECODYN",
         PREMIUMECO: "CFFPECODYN",
@@ -862,7 +887,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 44;
+    const VERSION = 45;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -893,7 +918,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         iata: "search",
         iataExt: "search",
         bbd: "calendar",
-        currency: "calendar",
         seatmap: "results"
     };
     const GROUPS = [ {
@@ -921,10 +945,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             key: "bbd",
             label: "📈 Best-by-Day-Preise",
             tip: "Ergänzt den Kalender um die von der Hauptseite bekannten " + "Preise. [findet für jeden Tag den besten Preis/Kabine]; " + "wird serverseitig lange gecached und ist demnach oft nicht " + "mehr aktuell."
-        }, {
-            key: "currency",
-            label: "💱 Währungsumrechnung",
-            tip: "Zeigt bei Fremdwährungen den Betrag in € an."
         } ]
     }, {
         key: "results",
@@ -938,6 +958,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }, {
         header: "🧰 Wartung & Sonstiges",
         subs: [ {
+            key: "currency",
+            label: "💱 Währungsumrechnung",
+            tip: "Zeigt bei Fremdwährungen den Betrag in € an — Kalender, " + "Ergebniskarten und Sitzplan."
+        }, {
             key: "keepalive",
             label: "🔐 Angemeldet bleiben",
             tip: "Verhindert, dass die Session nach 15 Minuten Inaktivität " + "beendet wird."
@@ -1613,7 +1637,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 6;
+    const VERSION = 7;
     if (window.__mmCurrency && window.__mmCurrency.version >= VERSION) return;
     const inherited = window.__mmCurrency;
     if (inherited) try {
@@ -1757,7 +1781,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     state.toEUR = (amount, currency) => {
         if (!(() => {
             const s = window.__mmSettings;
-            return !s || !1 !== s.get("calendar") && !1 !== s.get("currency");
+            return !s || !1 !== s.get("currency");
         })()) return null;
         if (null == amount || !currency) return null;
         if ("EUR" === currency) return amount;
@@ -1789,10 +1813,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 14;
+    const VERSION = 17;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
+    const FLEX_ROUNDTRIP = 7;
     const CAL_RE = /air-calendars/i;
     const BOUNDS_RE = /air-bounds/i;
     const CACHE_KEY = "mmcal_cache";
@@ -1940,9 +1965,13 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         state.poolsLoaded.clear();
         emit();
     };
+    function requestedItin(body) {
+        const its = body && body.itineraries || [];
+        return its.find(x => x && !0 === x.isRequestedBound) || its[0] || null;
+    }
     function routeKeyOf(body) {
         try {
-            const it = body.itineraries[0];
+            const it = requestedItin(body);
             return it.originLocationCode + "-" + it.destinationLocationCode;
         } catch (e) {
             return null;
@@ -1997,16 +2026,36 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const RAW_MAX = 24;
     const RAW_TTL_MS = CACHE_TTL_MS;
     const rawReplies = new Map;
+    function varyingDateKey(json) {
+        const deps = new Set, rets = new Set;
+        (json.data || []).forEach(e => {
+            e.departureDate && deps.add(e.departureDate);
+            e.returnDate && rets.add(e.returnDate);
+        });
+        return rets.size > deps.size ? "returnDate" : "departureDate";
+    }
+    function requestedBoundOf(json) {
+        const first = (json.data || []).find(e => e.bounds && e.bounds.length);
+        if (!first) return null;
+        const idx = "returnDate" === varyingDateKey(json) ? first.bounds.length - 1 : 0;
+        return first.bounds[idx] || null;
+    }
     function parse(json) {
         const out = [];
         const dicts = json.dictionaries || {};
         const fareDict = dicts.fareFamilyWithServices || {};
         const currencyDict = dicts.currency || {};
+        const dateKey = varyingDateKey(json);
         (json.data || []).forEach(entry => {
             const code = entry.fareFamilyCode || null;
             let miles = null, taxes = null, currency = null;
             try {
-                const p = entry.prices;
+                let p = entry.prices;
+                const bs = entry.bounds;
+                if (bs && bs.length > 1) {
+                    const b = bs["returnDate" === dateKey ? bs.length - 1 : 0];
+                    b && b.prices && (p = b.prices);
+                }
                 const unit = Array.isArray(p) ? p[0] : p.unitPrices ? p.unitPrices[0] : null;
                 if (unit) {
                     const price = Array.isArray(unit.prices) ? unit.prices[0] : unit.prices;
@@ -2019,7 +2068,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 }
             } catch (e) {}
             out.push({
-                date: entry.departureDate,
+                date: entry[dateKey],
                 fareFamilyCode: code,
                 cabin: code && fareDict[code] ? fareDict[code].cabin : null,
                 miles: miles,
@@ -2129,7 +2178,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 const {days: days, dictionaries: dictionaries} = parse(json);
                 if (!days.length) return;
                 try {
-                    const b = json.data[0].bounds[0];
+                    const b = requestedBoundOf(json);
                     switchRoute(b.originLocationCode + "-" + b.destinationLocationCode);
                 } catch (e) {}
                 merge(days);
@@ -2137,7 +2186,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 state.dictionaries = dictionaries;
                 state.responses++;
                 try {
-                    const b = json.data[0].bounds[0];
+                    const b = requestedBoundOf(json);
                     state.route = b.originLocationCode + "-" + b.destinationLocationCode;
                     state.routeKey = state.routeKey || state.route;
                 } catch (e) {}
@@ -2152,10 +2201,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         widenRequest: function(bodyText) {
             try {
                 const body = JSON.parse(bodyText);
-                const it = body.itineraries && body.itineraries[0];
+                const its = body.itineraries || [];
+                const it = requestedItin(body);
                 if (!it) return null;
-                if (it.flexibility === FLEXIBILITY) return null;
-                it.flexibility = FLEXIBILITY;
+                const flex = its.length > 1 ? FLEX_ROUNDTRIP : FLEXIBILITY;
+                if (it.flexibility === flex) return null;
+                it.flexibility = flex;
                 state.requests++;
                 return JSON.stringify(body);
             } catch (e) {
@@ -2272,7 +2323,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                     c.state.pendingTemplate = null;
                 } else res.ok || (c.state.pendingTemplate = null);
                 res.clone().text().then(text => {
-                    key && c.rememberRaw(key, text);
+                    key && res.ok && c.rememberRaw(key, text);
                     try {
                         h().ingest(JSON.parse(text));
                     } catch (e) {}
@@ -2360,17 +2411,28 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         emit();
         try {
             const body = JSON.parse(state.template.body);
-            const it = body.itineraries[0];
-            const centre = new Date(year, month, 16);
+            const flex = (body.itineraries || []).length > 1 ? FLEX_ROUNDTRIP : FLEXIBILITY;
+            const span = 2 * flex + 1;
             const today = new Date;
             today.setHours(0, 0, 0, 0);
-            const c = centre < today ? today : centre;
-            it.departureDateTime = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, "0")}-` + `${String(c.getDate()).padStart(2, "0")}T00:00:00.000`;
-            it.flexibility = FLEXIBILITY;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = firstLoadableDay(year, month);
+            const centres = [];
+            for (let d = firstDay; d <= daysInMonth; d += span) {
+                let c = new Date(year, month, Math.min(d + flex, daysInMonth));
+                c < today && (c = today);
+                centres.push(c);
+            }
+            state.progress = {
+                done: 0,
+                total: pools.length * centres.length
+            };
             const results = await Promise.all(pools.map(async pool => {
                 const headers = {
                     ...state.template.headers
                 };
+                const poolBody = JSON.parse(state.template.body);
+                const poolIt = requestedItin(poolBody);
                 if (pool) {
                     Object.keys(headers).forEach(k => {
                         "ama-client-facts" === k.toLowerCase() && delete headers[k];
@@ -2380,40 +2442,52 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         cabin: pool,
                         isCompanion: "true"
                     }), btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) + ".";
+                    delete poolBody.selectedBoundId;
                 }
                 var s;
-                try {
-                    const res = await originalFetch(state.template.url, {
-                        method: state.template.method,
-                        headers: headers,
-                        body: JSON.stringify(body),
-                        credentials: "include"
-                    });
-                    if (!res.ok) return {
-                        status: res.status
-                    };
-                    const json = await res.json();
-                    if (state.routeKey !== routeAtStart) return {
-                        stale: !0
-                    };
-                    const {days: days, dictionaries: dictionaries} = parse(json);
-                    merge(days);
-                    noteMonths(days);
-                    dictionaries && (state.dictionaries = dictionaries);
-                    state.responses++;
-                    state.progress && state.progress.done++;
-                    pool && state.poolsLoaded.add(poolKey(key, pool));
-                    emit();
-                    return {
-                        ok: !0,
-                        pool: pool
-                    };
-                } catch (e) {
-                    return {
-                        failed: e && e.message || "Netzwerkfehler",
-                        pool: pool
-                    };
+                let okCount = 0, lastStatus = null, lastFailed = null;
+                for (const c of centres) {
+                    poolIt.departureDateTime = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, "0")}-` + `${String(c.getDate()).padStart(2, "0")}T00:00:00.000`;
+                    poolIt.flexibility = flex;
+                    try {
+                        const res = await originalFetch(state.template.url, {
+                            method: state.template.method,
+                            headers: headers,
+                            body: JSON.stringify(poolBody),
+                            credentials: "include"
+                        });
+                        if (!res.ok) {
+                            lastStatus = res.status;
+                            continue;
+                        }
+                        const json = await res.json();
+                        if (state.routeKey !== routeAtStart) return {
+                            stale: !0
+                        };
+                        const {days: days, dictionaries: dictionaries} = parse(json);
+                        merge(days);
+                        noteMonths(days);
+                        dictionaries && (state.dictionaries = dictionaries);
+                        state.responses++;
+                        state.progress && state.progress.done++;
+                        okCount++;
+                        emit();
+                    } catch (e) {
+                        lastFailed = e && e.message || "Netzwerkfehler";
+                    }
                 }
+                if (!okCount) return lastStatus ? {
+                    status: lastStatus,
+                    pool: pool
+                } : {
+                    failed: lastFailed || "Netzwerkfehler",
+                    pool: pool
+                };
+                pool && state.poolsLoaded.add(poolKey(key, pool));
+                return {
+                    ok: !0,
+                    pool: pool
+                };
             }));
             if (state.routeKey !== routeAtStart) return "stale";
             if (!results.filter(r => r.ok).length) {
@@ -3069,7 +3143,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 62;
+    const VERSION = 66;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -3222,11 +3296,24 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             return !1;
         }
     })();
+    function activeBoundIdx() {
+        const m = /availability\/(\d+)/.exec(location.pathname || "");
+        return m ? parseInt(m[1], 10) : 0;
+    }
+    function boundLabel() {
+        try {
+            const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
+            return (o.entities[o.selectedAirBoundsSearchId].itineraries || []).length < 2 ? "" : '<span class="mmcal-bound">' + (activeBoundIdx() > 0 ? "Rückflug:" : "Hinflug:") + "</span>";
+        } catch (e) {
+            return "";
+        }
+    }
     function currentSearchDate() {
         try {
             const raw = sessionStorage.getItem(SEARCH_KEY);
             const j = JSON.parse(raw);
-            return j.entities[j.selectedAirBoundsSearchId].itineraries[0].departureDateTime.slice(0, 10);
+            const its = j.entities[j.selectedAirBoundsSearchId].itineraries;
+            return its[Math.min(activeBoundIdx(), its.length - 1)].departureDateTime.slice(0, 10);
         } catch (e) {
             return null;
         }
@@ -3247,6 +3334,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             if (state.lastSearchDate && searchDate !== state.lastSearchDate) {
                 state.selectedDate = null;
                 state.dayOffset = 0;
+                state.pickNotice = null;
             }
             state.lastSearchDate = searchDate;
         }
@@ -3309,7 +3397,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         syncAnchorToSearch();
         if (state.folded) {
             state.root.classList.add("is-folded");
-            state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + esc((cal.route || "").replace("-", " → ")) + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn is-wide" data-fold="1" aria-expanded="false">' + "Kalender zeigen ▾</button>" + "</span>" + "</div>";
+            state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + boundLabel() + esc((cal.route || "").replace("-", " → ")) + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn is-wide" data-fold="1" aria-expanded="false">' + "Kalender zeigen ▾</button>" + "</span>" + "</div>";
             wireFoldBtn();
             return;
         }
@@ -3413,7 +3501,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const known = win.filter(w => Object.keys(w.cells).length).length;
         const searching = !cal.loading && cal.searchingSince && Date.now() - cal.searchingSince < 45e3;
         const isLoading = !!cal.loading || !!searching;
-        const showOverlay = !!searching || !!cal.loading && !known;
+        const showOverlay = !(!searching && !cal.loading || known);
         const loadingMonth = (() => {
             const m = /^(\d{4})-(\d{2})$/.exec(String(cal.loading || ""));
             return m ? new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleDateString("de-DE", {
@@ -3452,10 +3540,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 return !0;
             }(win) ? '<div class="mmcal-msg">Keine Prämienflüge vom ' + span + ".</div>" : '<div class="mmcal-msg">Für ' + span + " sind noch keine Preise geladen. " + '<button type="button" class="mmcal-btn is-wide" data-load="1">Preise laden</button></div>';
         }
+        state.pickNotice && (body += '<div class="mmcal-noteline">' + esc(state.pickNotice) + "</div>");
         const legend = order.filter(c => cabinsPresent.has(c)).map(c => '<span class="mmcal-legend-item"><span class="mmcal-pip" style="background:' + CABIN_META[c].color + '"></span>' + CABIN_META[c].full + "</span>").join("");
         const wantAll = !!cal.allCabins;
-        const route = esc((cal.route || "").replace("-", " → "));
-        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (isLoading || atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (isLoading || !state.dayOffset ? " disabled" : "") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (isLoading ? " disabled" : "") + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<span class="mmcal-legend">' + (legend || "<span>keine Verfügbarkeit im Zeitraum</span>") + "</span>" + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen. Das sind vier Abfragen statt einer.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
+        const route = boundLabel() + esc((cal.route || "").replace("-", " → "));
+        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (isLoading || atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (isLoading || !state.dayOffset ? " disabled" : "") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (isLoading ? " disabled" : "") + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<span class="mmcal-legend">' + (legend || "<span>keine Verfügbarkeit im Zeitraum</span>") + "</span>" + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen. Das sind vier Abfragen statt einer.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
         const loadBtn = state.root.querySelector("[data-load]");
         loadBtn && loadBtn.addEventListener("click", () => ensureMonthLoaded());
         const poolsBtn = state.root.querySelector("[data-pools]");
@@ -3583,7 +3672,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             return !!await until(() => readNativeCabin() === apiCabin, 2e3);
         }(opts.cabin)) return !1;
         if (opts.date && !await async function(dateStr) {
-            const input = document.querySelector('input[formcontrolname="departureDate"], .departure-date-ow input');
+            const input = activeBoundIdx() > 0 ? document.querySelector('input[formcontrolname="returnDate"], .return-date-rt input') : document.querySelector('input[formcontrolname="departureDate"], .departure-date-ow input');
             if (!input) return !1;
             const d = parseISO(dateStr);
             const current = input.value || "";
@@ -3650,6 +3739,30 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const hit = OPTION_CABIN.find(([label]) => t.includes(label));
         return hit ? hit[1] : null;
     }
+    const MONTH_STEM = {
+        jan: 0,
+        feb: 1,
+        "mär": 2,
+        mar: 2,
+        apr: 3,
+        mai: 4,
+        may: 4,
+        jun: 5,
+        jul: 6,
+        aug: 7,
+        sep: 8,
+        okt: 9,
+        oct: 9,
+        nov: 10,
+        dez: 11,
+        dec: 11
+    };
+    function stripBtnDate(btn) {
+        const m = /(\d{1,2})\.?\s+([A-Za-zÄÖÜäöü]+)\s+(\d{4})/.exec(btn.textContent || "");
+        if (!m) return null;
+        const mi = MONTH_STEM[m[2].slice(0, 3).toLowerCase()];
+        return null == mi ? null : m[3] + "-" + pad(mi + 1) + "-" + pad(+m[1]);
+    }
     async function selectDate(dateStr, cabin) {
         const wantCabin = cabin && API_CABIN[cabin] ? API_CABIN[cabin] : null;
         const cabinStays = !wantCabin || wantCabin === function() {
@@ -3670,21 +3783,64 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         state.selectedDate = dateStr;
         state.navigating = dateStr;
         state.dayOffset = 0;
+        state.pickNotice = null;
         render();
-        let ran = !1;
+        let path = null;
         try {
-            ran = await runNativeSearch({
+            if (cabinStays && activeBoundIdx() > 0) {
+                const via = await async function(dateStr) {
+                    const grab = () => [ ...document.querySelectorAll("refx-calendar-cont button.calendar-btn") ];
+                    if (!grab().length) return !1;
+                    for (let hops = 0; hops < 30; hops++) {
+                        const btns = grab();
+                        const dates = btns.map(stripBtnDate);
+                        const i = dates.indexOf(dateStr);
+                        if (i >= 0) {
+                            if (btns[i].disabled) return "unavailable";
+                            btns[i].click();
+                            return !0;
+                        }
+                        const known = dates.filter(Boolean);
+                        if (!known.length) return !1;
+                        const nav = document.querySelector("refx-calendar-cont " + (dateStr < known[0] ? ".more-dates-past-btn" : ".more-dates-future-btn"));
+                        if (!nav || nav.disabled) return !1;
+                        nav.click();
+                        const before = known[0] + "|" + known[known.length - 1];
+                        if (!await until(() => {
+                            const now = grab().map(stripBtnDate).filter(Boolean);
+                            return now.length && now[0] + "|" + now[now.length - 1] !== before;
+                        }, 3e3)) return !1;
+                    }
+                    return !1;
+                }(dateStr);
+                if ("unavailable" === via) {
+                    clearNavigating();
+                    state.selectedDate = dateStr;
+                    const msg = "Am " + parseISO(dateStr).toLocaleDateString("de-DE", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    }) + " gibt es zum gewählten Hinflug keinen Rückflug.";
+                    const cards = window.__mmCards;
+                    cards && cards.showNoOffer && cards.showNoOffer(msg) || (state.pickNotice = msg);
+                    render();
+                    return;
+                }
+                via && (path = "streifen");
+            }
+            !path && await runNativeSearch({
                 date: dateStr,
                 cabin: cabinStays ? void 0 : wantCabin
-            });
+            }) && (path = "formular");
         } finally {
-            ran || clearNavigating();
+            path || clearNavigating();
         }
         state.lastPick = {
             date: dateStr,
-            path: ran ? "formular" : "reload"
+            path: path || "reload"
         };
-        if (ran) {
+        if (path) {
             !function() {
                 navTimer && clearTimeout(navTimer);
                 navTimer = setTimeout(() => {
@@ -3699,7 +3855,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         } else try {
             const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
             const entity = o.entities[o.selectedAirBoundsSearchId];
-            entity.itineraries[0].departureDateTime = dateStr + "T00:00:00.000";
+            const idx = Math.min(activeBoundIdx(), entity.itineraries.length - 1);
+            entity.itineraries[idx].departureDateTime = dateStr + "T00:00:00.000";
             if (wantCabin) {
                 entity.cabin = wantCabin;
                 const cff = cffFor(wantCabin);
@@ -3730,6 +3887,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
               margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid ${INK_hairline}; }
 .mmcal-route { font-size: 15px; font-weight: 700; color: ${INK_primary}; letter-spacing: .01em; }
+.mmcal-bound { font-weight: 600; color: ${INK_secondary}; margin-right: 6px; }
 .mmcal-nav { margin-left: auto; display: flex; gap: 5px; align-items: center; }
 .mmcal-btn { font: inherit; font-size: 13px; line-height: 1; border: 1px solid ${INK_hairline};
              background: #fff; color: ${INK_primary}; border-radius: 5px; width: 27px; height: 26px;
@@ -3823,12 +3981,15 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-msg { font-size: 13px; color: ${INK_secondary}; padding: 14px 4px; text-align: center; }
 .mmcal-err { color: #963e37; }
 .mmcal-errline { font-size: 11.5px; color: #963e37; padding: 4px 4px 0; text-align: right; }
+.mmcal-noteline { font-size: 11.5px; color: #7a5c12; padding: 4px 4px 0; text-align: right; }
 .mmcal-body { position: relative; }
 .mmcal-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.82);
                  display: flex; align-items: center; justify-content: center; gap: 9px;
                  font-size: 13px; color: ${INK_secondary}; }
 .mmcal-spinner { width: 16px; height: 16px; border: 2px solid ${INK_hairline};
                  border-top-color: ${INK_primary}; border-radius: 50%; animation: mmcal-spin .9s linear infinite; }
+.mmcal-headspin { display: inline-block; width: 12px; height: 12px;
+                  margin-left: 8px; vertical-align: -1px; }
 @keyframes mmcal-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mmcal-spinner { animation-duration: 2.4s; } }
 `;
@@ -4028,7 +4189,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 15;
+    const VERSION = 17;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -4129,6 +4290,11 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             i >= 0 && state.reqListeners.splice(i, 1);
         };
     };
+    const emit = () => state.listeners.forEach(fn => {
+        try {
+            fn(state);
+        } catch (e) {}
+    });
     const emitRequest = active => state.reqListeners.forEach(fn => {
         try {
             fn(active);
@@ -4267,6 +4433,18 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     }
     function ingest(json) {
         try {
+            if (json && Array.isArray(json.errors) && json.errors.length) {
+                const e = json.errors[0] || {};
+                state.lastError = {
+                    code: e.code || null,
+                    title: e.title || null,
+                    detail: e.detail || null,
+                    t: Date.now()
+                };
+                emit();
+                return;
+            }
+            state.lastError = null;
             const dicts = json.dictionaries || {};
             const groups = json.data && json.data.airBoundGroups || [];
             state.dictionaries = state.dictionaries || {};
@@ -4275,6 +4453,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             });
             state.lastRaw = json;
             const keys = [];
+            const dup = new Map;
             groups.forEach(g => {
                 const it = function(group, dicts) {
                     const bd = group.boundDetails;
@@ -4349,18 +4528,16 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                         fares: normaliseFares(group, dicts, legs)
                     };
                 }(g, state.dictionaries);
-                if (it) {
-                    state.bounds.set(it.key, it);
-                    keys.push(it.key);
-                }
+                if (!it) return;
+                const n = (dup.get(it.key) || 0) + 1;
+                dup.set(it.key, n);
+                n > 1 && (it.key += "#" + n);
+                state.bounds.set(it.key, it);
+                keys.push(it.key);
             });
             state.current = keys;
             state.responses++;
-            state.listeners.forEach(fn => {
-                try {
-                    fn(state);
-                } catch (e) {}
-            });
+            emit();
         } catch (e) {}
     }
     state.reingest = () => {
@@ -4604,7 +4781,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 90;
+    const VERSION = 98;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -4693,6 +4870,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         GBP: "£",
         JPY: "¥"
     };
+    const curSym = c => CUR_SYMBOL[c] || c || "";
     const MCT = {
         BER: 65,
         BKK: 80,
@@ -4742,8 +4920,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             const eur = c && c.toEUR ? c.toEUR(amount, currency) : null;
             if (null != eur) return money(eur) + " €";
         } catch (e) {}
-        return money(amount) + " " + (CUR_SYMBOL[c = currency] || c || "");
-        var c;
+        return money(amount) + " " + curSym(currency);
     };
     const properCase = s => String(null == s ? "" : s).replace(/[A-ZÄÖÜ][A-ZÄÖÜ'’-]+/g, w => w.charAt(0) + w.slice(1).toLowerCase());
     const fmtDur = sec => {
@@ -5082,6 +5259,8 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                    border: 1px solid ${INK_hairline}; background: #fff; color: ${INK_primary};
                    border-radius: 999px; padding: 5px 13px; cursor: pointer; }
 .mmrc-msg button:hover { border-color: #b9c6e0; background: #f3f6fc; }
+.mmrc-office { padding: 10px 16px; font-size: 12.5px; color: ${INK_muted}; }
+.mmrc-office a { color: ${INK_accent}; text-decoration: underline; }
 
 .mmrc-bar-text { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: ${INK_secondary}; }
 .mmrc-skel { display: flex; flex-direction: column; gap: 12px; }
@@ -5190,6 +5369,9 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                 grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr);
                 transition: transform .45s cubic-bezier(.4, .1, .2, 1); }
 .mmrc-col.is-open .mmrc-colflip { transform: rotateY(180deg); }
+.mmrc-col.mmrc-instant .mmrc-colflip,
+.mmrc-col.mmrc-instant .mmrc-colface-front,
+.mmrc-col.mmrc-instant .mmrc-colface-back { transition: none; }
 .mmrc-colface { grid-row: 1/-1; grid-column: 1; min-width: 0;
                 border: 1.5px solid color-mix(in srgb, var(--mmc) 62%, #fff);
                 border-radius: 8px; background: #fff; }
@@ -5369,6 +5551,12 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         Object.keys(dict).forEach(k => {
             chars[k] = dict[k].name || k;
         });
+        const curDict = (j.dictionaries || {}).currency || {};
+        const realAmount = (total, cur) => {
+            if (null == total) return null;
+            const dp = (curDict[cur] || {}).decimalPlaces;
+            return total / Math.pow(10, null == dp ? 2 : dp);
+        };
         const decks = [];
         ((j.data || {}).seatmaps || []).forEach(m => (m.decks || []).forEach(d => {
             const rows = new Map;
@@ -5390,10 +5578,11 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                     seats: {},
                     x: s.coordinates ? s.coordinates.x : null
                 });
+                const price0 = (t.prices || [])[0] || {};
                 rows.get(row).seats[m2[2]] = {
                     free: "available" === t.seatAvailabilityStatus,
-                    price: ((t.prices || [])[0] || {}).total,
-                    currency: ((t.prices || [])[0] || {}).currencyCode,
+                    price: realAmount(price0.total, price0.currencyCode),
+                    currency: price0.currencyCode,
                     chars: t.seatCharacteristicsCodes || [],
                     y: s.coordinates ? s.coordinates.y : null
                 };
@@ -5795,7 +5984,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                 const top = (place.at[L] + place.seat / 2) * cell - sh / 2;
                 const meta = CABIN[r.cabin];
                 const names = (s.chars || []).map(k => SEAT_CHAR[k]).filter(Boolean);
-                const tip = r.row + L + " · " + nameOf(r.cabin) + "\n" + (s.free ? "frei" + (null != s.price ? " · " + money(s.price / 100) + " " + (s.currency || "") : "") : "belegt") + (names.length ? "\n" + names.join(" · ") : "");
+                const tip = r.row + L + " · " + nameOf(r.cabin) + "\n" + (s.free ? "frei" + (null != s.price ? " · " + cashLabel(s.price, s.currency) : "") : "belegt") + (names.length ? "\n" + names.join(" · ") : "");
                 return '<div class="mmrc-seat' + (s.free ? "" : " is-occupied") + '" style="--seatc:' + (meta ? meta.color : "#888") + ";top:" + top.toFixed(1) + "px;height:" + sh.toFixed(1) + 'px" title="' + esc(tip) + '">' + (wide ? esc(L) : "") + "</div>";
             }).join("");
             html += '<td class="' + colCls[i] + '"' + colSty[i] + '><div class="mmrc-rowbox" style="height:' + H + 'px">' + seats + "</div></td>";
@@ -5837,17 +6026,21 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                 const e = per[r.cabin] = per[r.cabin] || {
                     free: 0,
                     total: 0,
-                    min: null
+                    min: null,
+                    cur: null
                 };
                 e.total++;
                 if (s.free) {
                     e.free++;
-                    null != s.price && (e.min = null == e.min ? s.price : Math.min(e.min, s.price));
+                    if (null != s.price && (null == e.min || s.price < e.min)) {
+                        e.min = s.price;
+                        e.cur = s.currency;
+                    }
                 }
             })));
             return ORDER.filter(c => per[c]).map(c => {
                 const e = per[c];
-                return '<span><i style="border-color:' + CABIN[c].color + '"></i>' + esc(nameOf(c)) + ": " + e.free + " von " + e.total + " frei" + (null != e.min ? ", ab " + money(e.min / 100) + " EUR" : "") + "</span>";
+                return '<span><i style="border-color:' + CABIN[c].color + '"></i>' + esc(nameOf(c)) + ": " + e.free + " von " + e.total + " frei" + (null != e.min ? ", ab " + esc(cashLabel(e.min, e.cur)) : "") + "</span>";
             }).join("");
         }(data.decks, nameOf) + "</div>" + '<div class="mmrc-seatlegend"><span>umrandet = frei</span>' + '<span><i class="is-occupied"></i>belegt</span>' + '<span class="is-exit">EXIT = Notausstiegsreihe</span></div>' + (data.decks.length > 1 ? '<div class="mmrc-decktabs">' + data.decks.map((d, i) => '<button type="button" class="mmrc-decktab' + (i === mainDeckIdx(data.decks) ? " is-on" : "") + '" data-deck="' + i + '">' + esc(DECK_NAME[d.type] || d.type) + "</button>").join("") + "</div>" : "") + '<div class="mmrc-planes"><div class="mmrc-planesin">' + data.decks.map((d, di) => {
             const stairs = data.decks.length > 1 ? /A380|380/i.test(leg.aircraftName || "") || /^(L38|G38)/.test(leg.acv || "") ? "both" : "fore" : null;
@@ -5993,7 +6186,11 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
     }
     function detailRows(f) {
         const rows = [];
-        null != f.cash && rows.push([ "Zuzahlung", cashLabel(f.cash, f.currency), "" ]);
+        if (null != f.cash) {
+            let z = cashLabel(f.cash, f.currency);
+            f.currency && "EUR" !== f.currency && !z.endsWith(curSym(f.currency)) && (z += " (" + money(f.cash) + " " + curSym(f.currency) + ")");
+            rows.push([ "Zuzahlung", z, "" ]);
+        }
         null != f.seatsLeft && rows.push([ "Freie Plätze", String(f.seatsLeft), f.seatsLeft <= 3 ? "is-no" : "" ]);
         f.baggage && rows.push([ "Aufgabegepäck", bagText(f.baggage), "" ]);
         f.cabinBag && rows.push([ "Handgepäck", bagText(f.cabinBag), "" ]);
@@ -6132,7 +6329,15 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                             }, 5e3);
                         }
                     };
-                    const CART = "Warenkorb wird geöffnet …";
+                    const CART = (() => {
+                        try {
+                            if (!/availability\/0(\/|$)/.test(location.pathname)) return "Warenkorb wird geöffnet …";
+                            const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+                            return (o.entities[o.selectedAirBoundsSearchId].itineraries || []).length > 1 ? "Rückflüge werden geladen …" : "Warenkorb wird geöffnet …";
+                        } catch (e) {
+                            return "Warenkorb wird geöffnet …";
+                        }
+                    })();
                     const id = "selectFare-" + fare.airBoundId + "-" + fare.code;
                     const find = () => document.querySelector('[id="' + id.replace(/"/g, '\\"') + '"]');
                     const direct = find();
@@ -6142,6 +6347,9 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                         return;
                     }
                     const native = function(key) {
+                        const km = /^(.*?)(?:#(\d+))?$/.exec(String(key || ""));
+                        const want = km[1], nth = km[2] ? parseInt(km[2], 10) : 1;
+                        let hits = 0;
                         const cards = document.querySelectorAll("refx-flight-card-pres");
                         for (const card of cards) try {
                             let txt = "";
@@ -6154,9 +6362,9 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                             const times = txt.match(/\b(\d{2}:\d{2})\b/g);
                             const codes = txt.match(/\b([A-Z]{3})\b/g);
                             if (!times || times.length < 2 || !codes || codes.length < 2) continue;
-                            const stopM = /(\d+)[^0-9]{0,24}?Stopp|Direktflug|Nonstop/i.exec(txt);
-                            const stops = /Direkt|Nonstop/i.test(txt) ? 0 : stopM ? parseInt(stopM[1]) : 0;
-                            if (codes[0] + "|" + codes[1] + "|" + times[0] + "|" + times[1] + "|" + stops === key) return card;
+                            const stopM = /(\d+)[^0-9]{0,24}?stopp?s?\b/i.exec(txt);
+                            const stops = /direkt|direct|nonstop/i.test(txt) ? 0 : stopM ? parseInt(stopM[1]) : 0;
+                            if (codes[0] + "|" + codes[1] + "|" + times[0] + "|" + times[1] + "|" + stops === want && ++hits === nth) return card;
                         } catch (e) {}
                         return null;
                     }(boundKey);
@@ -6170,15 +6378,32 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                         fail("Auswahl nicht möglich. Seite neu laden.");
                         return;
                     }
+                    const had = new Set(document.querySelectorAll('[id^="selectFare-"]'));
+                    const suffix = "-" + fare.code;
                     busy("Tarif wird gewählt …");
                     cabinBtn.click();
                     const deadline = Date.now() + 8e3;
+                    let retried = !1;
                     const tick = () => {
-                        const target = find();
+                        const target = find() || (() => {
+                            for (const b of document.querySelectorAll('[id^="selectFare-"]')) if (!had.has(b) && b.id.endsWith(suffix)) return b;
+                            return null;
+                        })();
                         if (target) {
                             busy(CART);
                             target.click();
-                        } else Date.now() < deadline ? setTimeout(tick, 140) : fail("Tarif nicht wählbar");
+                            return;
+                        }
+                        const left = deadline - Date.now();
+                        if (left <= 0) fail("Tarif nicht wählbar"); else {
+                            if (!retried && left < 4e3) {
+                                retried = !0;
+                                try {
+                                    cabinBtn.click();
+                                } catch (e) {}
+                            }
+                            setTimeout(tick, 140);
+                        }
                     };
                     setTimeout(tick, 160);
                 }(f, choose, boundKey);
@@ -6454,6 +6679,48 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         return list;
     }
     let searching = 0;
+    let noOffer = null;
+    state.showNoOffer = text => {
+        if (state.superseded || !cardsOn()) return !1;
+        if (!listEl()) return !1;
+        noOffer = String(text || "");
+        render();
+        return !0;
+    };
+    function restartSearch() {
+        try {
+            const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+            const e = o.entities[o.selectedAirBoundsSearchId];
+            const search = {
+                itineraries: (e.itineraries || []).map(i => ({
+                    originLocationCode: i.originLocationCode,
+                    destinationLocationCode: i.destinationLocationCode,
+                    departureDateTime: i.departureDateTime
+                })),
+                travelers: e.travelers || [ {
+                    passengerTypeCode: "ADT"
+                } ]
+            };
+            e.cabin && (search.cabin = e.cabin);
+            e.commercialFareFamilies && (search.commercialFareFamilies = e.commercialFareFamilies);
+            const lang = document.documentElement.lang || "de-DE";
+            const country = (lang.split("-")[1] || "DE").toLowerCase();
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "https://shop.miles-and-more.com/reward/reward/availability?lang=" + encodeURIComponent(lang) + "&portalCountry=" + encodeURIComponent(country);
+            form.style.display = "none";
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "search";
+            input.value = JSON.stringify(search);
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            return !0;
+        } catch (err) {
+            return !1;
+        }
+    }
     function skeleton(list) {
         const card = '<div class="mmrc-skel-card">' + '<div class="mmrc-skel-tl"><i></i><i></i><i></i></div>' + '<div class="mmrc-skel-col"></div><div class="mmrc-skel-col"></div></div>';
         list.innerHTML = '<li><div class="mmrc-bar-text">Flüge werden gesucht …</div>' + '<div class="mmrc-skel">' + card + card + card + "</div></li>";
@@ -6466,6 +6733,31 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         document.documentElement.classList.add("mmrc-active");
         if (searching) {
             list.querySelector(".mmrc-skel") || skeleton(list);
+            return;
+        }
+        const lastErr = (boundsData() || {}).lastError;
+        if (lastErr) {
+            list.innerHTML = "";
+            const li = document.createElement("li");
+            li.className = "mmrc-msg mmrc-nooffer";
+            const expired = "65012" === String(lastErr.code);
+            li.innerHTML = esc(expired ? "Der gewählte Hinflug ist abgelaufen." : "Suche fehlgeschlagen" + (lastErr.code ? " (" + lastErr.code + (lastErr.detail ? ": " + lastErr.detail : "") + ")" : "") + ".") + '<button type="button" class="mmrc-restart">Suche neu starten</button>';
+            li.querySelector(".mmrc-restart").addEventListener("click", restartSearch);
+            list.appendChild(li);
+            state.counts.shown = 0;
+            state.counts.total = 0;
+            emitRender();
+            return;
+        }
+        if (noOffer) {
+            list.innerHTML = "";
+            const li = document.createElement("li");
+            li.className = "mmrc-msg mmrc-nooffer";
+            li.textContent = noOffer;
+            list.appendChild(li);
+            state.counts.shown = 0;
+            state.counts.total = 0;
+            emitRender();
             return;
         }
         const all = state.items();
@@ -6511,6 +6803,45 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             li.textContent = "In der " + CABIN[searched].name + " Class gibt es an diesem Tag " + "keine Prämienflüge. Die Karten zeigen die übrigen Klassen.";
             list.appendChild(li);
         }
+        const officeNote = function(all) {
+            let foreign = null;
+            outer: for (const it of all) for (const f of it.fares || []) if (f.currency && "EUR" !== f.currency) {
+                foreign = f.currency;
+                break outer;
+            }
+            if (!foreign) return null;
+            const off = function() {
+                try {
+                    const api = boundsData().api;
+                    const h = api && api.headers || {};
+                    const key = Object.keys(h).find(k => "authorization" === k.toLowerCase());
+                    const jwt = String(h[key]).replace(/^Bearer\s+/i, "");
+                    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+                    const ctx = JSON.parse(payload.context);
+                    return {
+                        office: ctx.officeId || null,
+                        country: ctx.country || null
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }();
+            const city = off && off.office ? off.office.slice(0, 3) : null;
+            const label = city ? city + (off.country ? "/" + off.country : "") : "unbekannt";
+            const converts = (() => {
+                try {
+                    const c = window.__mmCurrency;
+                    return !(!c || !c.toEUR || null == c.toEUR(1, foreign));
+                } catch (e) {
+                    return !1;
+                }
+            })();
+            const li = document.createElement("li");
+            li.className = "mmrc-msg mmrc-office";
+            li.innerHTML = "Buchungsbüro " + esc(label) + ": Zuzahlungen werden in " + esc(foreign) + " berechnet" + (converts ? " (Anzeige hier in € umgerechnet)" : "") + ". Das Büro folgt dem Abflugland der Suche, mit der der Shop betreten wurde — " + "eine neue Suche über die " + '<a href="https://www.miles-and-more.com/" class="mmrc-office-link">Hauptseite</a> ' + "setzt es neu.";
+            return li;
+        }(all);
+        officeNote && list.appendChild(officeNote);
         if (items.length) items.forEach(it => {
             try {
                 list.appendChild(cardEl(it, cabins, dicts, searched));
@@ -6538,12 +6869,14 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             const tile = [ ...card.querySelectorAll(".mmrc-f[data-code]") ].find(t => t.dataset.code === pendingBooking.code);
             if (!tile) return;
             const col = tile.closest(".mmrc-col");
+            col.classList.add("mmrc-instant");
             col.classList.contains("is-open") || tile.click();
             const btn = col.querySelector(".mmrc-fchoose");
             if (btn) {
                 btn.disabled = !0;
                 btn.textContent = pendingBooking.text;
             }
+            requestAnimationFrame(() => requestAnimationFrame(() => col.classList.remove("mmrc-instant")));
         }();
         emitRender();
     }
@@ -6569,10 +6902,14 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
     }
     const bd = window.__mmBounds;
     if (bd) {
-        bd.onUpdate && (state._offData = bd.onUpdate(scheduleRender));
+        bd.onUpdate && (state._offData = bd.onUpdate(() => {
+            noOffer = null;
+            scheduleRender();
+        }));
         bd.onRequest && (state._offReq = bd.onRequest(active => {
             searching = Math.max(0, searching + (active ? 1 : -1));
             if (!state.superseded && cardsOn()) if (active) {
+                noOffer = null;
                 const list = listEl();
                 if (list) {
                     injectStyles();
@@ -7999,7 +8336,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.0.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.1.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
