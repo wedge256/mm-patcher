@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 — 2026-08-24
+
+### Hinzugefügt
+
+- **Rückflug-Kalender: Tage ohne Angebot zum gewählten Hinflug sind
+  durchgestrichen**
+- **Sitzplan: „Erneut laden", wenn eine Kabine nicht geladen werden konnte**
+
+### Behoben
+
+- **Hin- und Rückflug: Kalender und Rückflug-Auswahl funktionieren jetzt
+  richtig**
+- **Ladeanimation bleibt beim Neuaufbau der Ergebnisliste sichtbar**
+- **UI Reparaturen**
+
 ## 1.1.0 — 2026-08-22
 
 ### Behoben

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.1.0
+// @version      1.2.0
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -887,7 +887,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 45;
+    const VERSION = 46;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -960,7 +960,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         subs: [ {
             key: "currency",
             label: "💱 Währungsumrechnung",
-            tip: "Zeigt bei Fremdwährungen den Betrag in € an — Kalender, " + "Ergebniskarten und Sitzplan."
+            tip: "Zeigt bei Fremdwährungen den Betrag in € an (Kalender, " + "Ergebniskarten, Sitzplan)."
         }, {
             key: "keepalive",
             label: "🔐 Angemeldet bleiben",
@@ -1813,7 +1813,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 17;
+    const VERSION = 19;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
@@ -1839,7 +1839,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         progress: null,
         error: null,
         loadedMonths: new Set,
-        poolsLoaded: new Set
+        poolsLoaded: new Set,
+        noOffer: null
     };
     try {
         Object.defineProperty(window, "__mmCal", {
@@ -1985,6 +1986,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 state.poolsLoaded.clear();
                 state.hydratedRoute = null;
                 state.route = null;
+                state.noOffer = null;
             }
             state.routeKey = routeKey;
             !function(routeKey) {
@@ -2047,7 +2049,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const currencyDict = dicts.currency || {};
         const dateKey = varyingDateKey(json);
         (json.data || []).forEach(entry => {
-            const code = entry.fareFamilyCode || null;
+            let code = entry.fareFamilyCode || null;
             let miles = null, taxes = null, currency = null;
             try {
                 let p = entry.prices;
@@ -2055,6 +2057,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 if (bs && bs.length > 1) {
                     const b = bs["returnDate" === dateKey ? bs.length - 1 : 0];
                     b && b.prices && (p = b.prices);
+                    b && b.fareFamilyCode && (code = b.fareFamilyCode);
                 }
                 const unit = Array.isArray(p) ? p[0] : p.unitPrices ? p.unitPrices[0] : null;
                 if (unit) {
@@ -2170,13 +2173,27 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         });
         state.days = [ ...byDate.values() ].sort((a, b) => a.date.localeCompare(b.date));
     }
+    function noteConditioned(days, sel) {
+        if (sel) {
+            state.noOffer && state.noOffer.boundId === sel || (state.noOffer = {
+                boundId: sel,
+                days: new Set
+            });
+            days.forEach(d => {
+                d.available ? state.noOffer.days.delete(d.date) : state.noOffer.days.add(d.date);
+            });
+        }
+    }
     const originalFetch = window.__mmCalOrigFetch || (window.__mmCalOrigFetch = window.fetch);
     window.__mmCalHooks = {
-        ingest: function(json) {
+        ingest: function(json, reqBody) {
             searchSettled();
             try {
                 const {days: days, dictionaries: dictionaries} = parse(json);
                 if (!days.length) return;
+                try {
+                    noteConditioned(days, reqBody ? JSON.parse(reqBody).selectedBoundId : null);
+                } catch (e) {}
                 try {
                     const b = requestedBoundOf(json);
                     switchRoute(b.originLocationCode + "-" + b.destinationLocationCode);
@@ -2325,7 +2342,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 res.clone().text().then(text => {
                     key && res.ok && c.rememberRaw(key, text);
                     try {
-                        h().ingest(JSON.parse(text));
+                        h().ingest(JSON.parse(text), (args[1] || {}).body);
                     } catch (e) {}
                 }).catch(e => {});
                 return res;
@@ -2372,6 +2389,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         }
                     }
                 }
+                const sentBody = body;
                 this.addEventListener("load", () => {
                     const c2 = h();
                     if (this.status >= 200 && this.status < 300) {
@@ -2381,7 +2399,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         }
                     } else c2.state.pendingTemplate = null;
                     try {
-                        h().ingest(JSON.parse(this.responseText));
+                        h().ingest(JSON.parse(this.responseText), sentBody);
                     } catch (e) {}
                 });
             }
@@ -2467,6 +2485,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         const {days: days, dictionaries: dictionaries} = parse(json);
                         merge(days);
                         noteMonths(days);
+                        noteConditioned(days, poolBody.selectedBoundId);
                         dictionaries && (state.dictionaries = dictionaries);
                         state.responses++;
                         state.progress && state.progress.done++;
@@ -2539,7 +2558,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 8;
+    const VERSION = 9;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const inherited = window.__mmBBD;
     if (inherited) {
@@ -2571,6 +2590,14 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         NUE: "DE",
         LEJ: "DE",
         BRE: "DE",
+        DRS: "DE",
+        ERF: "DE",
+        FMO: "DE",
+        PAD: "DE",
+        DTM: "DE",
+        FDH: "DE",
+        FKB: "DE",
+        SCN: "DE",
         XER: "DE",
         XIT: "DE",
         XIU: "DE",
@@ -2846,7 +2873,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         } catch (e) {}
         return String(name || code || "").replace(/\s*[-–].*$/, "").split(/\s+/).slice(0, 3).join(" ").replace(/[A-ZÄÖÜ][A-ZÄÖÜ]+/g, w => w[0] + w.slice(1).toLowerCase());
     };
-    const countryOf = iata => COUNTRY[iata] || "DE";
+    const currencyOfCountry = cc => CURRENCY[cc] || "EUR";
     const originalFetch = window.fetch;
     const CACHE_KEY = "mmbbd_cache";
     const TTL_MS = 6 * 60 * 60 * 1e3;
@@ -2924,6 +2951,23 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             emit();
             return;
         }
+        const cc = (iata => {
+            for (const h of [ window.__mmBounds, window.__mmCal ]) try {
+                const loc = h && h.dictionaries && h.dictionaries.location;
+                const c = loc && loc[iata] && loc[iata].countryCode;
+                if (c) return c;
+            } catch (e) {}
+            return COUNTRY[iata] || null;
+        })(origin);
+        if (!cc) {
+            state.route = null;
+            state.days = [];
+            byDate = null;
+            state.loading = !1;
+            state.error = null;
+            emit();
+            return;
+        }
         const ctrl = "undefined" != typeof AbortController ? new AbortController : null;
         inflight = ctrl;
         state.loading = !0;
@@ -2938,12 +2982,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             })();
             let failed = 0, aborted = !1;
-            const lists = await Promise.all(Object.keys(CFF).map(cab => async function(origin, dest, cabin, startDate, signal) {
+            const lists = await Promise.all(Object.keys(CFF).map(cab => async function(origin, dest, cabin, startDate, cc, signal) {
                 const body = JSON.stringify({
                     commercialFareFamilies: [ CFF[cabin] ],
                     corporateCodes: [ 223293 ],
-                    countryOfCommencement: countryOf(origin),
-                    currencyCode: (iata = origin, CURRENCY[countryOf(iata)] || "EUR"),
+                    countryOfCommencement: cc,
+                    currencyCode: currencyOfCountry(cc),
                     itineraries: [ {
                         departureDateTime: startDate + "T00:00:00",
                         originLocationCode: origin,
@@ -2953,7 +2997,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         rangeOfDeparture: 360
                     }
                 });
-                var iata;
                 state.calls++;
                 const res = await originalFetch.call(window, URL_, {
                     method: "POST",
@@ -3004,7 +3047,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         via: c ? c.via : null
                     } : null;
                 }).filter(Boolean);
-            }(origin, dest, cab, start, ctrl ? ctrl.signal : void 0).catch(e => {
+            }(origin, dest, cab, start, cc, ctrl ? ctrl.signal : void 0).catch(e => {
                 e && "AbortError" === e.name ? aborted = !0 : failed++;
                 return [];
             })));
@@ -3143,7 +3186,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 66;
+    const VERSION = 73;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -3319,14 +3362,22 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }
     }
     const SPAN = 15, STEP = 7;
-    const startOfToday = () => {
-        const t = new Date;
-        t.setHours(0, 0, 0, 0);
-        return t;
-    };
+    function windowFloor() {
+        let floor = (() => {
+            const t = new Date;
+            t.setHours(0, 0, 0, 0);
+            return t;
+        })();
+        if (activeBoundIdx() > 0) try {
+            const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
+            const out = parseISO(String((o.entities[o.selectedAirBoundsSearchId].itineraries || [])[0].departureDateTime).slice(0, 10));
+            out > floor && (floor = out);
+        } catch (e) {}
+        return floor;
+    }
     function minOffset() {
         const anchor = state.selectedDate || currentSearchDate() || iso(new Date);
-        return Math.round((startOfToday() - parseISO(anchor)) / 864e5) + 7;
+        return Math.round((windowFloor() - parseISO(anchor)) / 864e5) + 7;
     }
     function syncAnchorToSearch() {
         const searchDate = currentSearchDate();
@@ -3404,8 +3455,24 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         state.root.classList.remove("is-folded");
         const days = new Map(cal.days.map(d => [ d.date, d ]));
         const searchDate = currentSearchDate();
+        const frameDate = state.selectedDate || searchDate;
+        const deadDays = activeBoundIdx() > 0 ? (() => {
+            const dead = function() {
+                const dead = new Set;
+                document.querySelectorAll("refx-calendar-cont button.calendar-btn").forEach(b => {
+                    if (!b.disabled) return;
+                    const ds = stripBtnDate(b);
+                    ds && dead.add(ds);
+                });
+                return dead;
+            }();
+            try {
+                cal.noOffer && cal.noOffer.days && cal.noOffer.days.forEach(d => dead.add(d));
+            } catch (e) {}
+            return dead;
+        })() : null;
         const start = windowStart();
-        const atStart = iso(start) === iso(startOfToday());
+        const atStart = iso(start) === iso(windowFloor());
         const win = [];
         for (let i = 0; i < SPAN; i++) {
             const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
@@ -3413,7 +3480,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             win.push({
                 d: d,
                 dateStr: dateStr,
-                cells: cellsFor(days, dateStr)
+                cells: cellsFor(days, dateStr),
+                dead: !(!deadDays || !deadDays.has(dateStr))
             });
         }
         const cols = `92px repeat(${SPAN}, minmax(52px, 1fr))`;
@@ -3460,7 +3528,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         let heads = "<div></div>";
         win.forEach((w, i) => {
             const any = Object.keys(w.cells).length;
-            heads += '<button type="button" class="mmcal-hd' + (w.dateStr === searchDate ? " is-sel" : "") + (any || waiting(w.dateStr) ? "" : " is-empty") + (startsMonth[i] && i > 0 ? " mmcal-newmo" : "") + '" data-date="' + w.dateStr + '" title="' + longDate(w.d) + '">' + '<span class="mmcal-dw">' + DOW[w.d.getDay()] + "</span>" + '<span class="mmcal-dn">' + w.d.getDate() + "</span></button>";
+            heads += '<button type="button" class="mmcal-hd' + (w.dateStr === frameDate ? " is-sel" : "") + (w.dead ? " is-dead" : "") + (any || waiting(w.dateStr) ? "" : " is-empty") + (startsMonth[i] && i > 0 ? " mmcal-newmo" : "") + '" data-date="' + w.dateStr + '" title="' + longDate(w.d) + (w.dead ? " — mit dem gewählten Hinflug kein Angebot" : "") + '">' + '<span class="mmcal-dw">' + DOW[w.d.getDay()] + "</span>" + '<span class="mmcal-dn">' + w.d.getDate() + "</span></button>";
         });
         const order = [ "eco", "ecoPremium", "business", "first" ];
         let rows = "";
@@ -3473,7 +3541,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 const x = w.cells[cab];
                 if (!x) {
                     const wait = waiting(w.dateStr);
-                    rows += '<button type="button" class="mmcal-c is-none' + nm + (wait ? " is-wait" : "") + (state.navigating === w.dateStr ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" title="' + esc(longDate(w.d) + "\n" + meta.full + (wait ? ": wird geladen …" : ": kein bekannter Preis" + "\nKlicken startet die Suche für diesen Tag.")) + '">' + '<span class="mmcal-dash">–</span></button>';
+                    rows += '<button type="button" class="mmcal-c is-none' + nm + (wait ? " is-wait" : "") + (w.dead ? " is-deadday" : "") + (state.navigating === w.dateStr ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" title="' + esc(longDate(w.d) + "\n" + meta.full + (wait ? ": wird geladen …" : ": kein bekannter Preis" + "\nKlicken startet die Suche für diesen Tag.") + (w.dead ? "\nMit dem gewählten Hinflug kein Angebot an diesem Tag." : "")) + '">' + '<span class="mmcal-dash">–</span></button>';
                     return;
                 }
                 cabinsPresent.add(cab);
@@ -3493,13 +3561,24 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                     }
                 })();
                 const tipTax = null != x.taxes ? "\nZuzahlung " + Math.round(x.taxes) + " " + curSym(x.currency) + (eur ? " (" + eur + ")" : "") : "";
-                const tip = esc(longDate(w.d) + "\n" + meta.full + " " + (x.fare.tier || "") + tipTax + "\nQuelle: " + (isBbd ? "Best-by-Day" : "Kalender") + (isBbd && x.airline ? "\n" + x.airline + (x.via ? " via " + x.via : "") : ""));
-                rows += '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (state.navigating === w.dateStr ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" title="' + tip + '">' + '<span class="mmcal-tier">' + esc(x.fare.tier || "") + "</span>" + '<span class="mmcal-miles">' + esc(null == (n = x.miles) ? "" : n.toLocaleString("de-DE")) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + (null != eurVal ? Math.round(eurVal) + "&nbsp;€" : Math.round(x.taxes) + "&nbsp;" + esc(curSym(x.currency))) + "</span>" : "") + "</button>";
+                const tip = esc(longDate(w.d) + "\n" + meta.full + " " + (x.fare.tier || "") + tipTax + "\nQuelle: " + (isBbd ? "Best-by-Day" : "Kalender") + (isBbd && x.airline ? "\n" + x.airline + (x.via ? " via " + x.via : "") : "") + (w.dead ? "\nMit dem gewählten Hinflug kein Angebot an diesem Tag." : ""));
+                rows += '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (w.dead ? " is-deadday" : "") + (state.navigating === w.dateStr ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" title="' + tip + '">' + '<span class="mmcal-tier">' + esc(x.fare.tier || "") + "</span>" + '<span class="mmcal-miles">' + esc(null == (n = x.miles) ? "" : n.toLocaleString("de-DE")) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + (null != eurVal ? Math.round(eurVal) + "&nbsp;€" : Math.round(x.taxes) + "&nbsp;" + esc(curSym(x.currency))) + "</span>" : "") + "</button>";
                 var n;
             });
         }
         const known = win.filter(w => Object.keys(w.cells).length).length;
         const searching = !cal.loading && cal.searchingSince && Date.now() - cal.searchingSince < 45e3;
+        if (state._searchTimer) {
+            clearTimeout(state._searchTimer);
+            state._searchTimer = null;
+        }
+        if (searching) {
+            const left = 45e3 - (Date.now() - cal.searchingSince);
+            state._searchTimer = setTimeout(() => {
+                state._searchTimer = null;
+                !state.superseded && calendarOn() && state.root && render();
+            }, left + 200);
+        }
         const isLoading = !!cal.loading || !!searching;
         const showOverlay = !(!searching && !cal.loading || known);
         const loadingMonth = (() => {
@@ -3764,7 +3843,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         return null == mi ? null : m[3] + "-" + pad(mi + 1) + "-" + pad(+m[1]);
     }
     async function selectDate(dateStr, cabin) {
-        const wantCabin = cabin && API_CABIN[cabin] ? API_CABIN[cabin] : null;
+        const returnStep = activeBoundIdx() > 0;
+        const wantCabin = !returnStep && cabin && API_CABIN[cabin] ? API_CABIN[cabin] : null;
         const cabinStays = !wantCabin || wantCabin === function() {
             const native = readNativeCabin();
             if (native) return native;
@@ -3787,7 +3867,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         render();
         let path = null;
         try {
-            if (cabinStays && activeBoundIdx() > 0) {
+            if (returnStep) {
                 const via = await async function(dateStr) {
                     const grab = () => [ ...document.querySelectorAll("refx-calendar-cont button.calendar-btn") ];
                     if (!grab().length) return !1;
@@ -3913,6 +3993,9 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-hd:hover { background: #f7f8fb; }
 .mmcal-hd.is-sel { background: ${INK_primary}; border-bottom-color: ${INK_primary}; }
 .mmcal-hd.is-sel .mmcal-dw, .mmcal-hd.is-sel .mmcal-dn { color: #fff; }
+.mmcal-hd.is-dead { opacity: .55; }
+.mmcal-hd.is-dead .mmcal-dn { text-decoration: line-through; }
+.mmcal-c.is-deadday { opacity: .4; }
 .mmcal-hd.is-empty { opacity: .4; }
 .mmcal-dw { display: block; font-size: 9.5px; text-transform: uppercase; color: ${INK_muted};
             letter-spacing: .04em; line-height: 1.3; }
@@ -4146,6 +4229,12 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         },
         teardown() {
             state.superseded = !0;
+            if (state._searchTimer) {
+                try {
+                    clearTimeout(state._searchTimer);
+                } catch (e) {}
+                state._searchTimer = null;
+            }
             if (state._observer) {
                 try {
                     state._observer.disconnect();
@@ -4189,7 +4278,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 17;
+    const VERSION = 19;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -4295,9 +4384,9 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             fn(state);
         } catch (e) {}
     });
-    const emitRequest = active => state.reqListeners.forEach(fn => {
+    const emitRequest = (active, meta) => state.reqListeners.forEach(fn => {
         try {
-            fn(active);
+            fn(active, meta);
         } catch (e) {}
     });
     const hhmm = iso => {
@@ -4704,7 +4793,17 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             } catch (e) {}
             return out;
         },
-        start: () => emitRequest(!0),
+        start: body => emitRequest(!0, (body => {
+            try {
+                return {
+                    fresh: !JSON.parse(body).selectedBoundId
+                };
+            } catch (e) {
+                return {
+                    fresh: !0
+                };
+            }
+        })(body)),
         end: () => emitRequest(!1)
     };
     if (!window.__mmBoundsHooked) {
@@ -4720,7 +4819,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                     const c = h();
                     c.noteApi && c.noteApi(url, c.headersToObject((args[1] || {}).headers));
                 });
-                safe(() => h().start && h().start());
+                safe(() => h().start && h().start((args[1] || {}).body));
             }
             try {
                 const res = await originalFetch.apply(this, args);
@@ -4765,7 +4864,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                     const c = h();
                     c.noteApi && c.noteApi(this.__mmBoundsUrl, this.__mmBoundsHeaders);
                 });
-                safe(() => h().start && h().start());
+                safe(() => h().start && h().start(rest[0]));
             }
             return XS.apply(this, rest);
         };
@@ -4781,7 +4880,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 98;
+    const VERSION = 110;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -5219,6 +5318,10 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
 .mmrc-seatmsg { font-size: 12px; color: ${INK_secondary}; padding: 12px 4px; text-align: center; }
 .mmrc-seatmsgdetail { color: ${INK_muted}; font-size: 10.5px; }
 .mmrc-seatnote { font-size: 10.5px; color: ${INK_muted}; text-align: center; padding-top: 2px; }
+.mmrc-seatretry { font: inherit; font-size: 10.5px; font-weight: 600; margin-left: 4px;
+                  border: 1px solid ${INK_hairline}; background: #fff; color: ${INK_primary};
+                  border-radius: 999px; padding: 1px 9px; cursor: pointer; }
+.mmrc-seatretry:hover { border-color: #b9c6e0; background: #f3f6fc; }
 
 @container mmliste (max-width: 940px) {
     .mmrc-card { grid-template-columns: minmax(0, 1fr); }
@@ -5261,6 +5364,28 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
 .mmrc-msg button:hover { border-color: #b9c6e0; background: #f3f6fc; }
 .mmrc-office { padding: 10px 16px; font-size: 12.5px; color: ${INK_muted}; }
 .mmrc-office a { color: ${INK_accent}; text-decoration: underline; }
+.mmrc-outbound-edit { font: inherit; font-size: 11.5px; font-weight: 600; margin-left: 6px;
+  padding: 2px 10px; border: 1px solid #ccd6e8; border-radius: 999px;
+  background: #fff; color: ${INK_accent}; cursor: pointer; }
+.mmrc-outbound-edit:hover { border-color: #b9c6e0; background: #f3f6fc; }
+.cdk-overlay-pane.mat-mdc-dialog-panel:has(refx-confirm-restart-flight-selection-dialog-pres) {
+  height: auto !important; }
+.mat-mdc-dialog-panel:has(refx-confirm-restart-flight-selection-dialog-pres) .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel:has(refx-confirm-restart-flight-selection-dialog-pres) .mat-mdc-dialog-inner-container,
+.mat-mdc-dialog-panel:has(refx-confirm-restart-flight-selection-dialog-pres) .mat-mdc-dialog-surface {
+  height: auto !important; min-height: 0 !important; }
+refx-confirm-restart-flight-selection-dialog-pres refx-dialog-pres,
+refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-container {
+  height: auto !important; }
+refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-content {
+  height: auto !important; min-height: 0 !important; width: auto !important;
+  flex: 0 0 auto !important; }
+refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end;
+  padding-top: 18px; }
+refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
+  width: auto !important; min-width: 0 !important; max-width: none !important;
+  white-space: nowrap; }
 
 .mmrc-bar-text { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: ${INK_secondary}; }
 .mmrc-skel { display: flex; flex-direction: column; gap: 12px; }
@@ -5784,15 +5909,34 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                 return p;
             }(leg, c))).then(results => {
                 const merged = mergeSeatmaps(results.filter(r => "fulfilled" === r.status).map(r => r.value));
-                const guessed = !(layout && layout.cabins && layout.cabins.length);
                 merged.failedCabins = cabins.filter((c, i) => {
                     if ("rejected" !== results[i].status) return !1;
                     const e = results[i].reason || {};
-                    return !(String(e.apiCode || "").split(",").indexOf("85") >= 0 || guessed && e.status >= 400 && e.status < 500);
+                    return !(String(e.apiCode || "").split(",").indexOf("85") >= 0 || e.status >= 400 && e.status < 500);
                 });
                 if (!merged.decks.length) {
                     const firstErr = results.find(r => "rejected" === r.status);
                     if (firstErr) throw firstErr.reason;
+                }
+                if (merged.failedCabins.length) {
+                    seatCache.get(key) === p && seatCache.delete(key);
+                    layout && layout.zones && merged.decks.forEach(deck => {
+                        const zones = layout.zones[deck.type] || {};
+                        const have = new Set(deck.rows.map(r => r.row));
+                        merged.failedCabins.forEach(c => {
+                            const z = zones[c];
+                            if (z) for (let row = z.min; row <= z.max; row++) if (!have.has(row)) {
+                                have.add(row);
+                                deck.rows.push({
+                                    row: row,
+                                    cabin: c,
+                                    gapBefore: 0,
+                                    seats: {}
+                                });
+                            }
+                        });
+                        deck.rows.sort((a, b) => a.row - b.row);
+                    });
                 }
                 return merged;
             });
@@ -6045,7 +6189,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         }(data.decks, nameOf) + "</div>" + '<div class="mmrc-seatlegend"><span>umrandet = frei</span>' + '<span><i class="is-occupied"></i>belegt</span>' + '<span class="is-exit">EXIT = Notausstiegsreihe</span></div>' + (data.decks.length > 1 ? '<div class="mmrc-decktabs">' + data.decks.map((d, i) => '<button type="button" class="mmrc-decktab' + (i === mainDeckIdx(data.decks) ? " is-on" : "") + '" data-deck="' + i + '">' + esc(DECK_NAME[d.type] || d.type) + "</button>").join("") + "</div>" : "") + '<div class="mmrc-planes"><div class="mmrc-planesin">' + data.decks.map((d, di) => {
             const stairs = data.decks.length > 1 ? /A380|380/i.test(leg.aircraftName || "") || /^(L38|G38)/.test(leg.acv || "") ? "both" : "fore" : null;
             return '<div class="mmrc-deck' + (data.decks.length > 1 && di !== mainDeckIdx(data.decks) ? " is-off" : "") + '" data-deck="' + di + '">' + deckHtml(d, 0, stairs, nameOf, shapeKeyFor(leg)) + "</div>";
-        }).join("") + "</div></div>" + (failed.length ? '<div class="mmrc-seatnote">Nicht geladen: ' + failed.map(c => esc(nameOf(c))).join(", ") + ".</div>" : "") + (noPrice ? '<div class="mmrc-seatnote">Diese Airline meldet keine Sitzpreise an das ' + "Buchungssystem. Belegung und Ausstattung stimmen.</div>" : "");
+        }).join("") + "</div></div>" + (failed.length ? '<div class="mmrc-seatnote">Nicht geladen: ' + failed.map(c => esc(nameOf(c))).join(", ") + ". " + '<button type="button" class="mmrc-seatretry">Erneut laden</button></div>' : "") + (noPrice ? '<div class="mmrc-seatnote">Diese Airline meldet keine Sitzpreise an das ' + "Buchungssystem. Belegung und Ausstattung stimmen.</div>" : "");
     }
     function decorateSeatmap(panel) {
         const box = panel.querySelector(".mmrc-planes");
@@ -6309,6 +6453,13 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
                             code: fare.code,
                             text: t
                         };
+                        if (t === CART && 0 === t.indexOf("Rückflüge")) try {
+                            sessionStorage.setItem("mmrc_outbound_pick", JSON.stringify({
+                                code: fare.code,
+                                cabin: fare.cabin || null,
+                                tier: fare.tier || null
+                            }));
+                        } catch (e) {}
                         if (uiBtn) {
                             uiBtn.disabled = !0;
                             uiBtn.classList.remove("is-error");
@@ -6454,121 +6605,6 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         });
         return col;
     }
-    function cardEl(it, cabins, dicts, searched) {
-        const li = document.createElement("li");
-        li.className = "mmrc-card";
-        li.dataset.key = it.key;
-        const left = document.createElement("div");
-        left.className = "mmrc-left";
-        const stopsLabel = 0 === it.stops ? "Direktflug" : it.stops + " Stopp" + (it.stops > 1 ? "s" : "");
-        left.innerHTML = `<div class="mmrc-meta">` + `<span class="mmrc-dur">${esc(fmtDur(it.totalDuration))}</span>` + `<span class="mmrc-stops">${esc(stopsLabel)}</span>` + `</div>` + timelineHtml(it);
-        const byCabin = {};
-        (it.fares || []).forEach(f => {
-            f.cabin && (byCabin[f.cabin] = byCabin[f.cabin] || []).push(f);
-        });
-        Object.keys(byCabin).forEach(c => byCabin[c].sort((a, b) => a.miles - b.miles));
-        const cols = document.createElement("div");
-        cols.className = "mmrc-cols";
-        cols.style.gridTemplateColumns = `repeat(${cabins.length}, minmax(0, 168px))`;
-        const axis = function(byCabin, cabins) {
-            const seen = [];
-            cabins.forEach(c => (byCabin[c] || []).forEach(f => {
-                const t = f.tier || "";
-                t && -1 === seen.indexOf(t) && seen.push(t);
-            }));
-            const rank = t => {
-                const i = TIER_ORDER.indexOf(t);
-                return -1 === i ? TIER_ORDER.length + seen.indexOf(t) : i;
-            };
-            return seen.sort((a, b) => rank(a) - rank(b));
-        }(byCabin, cabins);
-        axis.length && (cols.style.gridTemplateRows = `auto auto repeat(${axis.length}, auto) 1fr auto`);
-        cabins.forEach(c => cols.appendChild(renderColumn(c, byCabin[c] || [], dicts, searched, it.key, axis)));
-        cols.style.setProperty("--mm-n", cabins.length);
-        !function(cols) {
-            const all = [ ...cols.querySelectorAll(".mmrc-col") ];
-            if (all.length < 2) return;
-            const milesOf = c => {
-                const n = [ ...c.querySelectorAll(".mmrc-mi") ].map(e => Number(e.textContent.replace(/\./g, ""))).filter(v => v > 0);
-                return n.length ? Math.min(...n) : 1 / 0;
-            };
-            const filled = all.filter(c => !c.classList.contains("is-empty"));
-            let active = filled.find(c => c.classList.contains("is-searched"));
-            if (!active) {
-                active = filled.slice().sort((a, b) => milesOf(a) - milesOf(b))[0];
-                active && active.classList.add("is-fallback");
-            }
-            if (!active) return;
-            active.classList.add("is-current");
-            const bar = document.createElement("div");
-            bar.className = "mmrc-cabpick";
-            const chip = c => {
-                const nm = c.querySelector(".mmrc-nm");
-                const m = milesOf(c);
-                const b = document.createElement("button");
-                b.type = "button";
-                b.className = "mmrc-cab" + (c.classList.contains("is-empty") ? " is-empty" : "");
-                b.style.setProperty("--mmc", c.style.getPropertyValue("--mmc"));
-                b.innerHTML = "<i>" + esc(nm ? nm.childNodes[0].textContent.trim() : "?") + "</i>" + "<b>" + (m === 1 / 0 ? "–" : m.toLocaleString("de-DE")) + "</b>";
-                b.addEventListener("click", () => {
-                    all.forEach(x => x.classList.remove("is-current"));
-                    c.classList.add("is-current");
-                    draw();
-                });
-                return b;
-            };
-            const draw = () => {
-                const now = all.find(c => c.classList.contains("is-current"));
-                bar.replaceChildren(...all.filter(c => c !== now).map(chip));
-            };
-            draw();
-            cols.appendChild(bar);
-        }(cols);
-        li.appendChild(left);
-        li.appendChild(cols);
-        !function(li, it) {
-            seatmapOn() && li.querySelectorAll(".mmrc-seatbtn").forEach(btn => {
-                const idx = Number(btn.dataset.leg);
-                const leg = (it.legs || [])[idx];
-                if (!leg) return;
-                btn.addEventListener("click", () => {
-                    hidePeek();
-                    const ov = overlayEl();
-                    ov.classList.contains("is-open") && ov.dataset.legKey === legKey(leg) ? closeOverlay() : openSeatmap(it, idx);
-                });
-                let timer = null, over = !1;
-                btn.addEventListener("mouseenter", () => {
-                    over = !0;
-                    const cached = seatCache.has(legKey(leg) + "|all");
-                    clearTimeout(timer);
-                    timer = setTimeout(() => {
-                        over && loadAll(leg).then(data => {
-                            if (!over || !btn.isConnected) return;
-                            const pk = function() {
-                                let pk = document.querySelector(".mmrc-seatpeek");
-                                if (pk) return pk;
-                                pk = document.createElement("div");
-                                pk.className = "mmrc-seatpeek";
-                                document.body.appendChild(pk);
-                                return pk;
-                            }();
-                            pk.innerHTML = '<div class="mmrc-seatpanel">' + seatmapBodyHtml(data, leg) + "</div>" + '<div class="mmrc-peekhint">Klicken für Details und Sitzpreise</div>';
-                            const r = btn.getBoundingClientRect();
-                            pk.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 660)) + "px";
-                            pk.style.top = r.bottom + 6 + "px";
-                            decorateSeatmap(pk);
-                        }).catch(() => {});
-                    }, cached ? HOVER_SHOW : HOVER_DWELL);
-                });
-                btn.addEventListener("mouseleave", () => {
-                    over = !1;
-                    clearTimeout(timer);
-                    hidePeek();
-                });
-            });
-        }(li, it);
-        return li;
-    }
     const HOVER_DWELL = 450;
     const HOVER_SHOW = 200;
     function overlayEl() {
@@ -6624,19 +6660,20 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         const panel = ov.querySelector(".mmrc-seatpanel");
         panel.innerHTML = '<div class="mmrc-seatmsg">Sitzplan wird geladen …</div>';
         loadAll(leg).then(data => {
-            if (ov.dataset.legKey === legKey(leg)) {
-                panel.innerHTML = seatmapBodyHtml(data, leg);
-                !function(panel) {
-                    const tabs = [ ...panel.querySelectorAll(".mmrc-decktab") ];
-                    tabs.length && tabs.forEach(tab => tab.addEventListener("click", () => {
-                        const want = tab.dataset.deck;
-                        tabs.forEach(t => t.classList.toggle("is-on", t === tab));
-                        panel.querySelectorAll(".mmrc-deck").forEach(d => d.classList.toggle("is-off", d.dataset.deck !== want));
-                        decorateSeatmap(panel);
-                    }));
-                }(panel);
-                decorateSeatmap(panel);
-            }
+            if (ov.dataset.legKey !== legKey(leg)) return;
+            panel.innerHTML = seatmapBodyHtml(data, leg);
+            !function(panel) {
+                const tabs = [ ...panel.querySelectorAll(".mmrc-decktab") ];
+                tabs.length && tabs.forEach(tab => tab.addEventListener("click", () => {
+                    const want = tab.dataset.deck;
+                    tabs.forEach(t => t.classList.toggle("is-on", t === tab));
+                    panel.querySelectorAll(".mmrc-deck").forEach(d => d.classList.toggle("is-off", d.dataset.deck !== want));
+                    decorateSeatmap(panel);
+                }));
+            }(panel);
+            decorateSeatmap(panel);
+            const retry = panel.querySelector(".mmrc-seatretry");
+            retry && retry.addEventListener("click", () => openSeatmap(it, idx));
         }).catch(e => {
             ov.dataset.legKey === legKey(leg) && (panel.innerHTML = '<div class="mmrc-seatmsg">' + (e && "7425" === e.apiCode ? "Zu diesem Flug ist im Buchungssystem kein Sitzplan hinterlegt." : "Der Sitzplan konnte nicht geladen werden.") + ' <span class="mmrc-seatmsgdetail">' + esc(String(e && e.message || "")) + "</span></div>");
         });
@@ -6667,6 +6704,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
     function listEl() {
         const host = container();
         if (!host) return null;
+        host.parentNode && (state._skelAnchor = host.parentNode);
         let list = host.querySelector(".mmrc-list");
         if (!list) {
             document.querySelectorAll(".mmrc-list").forEach(e => e.remove());
@@ -6721,14 +6759,51 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             return !1;
         }
     }
-    function skeleton(list) {
+    function skelHtml() {
         const card = '<div class="mmrc-skel-card">' + '<div class="mmrc-skel-tl"><i></i><i></i><i></i></div>' + '<div class="mmrc-skel-col"></div><div class="mmrc-skel-col"></div></div>';
-        list.innerHTML = '<li><div class="mmrc-bar-text">Flüge werden gesucht …</div>' + '<div class="mmrc-skel">' + card + card + card + "</div></li>";
+        return '<div class="mmrc-bar-text">Flüge werden gesucht …</div>' + '<div class="mmrc-skel">' + card + card + card + "</div>";
     }
+    function skeleton(list) {
+        list.innerHTML = "<li>" + skelHtml() + "</li>";
+    }
+    const FLOAT_ID = "mmrc-skel-float";
+    function showFloatSkel() {
+        if (document.getElementById(FLOAT_ID)) return;
+        const host = state._skelAnchor && state._skelAnchor.isConnected && state._skelAnchor || document.querySelector(".main-content") || document.body;
+        const div = document.createElement("div");
+        div.id = FLOAT_ID;
+        div.innerHTML = skelHtml();
+        host.appendChild(div);
+    }
+    function hideFloatSkel() {
+        const e = document.getElementById(FLOAT_ID);
+        e && e.remove();
+    }
+    function listSide() {
+        try {
+            const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+            const its = o.entities[o.selectedAirBoundsSearchId].itineraries || [];
+            if (its.length < 2) return "outbound";
+            const bd = boundsData();
+            const key = bd && bd.current && bd.current[0];
+            const first = key ? bd.bounds instanceof Map ? bd.bounds.get(key) : bd.bounds[key] : null;
+            if (!first) return null;
+            const loc = (bd.dictionaries || {}).location || {};
+            const same = (iata, code) => !(!iata || !code || iata !== code && (!loc[iata] || loc[iata].cityCode !== code));
+            return same(first.origin, its[1].originLocationCode) ? "return" : same(first.origin, its[0].originLocationCode) ? "outbound" : null;
+        } catch (e) {
+            return null;
+        }
+    }
+    let restartDialogSeen = !1;
     function render() {
         if (state.superseded || !cardsOn()) return;
         const list = listEl();
-        if (!list) return;
+        if (!list) {
+            searching ? showFloatSkel() : hideFloatSkel();
+            return;
+        }
+        hideFloatSkel();
         injectStyles();
         document.documentElement.classList.add("mmrc-active");
         if (searching) {
@@ -6741,8 +6816,11 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             const li = document.createElement("li");
             li.className = "mmrc-msg mmrc-nooffer";
             const expired = "65012" === String(lastErr.code);
-            li.innerHTML = esc(expired ? "Der gewählte Hinflug ist abgelaufen." : "Suche fehlgeschlagen" + (lastErr.code ? " (" + lastErr.code + (lastErr.detail ? ": " + lastErr.detail : "") + ")" : "") + ".") + '<button type="button" class="mmrc-restart">Suche neu starten</button>';
-            li.querySelector(".mmrc-restart").addEventListener("click", restartSearch);
+            const noFlight = "7959" === String(lastErr.code);
+            const seg = /SEGMENT (\d)/.exec(lastErr.detail || "");
+            li.innerHTML = esc(expired ? "Der gewählte Hinflug ist abgelaufen." : noFlight ? "Kein Flug für den " + (seg && "2" === seg[1] ? "Rückflug" : "Hinflug") + " an diesem Tag." : "Suche fehlgeschlagen" + (lastErr.code ? " (" + lastErr.code + (lastErr.detail ? ": " + lastErr.detail : "") + ")" : "") + ".") + (noFlight ? "" : '<button type="button" class="mmrc-restart">Suche neu starten</button>');
+            const rb = li.querySelector(".mmrc-restart");
+            rb && rb.addEventListener("click", restartSearch);
             list.appendChild(li);
             state.counts.shown = 0;
             state.counts.total = 0;
@@ -6838,13 +6916,159 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
             })();
             const li = document.createElement("li");
             li.className = "mmrc-msg mmrc-office";
-            li.innerHTML = "Buchungsbüro " + esc(label) + ": Zuzahlungen werden in " + esc(foreign) + " berechnet" + (converts ? " (Anzeige hier in € umgerechnet)" : "") + ". Das Büro folgt dem Abflugland der Suche, mit der der Shop betreten wurde — " + "eine neue Suche über die " + '<a href="https://www.miles-and-more.com/" class="mmrc-office-link">Hauptseite</a> ' + "setzt es neu.";
+            li.innerHTML = "Buchungsbüro " + esc(label) + ": Zuzahlungen werden in " + esc(foreign) + " berechnet" + (converts ? " (Anzeige in € umgerechnet)" : "") + ". Eine neue Suche über die " + '<a href="https://www.miles-and-more.com/" class="mmrc-office-link">Hauptseite</a> ' + "setzt das Büro aufs Abflugland.";
             return li;
         }(all);
         officeNote && list.appendChild(officeNote);
+        const returnNote = function() {
+            let pick = null;
+            try {
+                pick = JSON.parse(sessionStorage.getItem("mmrc_outbound_pick"));
+            } catch (e) {}
+            if (!pick || !pick.code) return null;
+            const side = listSide();
+            if ("return" !== side) {
+                if ("outbound" === side) try {
+                    sessionStorage.removeItem("mmrc_outbound_pick");
+                } catch (e) {}
+                return null;
+            }
+            const meta = pick.cabin ? CABIN[pick.cabin] : null;
+            const label = ((meta ? meta.name : pick.cabin || "") + " " + (pick.tier || "")).trim();
+            const li = document.createElement("li");
+            li.className = "mmrc-msg mmrc-office mmrc-returnnote";
+            const back = document.querySelector("button.upsell-back-button");
+            li.innerHTML = "Gewählter Hinflug: <b>" + esc(label || pick.code) + "</b>. " + "Die Rückflüge unten gelten zu diesem Hinflug." + (back ? ' <button type="button" class="mmrc-outbound-edit">Hinflug ändern</button>' : "");
+            const b = li.querySelector(".mmrc-outbound-edit");
+            b && b.addEventListener("click", () => {
+                const btn = document.querySelector("button.upsell-back-button");
+                btn && btn.click();
+            });
+            return li;
+        }();
+        returnNote && list.appendChild(returnNote);
         if (items.length) items.forEach(it => {
             try {
-                list.appendChild(cardEl(it, cabins, dicts, searched));
+                list.appendChild(function(it, cabins, dicts, searched) {
+                    const li = document.createElement("li");
+                    li.className = "mmrc-card";
+                    li.dataset.key = it.key;
+                    const left = document.createElement("div");
+                    left.className = "mmrc-left";
+                    const stopsLabel = 0 === it.stops ? "Direktflug" : it.stops + " Stopp" + (it.stops > 1 ? "s" : "");
+                    left.innerHTML = `<div class="mmrc-meta">` + `<span class="mmrc-dur">${esc(fmtDur(it.totalDuration))}</span>` + `<span class="mmrc-stops">${esc(stopsLabel)}</span>` + `</div>` + timelineHtml(it);
+                    const byCabin = {};
+                    (it.fares || []).forEach(f => {
+                        f.cabin && (byCabin[f.cabin] = byCabin[f.cabin] || []).push(f);
+                    });
+                    Object.keys(byCabin).forEach(c => byCabin[c].sort((a, b) => a.miles - b.miles));
+                    const cols = document.createElement("div");
+                    cols.className = "mmrc-cols";
+                    cols.style.gridTemplateColumns = `repeat(${cabins.length}, minmax(0, 168px))`;
+                    const axis = function(byCabin, cabins) {
+                        const seen = [];
+                        cabins.forEach(c => (byCabin[c] || []).forEach(f => {
+                            const t = f.tier || "";
+                            t && -1 === seen.indexOf(t) && seen.push(t);
+                        }));
+                        const rank = t => {
+                            const i = TIER_ORDER.indexOf(t);
+                            return -1 === i ? TIER_ORDER.length + seen.indexOf(t) : i;
+                        };
+                        return seen.sort((a, b) => rank(a) - rank(b));
+                    }(byCabin, cabins);
+                    axis.length && (cols.style.gridTemplateRows = `auto auto repeat(${axis.length}, auto) 1fr auto`);
+                    cabins.forEach(c => cols.appendChild(renderColumn(c, byCabin[c] || [], dicts, searched, it.key, axis)));
+                    cols.style.setProperty("--mm-n", cabins.length);
+                    !function(cols) {
+                        const all = [ ...cols.querySelectorAll(".mmrc-col") ];
+                        if (all.length < 2) return;
+                        const milesOf = c => {
+                            const n = [ ...c.querySelectorAll(".mmrc-mi") ].map(e => Number(e.textContent.replace(/\./g, ""))).filter(v => v > 0);
+                            return n.length ? Math.min(...n) : 1 / 0;
+                        };
+                        const filled = all.filter(c => !c.classList.contains("is-empty"));
+                        let active = filled.find(c => c.classList.contains("is-searched"));
+                        if (!active) {
+                            active = filled.slice().sort((a, b) => milesOf(a) - milesOf(b))[0];
+                            active && active.classList.add("is-fallback");
+                        }
+                        if (!active) return;
+                        active.classList.add("is-current");
+                        const bar = document.createElement("div");
+                        bar.className = "mmrc-cabpick";
+                        const chip = c => {
+                            const nm = c.querySelector(".mmrc-nm");
+                            const m = milesOf(c);
+                            const b = document.createElement("button");
+                            b.type = "button";
+                            b.className = "mmrc-cab" + (c.classList.contains("is-empty") ? " is-empty" : "");
+                            b.style.setProperty("--mmc", c.style.getPropertyValue("--mmc"));
+                            b.innerHTML = "<i>" + esc(nm ? nm.childNodes[0].textContent.trim() : "?") + "</i>" + "<b>" + (m === 1 / 0 ? "–" : m.toLocaleString("de-DE")) + "</b>";
+                            b.addEventListener("click", () => {
+                                all.forEach(x => x.classList.remove("is-current"));
+                                c.classList.add("is-current");
+                                draw();
+                            });
+                            return b;
+                        };
+                        const draw = () => {
+                            const now = all.find(c => c.classList.contains("is-current"));
+                            bar.replaceChildren(...all.filter(c => c !== now).map(chip));
+                        };
+                        draw();
+                        cols.appendChild(bar);
+                    }(cols);
+                    li.appendChild(left);
+                    li.appendChild(cols);
+                    !function(li, it) {
+                        seatmapOn() && li.querySelectorAll(".mmrc-seatbtn").forEach(btn => {
+                            const idx = Number(btn.dataset.leg);
+                            const leg = (it.legs || [])[idx];
+                            if (!leg) return;
+                            btn.addEventListener("click", () => {
+                                hidePeek();
+                                const ov = overlayEl();
+                                ov.classList.contains("is-open") && ov.dataset.legKey === legKey(leg) ? closeOverlay() : openSeatmap(it, idx);
+                            });
+                            let timer = null, over = !1;
+                            btn.addEventListener("mouseenter", () => {
+                                over = !0;
+                                const cached = seatCache.has(legKey(leg) + "|all");
+                                clearTimeout(timer);
+                                timer = setTimeout(() => {
+                                    over && loadAll(leg).then(data => {
+                                        if (!over || !btn.isConnected) return;
+                                        const pk = function() {
+                                            let pk = document.querySelector(".mmrc-seatpeek");
+                                            if (pk) return pk;
+                                            pk = document.createElement("div");
+                                            pk.className = "mmrc-seatpeek";
+                                            document.body.appendChild(pk);
+                                            return pk;
+                                        }();
+                                        pk.innerHTML = '<div class="mmrc-seatpanel">' + seatmapBodyHtml(data, leg) + "</div>" + '<div class="mmrc-peekhint">Klicken für Details und Sitzpreise</div>';
+                                        const r = btn.getBoundingClientRect();
+                                        pk.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 660)) + "px";
+                                        pk.style.top = r.bottom + 6 + "px";
+                                        decorateSeatmap(pk);
+                                        const retry = pk.querySelector(".mmrc-seatretry");
+                                        retry && retry.addEventListener("click", () => {
+                                            hidePeek();
+                                            openSeatmap(it, idx);
+                                        });
+                                    }).catch(() => {});
+                                }, cached ? HOVER_SHOW : HOVER_DWELL);
+                            });
+                            btn.addEventListener("mouseleave", () => {
+                                over = !1;
+                                clearTimeout(timer);
+                                hidePeek();
+                            });
+                        });
+                    }(li, it);
+                    return li;
+                }(it, cabins, dicts, searched));
             } catch (e) {}
         }); else {
             const li = document.createElement("li");
@@ -6904,23 +7128,37 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
     if (bd) {
         bd.onUpdate && (state._offData = bd.onUpdate(() => {
             noOffer = null;
+            pendingBooking && "outbound" === listSide() && (pendingBooking = null);
             scheduleRender();
         }));
-        bd.onRequest && (state._offReq = bd.onRequest(active => {
+        bd.onRequest && (state._offReq = bd.onRequest((active, meta) => {
             searching = Math.max(0, searching + (active ? 1 : -1));
             if (!state.superseded && cardsOn()) if (active) {
+                if (!meta || meta.fresh) {
+                    pendingBooking = null;
+                    try {
+                        sessionStorage.removeItem("mmrc_outbound_pick");
+                    } catch (e) {}
+                }
                 noOffer = null;
                 const list = listEl();
-                if (list) {
-                    injectStyles();
-                    skeleton(list);
-                }
+                injectStyles();
+                list ? skeleton(list) : showFloatSkel();
             } else scheduleRender();
         }));
     }
     window.__mmCurrency && window.__mmCurrency.onUpdate && (state._offFx = window.__mmCurrency.onUpdate(scheduleRender));
     const obs = new MutationObserver(() => {
         if (state.superseded || !cardsOn()) return;
+        if (document.querySelector("refx-confirm-restart-flight-selection-dialog-pres")) restartDialogSeen = !0; else if (restartDialogSeen) {
+            restartDialogSeen = !1;
+            setTimeout(() => {
+                if (pendingBooking && !searching && "outbound" === listSide()) {
+                    pendingBooking = null;
+                    scheduleRender();
+                }
+            }, 600);
+        }
         const host = container();
         host && !host.querySelector(".mmrc-list") && scheduleRender();
     });
@@ -7581,7 +7819,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
 
 (() => {
     "use strict";
-    const VERSION = 44;
+    const VERSION = 45;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const inherited = window.__mmRecovery;
     if (inherited) {
@@ -7692,6 +7930,46 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
         } catch (e2) {}
     }
     const waitingOn = () => !window.__mmSettings || !1 !== window.__mmSettings.get("waiting");
+    const GENERIC_BANNER_RE = /Leider ist ein Problem aufgetreten|Aus technischen Gründen können wir Ihre Flugsuche/;
+    function bannerText(code, detail) {
+        if ("65012" === (code = String(code || ""))) return "Der gewählte Hinflug ist abgelaufen. Eine neue Suche behebt das.";
+        if ("7959" === code) {
+            const seg = /SEGMENT (\d)/.exec(detail || "");
+            return "Kein Flug für den " + (seg && "2" === seg[1] ? "Rückflug" : "Hinflug") + " an diesem Tag.";
+        }
+        return detail ? code + ": " + detail : null;
+    }
+    function rewriteBanners() {
+        const panels = document.querySelectorAll("refx-messages-panel-cont");
+        if (!panels.length) return;
+        let cause = null;
+        panels.forEach(panel => {
+            if (!GENERIC_BANNER_RE.test(panel.textContent || "")) return;
+            null === cause && (cause = function() {
+                try {
+                    const be = window.__mmBounds && window.__mmBounds.lastError;
+                    if (be && be.code) {
+                        const t = bannerText(be.code, be.detail);
+                        if (t) return t;
+                    }
+                } catch (e) {}
+                try {
+                    const m = JSON.parse(sessionStorage.getItem("messages"));
+                    const ids = m && m.ids || [];
+                    const e = m && m.entities && m.entities[ids[ids.length - 1]];
+                    if (e) {
+                        const t = bannerText(e.code, e.detail);
+                        if (t) return t;
+                    }
+                } catch (e) {}
+                return null;
+            }() || !1);
+            if (!cause) return;
+            const walker = document.createTreeWalker(panel, NodeFilter.SHOW_ELEMENT);
+            for (let n = walker.currentNode; n; n = walker.nextNode()) n.childElementCount || GENERIC_BANNER_RE.test(n.textContent || "") && (n.textContent = cause);
+        });
+    }
+    state.rewriteBanners = rewriteBanners;
     function injectStyles() {
         const css = `
 lhg-loading-screen { display: none !important; }
@@ -8285,14 +8563,22 @@ jederzeit von Hand starten.</p>` : ""}
     }
     function boot() {
         run();
+        if (waitingOn()) try {
+            rewriteBanners();
+        } catch (e) {}
         const obs = new MutationObserver(records => {
-            if (state.superseded) obs.disconnect(); else if (waitingOn()) if (RECOVERY_RE.test(location.pathname)) {
-                document.documentElement.classList.add("mmrec-page");
-                for (const rec of records) for (const node of rec.addedNodes) if (1 === node.nodeType) {
-                    patchRecovery();
-                    return;
-                }
-            } else document.documentElement.classList.remove("mmrec-page");
+            if (state.superseded) obs.disconnect(); else if (waitingOn()) {
+                try {
+                    rewriteBanners();
+                } catch (e) {}
+                if (RECOVERY_RE.test(location.pathname)) {
+                    document.documentElement.classList.add("mmrec-page");
+                    for (const rec of records) for (const node of rec.addedNodes) if (1 === node.nodeType) {
+                        patchRecovery();
+                        return;
+                    }
+                } else document.documentElement.classList.remove("mmrec-page");
+            }
         });
         state._observer = obs;
         obs.observe(document.body || document.documentElement, {
@@ -8336,7 +8622,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.1.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.2.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
