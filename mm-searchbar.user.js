@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.2.0
+// @version      1.2.1
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -1813,7 +1813,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 19;
+    const VERSION = 21;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
@@ -1823,7 +1823,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const CACHE_KEY = "mmcal_cache";
     const PREF_KEY = "mmcal_all_cabins";
     const CACHE_TTL_MS = 60 * 60 * 1e3;
-    const CACHE_FORMAT = 2;
+    const CACHE_FORMAT = 3;
     const state = {
         version: VERSION,
         days: [],
@@ -1973,7 +1973,15 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     function routeKeyOf(body) {
         try {
             const it = requestedItin(body);
-            return it.originLocationCode + "-" + it.destinationLocationCode;
+            let key = it.originLocationCode + "-" + it.destinationLocationCode;
+            const its = body.itineraries || [];
+            if (its.length > 1) {
+                const other = its.find(x => x && x !== it);
+                const d = other && String(other.departureDateTime || "").slice(0, 10);
+                d && (key += "@" + d);
+                body.selectedBoundId && (key += "#" + body.selectedBoundId);
+            }
+            return key;
         } catch (e) {
             return null;
         }
@@ -2191,12 +2199,20 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             try {
                 const {days: days, dictionaries: dictionaries} = parse(json);
                 if (!days.length) return;
+                let reqKey = null;
                 try {
-                    noteConditioned(days, reqBody ? JSON.parse(reqBody).selectedBoundId : null);
+                    reqKey = reqBody ? routeKeyOf(JSON.parse(reqBody)) : null;
+                } catch (e) {}
+                if (reqKey && state.routeKey && reqKey !== state.routeKey) return;
+                try {
+                    if (reqKey) switchRoute(reqKey); else {
+                        const b = requestedBoundOf(json);
+                        const base = b.originLocationCode + "-" + b.destinationLocationCode;
+                        String(state.routeKey || "").split("@")[0].split("#")[0] !== base && switchRoute(base);
+                    }
                 } catch (e) {}
                 try {
-                    const b = requestedBoundOf(json);
-                    switchRoute(b.originLocationCode + "-" + b.destinationLocationCode);
+                    noteConditioned(days, reqBody ? JSON.parse(reqBody).selectedBoundId : null);
                 } catch (e) {}
                 merge(days);
                 noteMonths(days);
@@ -2558,7 +2574,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 9;
+    const VERSION = 10;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const inherited = window.__mmBBD;
     if (inherited) {
@@ -3128,7 +3144,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     function syncRoute() {
         if (state.superseded || !calendarOn() || !bbdOn()) return;
         const cal = window.__mmCal;
-        const route = cal && (cal.route || cal.routeKey);
+        const raw = cal && (cal.route || cal.routeKey);
+        const route = raw && raw.split("@")[0].split("#")[0];
         route && route !== state.route && load(route);
     }
     window.__mmCal && window.__mmCal.onUpdate && (state._off = window.__mmCal.onUpdate(syncRoute));
@@ -8622,7 +8639,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.2.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.2.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
