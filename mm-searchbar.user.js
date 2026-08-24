@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.2.1
+// @version      1.2.2
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -1813,7 +1813,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 21;
+    const VERSION = 22;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
@@ -2509,6 +2509,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         emit();
                     } catch (e) {
                         lastFailed = e && e.message || "Netzwerkfehler";
+                        break;
                     }
                 }
                 if (!okCount) return lastStatus ? {
@@ -3203,7 +3204,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 73;
+    const VERSION = 74;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -3373,7 +3374,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             const raw = sessionStorage.getItem(SEARCH_KEY);
             const j = JSON.parse(raw);
             const its = j.entities[j.selectedAirBoundsSearchId].itineraries;
-            return its[Math.min(activeBoundIdx(), its.length - 1)].departureDateTime.slice(0, 10);
+            const it = its[Math.min(activeBoundIdx(), its.length - 1)];
+            const cal = window.__mmCal;
+            const base = String(cal && (cal.routeKey || cal.route) || "").split("@")[0].split("#")[0];
+            const storeRoute = it.originLocationCode && it.destinationLocationCode ? it.originLocationCode + "-" + it.destinationLocationCode : null;
+            return base && storeRoute && storeRoute !== base ? null : it.departureDateTime.slice(0, 10);
         } catch (e) {
             return null;
         }
@@ -3691,10 +3696,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const autoTried = new Set;
     const autoFails = new Map;
     const MAX_AUTO_FAILS = 3;
+    const AUTO_BACKOFF_MS = 15e3;
+    let autoBlockedUntil = 0;
     let autoRunning = !1;
     async function autoLoad() {
         const cal = window.__mmCal;
-        if (!autoRunning && cal && cal.loadMonth && cal.route && !cal.loading) {
+        if (!autoRunning && cal && cal.loadMonth && cal.route && !cal.loading && (state.selectedDate || currentSearchDate()) && !(Date.now() < autoBlockedUntil)) {
             autoRunning = !0;
             try {
                 for (const m of viewedMonths()) {
@@ -3710,6 +3717,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                     const n = (autoFails.get(key) || 0) + 1;
                     autoFails.set(key, n);
                     n >= MAX_AUTO_FAILS && autoTried.add(key);
+                    autoBlockedUntil = Date.now() + AUTO_BACKOFF_MS;
                 }
             } finally {
                 autoRunning = !1;
@@ -8639,7 +8647,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.2.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.2.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
