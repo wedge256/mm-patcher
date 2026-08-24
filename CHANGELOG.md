@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0 — 2026-08-24
+
+### Hinzugefügt
+
+- **Sitzplan zeigt auch den Flugzeugtyp an**
+- **Kennzeichnung besonderer Business-Kabinen in der Übersicht (Allegris,
+  Swiss Senses) bzw. der Seatmap (ANA THE Room, Polaris Studio u. a.)**
+
+### Behoben
+
+- **Sitzplan-Darstellung war teilweise fehlerhaft**
+- **Avianca hatte kein Logo**
+
 ## 1.2.2 — 2026-08-24
 
 ### Behoben

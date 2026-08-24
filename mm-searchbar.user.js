@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.2.2
+// @version      1.3.0
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -3204,7 +3204,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 74;
+    const VERSION = 75;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -3358,6 +3358,19 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }
     })();
     function activeBoundIdx() {
+        try {
+            const bd = window.__mmBounds;
+            const first = bd && bd.bounds && Array.isArray(bd.current) && bd.current.length ? bd.bounds.get(bd.current[0]) : null;
+            const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
+            const its = o.entities[o.selectedAirBoundsSearchId].itineraries || [];
+            if (first && its.length > 1) {
+                const loc = (bd.dictionaries || {}).location || {};
+                const same = (iata, code) => iata === code || (loc[iata] || {}).cityCode === code;
+                const outO = its[0].originLocationCode;
+                if (same(first.origin, its[1].originLocationCode) && !same(first.origin, outO)) return 1;
+                if (same(first.origin, outO)) return 0;
+            }
+        } catch (e) {}
         const m = /availability\/(\d+)/.exec(location.pathname || "");
         return m ? parseInt(m[1], 10) : 0;
     }
@@ -3370,6 +3383,13 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }
     }
     function currentSearchDate() {
+        try {
+            for (const b of document.querySelectorAll("refx-calendar-cont button.calendar-btn")) {
+                if (!/selected date|ausgewählt/i.test(b.textContent || "")) continue;
+                const ds = stripBtnDate(b);
+                if (ds) return ds;
+            }
+        } catch (e) {}
         try {
             const raw = sessionStorage.getItem(SEARCH_KEY);
             const j = JSON.parse(raw);
@@ -4303,7 +4323,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 19;
+    const VERSION = 24;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -4315,6 +4335,50 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     const isAllegris = (operating, acv) => "LH" === operating && ALLEGRIS_ACV.has(acv);
     const A380_NEW_BC_ACV = new Set([ "L38" ]);
     const isNewBizA380 = (operating, acv) => "LH" === operating && A380_NEW_BC_ACV.has(acv);
+    const PREMIUM_BY_ACV = [ {
+        op: "LX",
+        acvs: new Set([ "A35", "A36", "33F", "33R" ]),
+        label: "Senses",
+        title: "Swiss Senses: neue Kabinengeneration, Business teils als Suite mit Schiebetür"
+    }, {
+        op: "4Y",
+        acvs: new Set([ "33B", "33F" ]),
+        label: "Ocean Blue",
+        title: "Eurowings Discover: neue Langstreckenkabine (Ocean Blue)"
+    } ];
+    const PREMIUM_BY_TYPE = [ {
+        op: "AI",
+        re: /A350/,
+        label: "Business Suiten",
+        title: "Air India A350: Business als Suite mit Schiebetür (1-2-1)"
+    }, {
+        op: "TK",
+        re: /A350-1000/,
+        label: "Crystal",
+        title: "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1) — nur auf dem A350-1000"
+    }, {
+        op: "AC",
+        re: /787-10/,
+        label: "Signature Plus",
+        title: "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn"
+    } ];
+    const premiumCabin = (operating, acName, acv) => {
+        const byAcv = PREMIUM_BY_ACV.find(p => p.op === operating && p.acvs.has(acv));
+        if (byAcv) return {
+            label: byAcv.label,
+            title: byAcv.title
+        };
+        if ("LX" === operating && ("A37" === acv || "33S" === acv)) return null;
+        if ("LX" === operating && /A350/.test(acName || "")) return {
+            label: "Senses",
+            title: PREMIUM_BY_ACV[0].title
+        };
+        const hit = PREMIUM_BY_TYPE.find(p => p.op === operating && p.re.test(acName || ""));
+        return hit ? {
+            label: hit.label,
+            title: hit.title
+        } : null;
+    };
     const AIRLINES = {
         LH: "Lufthansa",
         LX: "Swiss",
@@ -4380,6 +4444,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         Array.isArray(inherited.current) && (state.current = inherited.current.slice());
         inherited.dictionaries && (state.dictionaries = inherited.dictionaries);
         inherited.lastRaw && (state.lastRaw = inherited.lastRaw);
+        inherited.listSig && (state.listSig = inherited.listSig);
         inherited.api && (state.api = inherited.api);
         Array.isArray(inherited.listeners) && (state.listeners = inherited.listeners);
         Array.isArray(inherited.reqListeners) && (state.reqListeners = inherited.reqListeners);
@@ -4409,6 +4474,16 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             fn(state);
         } catch (e) {}
     });
+    const searchSig = b => {
+        try {
+            return JSON.stringify({
+                i: b.itineraries,
+                c: b.commercialFareFamilies || null
+            });
+        } catch (e) {
+            return null;
+        }
+    };
     const emitRequest = (active, meta) => state.reqListeners.forEach(fn => {
         try {
             fn(active, meta);
@@ -4583,7 +4658,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                         const seg = bd.segments[i];
                         const f = flightDict[seg.flightId];
                         if (!f) return null;
-                        const acName = acDict[f.aircraftCode] || f.aircraftCode;
+                        const acName = String(acDict[f.aircraftCode] || f.aircraftCode).replace(/\bINDUSTRIE\s+/i, "");
                         const opCode = f.operatingAirlineCode || f.marketingAirlineCode || null;
                         0 === i && (firstDepDT = f.departure.dateTime);
                         lastArrDT = f.arrival.dateTime;
@@ -4613,6 +4688,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                             widebody: isWidebody(acName, f.aircraftCode),
                             allegris: isAllegris(f.operatingAirlineCode, f.aircraftConfigurationVersion),
                             newBiz: isNewBizA380(f.operatingAirlineCode, f.aircraftConfigurationVersion),
+                            premium: premiumCabin(f.operatingAirlineCode, acName, f.aircraftConfigurationVersion),
                             duration: f.duration
                         });
                         if (i < bd.segments.length - 1) {
@@ -4650,6 +4726,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                 keys.push(it.key);
             });
             state.current = keys;
+            state.listSig = state._pendingSig || null;
             state.responses++;
             emit();
         } catch (e) {}
@@ -4820,12 +4897,17 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         },
         start: body => emitRequest(!0, (body => {
             try {
-                return {
-                    fresh: !JSON.parse(body).selectedBoundId
+                const b = JSON.parse(body);
+                const meta = {
+                    fresh: !b.selectedBoundId,
+                    sig: searchSig(b)
                 };
+                state._pendingSig = meta.sig;
+                return meta;
             } catch (e) {
                 return {
-                    fresh: !0
+                    fresh: !0,
+                    sig: null
                 };
             }
         })(body)),
@@ -4905,7 +4987,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 110;
+    const VERSION = 125;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -5113,7 +5195,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         const s = String(leg && leg.aircraftName || "").toUpperCase();
         return /A380/.test(s) ? "a388" : /A35\d/.test(s) ? "a359" : /A34\d/.test(s) ? "a343" : /A3(3\d|10|00)/.test(s) ? "a333" : /A(3(1[89]|2\d)|22\d)/.test(s) ? "a320" : /747|B?74\d/.test(s) ? "b744" : /78\d|DREAMLINER/.test(s) ? "b788" : /77\d/.test(s) ? "b77w" : /7[0-6]\d|MAX/.test(s) ? "b738" : leg && leg.widebody ? "a333" : "a320";
     }
-    const HALF_H = .78;
+    const HALF_H = .66;
     const CAP_NOSE = 1.15, CAP_TAIL = 1.6;
     function planeGeom(shape, cabinPx, fusPx) {
         const cabin = cabinPx / fusPx;
@@ -5203,6 +5285,18 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     const PLANE_PATH = "M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19" + "l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z";
     const TRAIN_PATH = "M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 " + "3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 " + "1.5S8.33 17 7.5 17zM11 10H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 " + "1.5.67 1.5 1.5-.67 1.5-1.5 1.5z";
     const BUS_PATH = "M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 " + "1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 " + "0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67" + "-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM18 11H6V6h12v5z";
+    const shortAircraft = name => {
+        let s = (name || "").replace(/\s*\(.*?\)\s*/g, " ").replace(/\/.*$/, "").replace(/\s+/g, " ").trim();
+        if (!s) return name || "";
+        if (/TRAIN|RAIL/i.test(s)) return "Zug";
+        if (/\bBUS\b/i.test(s)) return "Bus";
+        let m = /^CANADAIR\s+REGIONAL\s+JET\s+(\S+)/i.exec(s) || /^(?:BOMBARDIER\s+)?CRJ[\s-]*(\S+)/i.exec(s);
+        if (m) return "CRJ-" + m[1];
+        m = /^EMBRAER\s+(?:ERJ[\s-]*)?(\S+)/i.exec(s);
+        if (m) return /^E/i.test(m[1]) ? m[1].toUpperCase() : "E" + m[1];
+        m = /^(?:DE\s+HAVILLAND|BOMBARDIER)\s+.*?DASH\s*8[\s-]*(\S+)?/i.exec(s);
+        return m ? "Dash 8" + (m[1] ? "-" + m[1] : "") : s.replace(/^(AIRBUS(\s+INDUSTRIE)?|BOEING|BOMBARDIER)\s+/i, "").trim() || s;
+    };
     const EU = new Set([ "DE", "AT", "CH", "FR", "IT", "ES", "PT", "NL", "BE", "LU", "DK", "SE", "NO", "FI", "IE", "GB", "PL", "CZ", "SK", "HU", "SI", "HR", "RO", "BG", "GR", "EE", "LV", "LT", "IS", "MT", "CY" ]);
     const NA = new Set([ "US", "CA" ]);
     const LOGO_KEY = "mmrc_logo_base";
@@ -5210,6 +5304,9 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     try {
         logoBase = localStorage.getItem(LOGO_KEY);
     } catch (e) {}
+    const LOGO_EMBED = {
+        AV: "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%22130.28%200%2040%2040%22%3E%3Cpath%20d=%22M154.013%2031.2561H157.697C159.226%2031.2561%20159.904%2031.3827%20160.33%2031.5755C159.676%2029.5444%20157.614%2027.9613%20150.346%2027.418C151.507%2028.7616%20152.726%2030.0488%20154.011%2031.2561H154.013Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M150.346%2027.4203C143.293%2019.224%20138.542%208.73765%20136.637%200C136.637%200%20132.76%203.4195%20132.452%2010.611C132.112%2018.4704%20136.328%2026.394%20150.212%2027.4047C150.257%2027.4125%20150.304%2027.4125%20150.346%2027.4183V27.4203Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M154.011%2031.2559C148.537%2031.2559%20139.087%2031.2559%20139.087%2031.2559C139.286%2031.7193%20139.969%2032.0445%20141.525%2032.136C150.841%2032.6891%20152.159%2039.9993%20165.493%2039.9993C166.663%2039.9993%20167.393%2039.9292%20168.131%2039.791C162.862%2038.1708%20158.13%2035.1252%20154.011%2031.2539V31.2559Z%22%20fill=%22%23FF0000%22/%3E%3C/svg%3E"
+    };
     const CSS = `
 html.mmrc-active .upsell-premium-pres-container > mat-accordion { display: none !important; }
 
@@ -5470,6 +5567,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 }
 .mmrc-logo { width: 17px; height: 17px; object-fit: contain; flex: 0 0 auto;
              border-radius: 2px; vertical-align: middle; }
+.mmrc-logofallback { width: 17px; height: 17px; flex: 0 0 auto; border-radius: 2px;
+                     background: ${INK_primary}; color: #fff; font-size: 8px;
+                     font-weight: 700; display: inline-flex; align-items: center;
+                     justify-content: center; letter-spacing: .2px; }
 .mmrc-air { display: inline; font-size: 12px; font-weight: 600; color: ${INK_primary};
             white-space: nowrap; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
 .mmrc-fno { font-size: 11.5px; color: ${INK_secondary};
@@ -5483,12 +5584,11 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
            border-radius: 999px; background: #eef2f9; color: #3a465f;
            max-width: 14ch; overflow: hidden; text-overflow: ellipsis; }
 .mmrc-ac.is-wide { background: ${INK_primary}; color: #fff; }
-.mmrc-allegris, .mmrc-newbiz {
+.mmrc-allegris, .mmrc-newbiz, .mmrc-theroom, .mmrc-premcab {
     font-size: 10.5px; font-weight: 600; line-height: 1.45;
     letter-spacing: 0; text-transform: none; white-space: nowrap;
     padding: 1px 7px; border-radius: 999px;
     background: #f7edd0; color: #8a6d1f; }
-.mmrc-newbiz { background: #ddeae3; color: #2c5744; }
 .mmrc-row.is-lay { display: block; padding: 0; }
 .mmrc-laymeta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 7px;
                 margin: 2px 0 2px 44px; padding: 2px 9px 2px 7px; border-radius: 4px;
@@ -5695,7 +5795,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
         return JSON.parse(text);
     }
-    function normaliseSeatmap(j) {
+    function normaliseSeatmap(j, requestedCabin) {
         const chars = {};
         const dict = (j.dictionaries || {}).seatCharacteristic || {};
         Object.keys(dict).forEach(k => {
@@ -5724,7 +5824,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const t = (s.travelers || [])[0] || {};
                 rows.has(row) || rows.set(row, {
                     row: row,
-                    cabin: s.cabin,
+                    cabin: s.cabin || null,
                     seats: {},
                     x: s.coordinates ? s.coordinates.x : null
                 });
@@ -5773,6 +5873,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             decks: decks,
             chars: chars,
             acv: ((j.data || {}).flight || {}).aircraftConfigurationVersion || null,
+            requestedCabin: requestedCabin || null,
             warnings: (j.warnings || []).map(w => w.code)
         };
     }
@@ -5798,6 +5899,11 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const cab = d.rows[0] && d.rows[0].cabin;
                 cab && null != d.gridW && null == e.widths[cab] && (e.widths[cab] = d.gridW);
                 cab && Object.keys(d.letterY || {}).length && !e.letterYByCabin[cab] && (e.letterYByCabin[cab] = d.letterY);
+                if (!cab) {
+                    null != d.gridW && null == e.widths.__u__ && (e.widths.__u__ = d.gridW);
+                    Object.keys(d.letterY || {}).length && !e.letterYByCabin.__u__ && (e.letterYByCabin.__u__ = d.letterY);
+                    part.requestedCabin && !e.unlabelledFrom && (e.unlabelledFrom = part.requestedCabin);
+                }
                 d.rows.forEach(r => {
                     const ex = e.rows.get(r.row);
                     if (ex) {
@@ -5831,8 +5937,21 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             chars: chars,
             warnings: [ ...warnings ],
             decks: [ ...byDeck.values() ].sort((a, b) => ("upper" === a.type ? 0 : 1) - ("upper" === b.type ? 0 : 1)).map(e => {
-                const ref = null != e.widths.eco ? e.widths.eco : ecoW;
                 const rows = [ ...e.rows.values() ].sort((a, b) => a.row - b.row);
+                const minRow = {};
+                rows.forEach(r => {
+                    r.cabin && (minRow[r.cabin] = Math.min(null != minRow[r.cabin] ? minRow[r.cabin] : 1e9, r.row));
+                });
+                rows.forEach(r => {
+                    if (r.cabin) return;
+                    const c = null != minRow.business && r.row < minRow.business ? "first" : null != minRow.eco && r.row < minRow.eco ? "ecoPremium" : e.unlabelledFrom || "eco";
+                    r.cabin = c;
+                    null == e.widths[c] && null != e.widths.__u__ && (e.widths[c] = e.widths.__u__);
+                    !e.letterYByCabin[c] && e.letterYByCabin.__u__ && (e.letterYByCabin[c] = e.letterYByCabin.__u__);
+                });
+                delete e.widths.__u__;
+                delete e.letterYByCabin.__u__;
+                const ref = null != e.widths.eco ? e.widths.eco : ecoW;
                 rows.forEach(r => {
                     r.slim = null != ref && e.widths[r.cabin] === ref && ((e, cabin) => {
                         const ecoY = e.letterYByCabin.eco, ownY = e.letterYByCabin[cabin];
@@ -5926,7 +6045,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             return Promise.allSettled(cabins.map(c => function(leg, cabin) {
                 const key = legKey(leg) + "|" + cabin;
                 if (seatCache.has(key)) return seatCache.get(key);
-                const p = apiGet("/shopping/seatmaps" + "?originLocationCode=" + encodeURIComponent(leg.from) + "&destinationLocationCode=" + encodeURIComponent(leg.to) + "&departureDate=" + encodeURIComponent(leg.depDate) + "&marketingAirlineCode=" + encodeURIComponent(leg.mkt) + "&marketingFlightNumber=" + encodeURIComponent(leg.mktNo) + "&bookingClass=" + SEAT_BC[cabin]).then(j => normaliseSeatmap(j));
+                const p = apiGet("/shopping/seatmaps" + "?originLocationCode=" + encodeURIComponent(leg.from) + "&destinationLocationCode=" + encodeURIComponent(leg.to) + "&departureDate=" + encodeURIComponent(leg.depDate) + "&marketingAirlineCode=" + encodeURIComponent(leg.mkt) + "&marketingFlightNumber=" + encodeURIComponent(leg.mktNo) + "&bookingClass=" + SEAT_BC[cabin]).then(j => normaliseSeatmap(j, cabin));
                 p.catch(() => {
                     seatCache.get(key) === p && seatCache.delete(key);
                 });
@@ -6189,7 +6308,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const noPrice = data.warnings.indexOf("8700") >= 0;
         const failed = (data.failedCabins || []).filter(c => CABIN[c]);
         const nameOf = c => seatCabinName(leg, c);
-        return '<div class="mmrc-seathead">' + '<span class="mmrc-seattitle">Sitzplan ' + esc(leg.flightNo) + " · " + esc(leg.from) + " → " + esc(leg.to) + "</span></div>" + '<div class="mmrc-seatstats">' + function(decks, nameOf) {
+        const acLabel = shortAircraft(leg.aircraftName);
+        const bizSeats = data.decks.reduce((n, d2) => n + d2.rows.filter(r => "business" === r.cabin).reduce((m, r) => m + Object.keys(r.seats).length, 0), 0);
+        const theRoom = "NH" === leg.operating && /777-300/.test(leg.aircraftName || "") && 64 === bizSeats;
+        const polarisStudio = "UA" === leg.operating && /787-9/.test(leg.aircraftName || "") && 64 === bizSeats;
+        const hasPE = data.decks.some(d2 => d2.rows.some(r => "ecoPremium" === r.cabin));
+        const senses330 = "LX" === leg.operating && /A330/.test(leg.aircraftName || "") && hasPE;
+        return '<div class="mmrc-seathead">' + '<span class="mmrc-seattitle">Sitzplan ' + esc(leg.flightNo) + " · " + esc(leg.from) + " → " + esc(leg.to) + (acLabel ? " · " + esc(acLabel) : "") + "</span>" + (theRoom ? '<span class="mmrc-theroom" title="ANA THE Room: neue Business ' + 'Class in Suiten mit Schiebetür (1-2-1)">THE Room</span>' : "") + (polarisStudio ? '<span class="mmrc-premcab" title="United 787-9 Elevated: ' + 'neue Polaris-Kabine, vorn 8 Polaris-Studio-Suiten mit Tür">Polaris Studio</span>' : "") + (senses330 ? '<span class="mmrc-premcab" title="Swiss Senses: umgerüstete A330 ' + 'mit neuer First, Business und Premium Economy">Senses</span>' : "") + "</div>" + '<div class="mmrc-seatstats">' + function(decks, nameOf) {
             const per = {};
             decks.forEach(d => d.rows.forEach(r => Object.values(r.seats).forEach(s => {
                 const e = per[r.cabin] = per[r.cabin] || {
@@ -6286,28 +6411,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     function timelineHtml(it) {
         const termLabel = t => "TN" === t ? "Fernbahnhof" : "T" + t;
         const legRow = (leg, legIdx) => {
-            const acLabel = (name => {
-                let s = (name || "").replace(/\s*\(.*?\)\s*/g, " ").replace(/\/.*$/, "").replace(/\s+/g, " ").trim();
-                if (!s) return name || "";
-                if (/TRAIN|RAIL/i.test(s)) return "Zug";
-                if (/\bBUS\b/i.test(s)) return "Bus";
-                let m = /^CANADAIR\s+REGIONAL\s+JET\s+(\S+)/i.exec(s) || /^(?:BOMBARDIER\s+)?CRJ[\s-]*(\S+)/i.exec(s);
-                if (m) return "CRJ-" + m[1];
-                m = /^EMBRAER\s+(?:ERJ[\s-]*)?(\S+)/i.exec(s);
-                if (m) return /^E/i.test(m[1]) ? m[1].toUpperCase() : "E" + m[1];
-                m = /^(?:DE\s+HAVILLAND|BOMBARDIER)\s+.*?DASH\s*8[\s-]*(\S+)?/i.exec(s);
-                return m ? "Dash 8" + (m[1] ? "-" + m[1] : "") : s.replace(/^(AIRBUS|BOEING|BOMBARDIER)\s+/i, "").trim() || s;
-            })(leg.aircraftName);
+            const acLabel = shortAircraft(leg.aircraftName);
             const parts = [];
-            const lu = (code = leg.operating, logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null);
+            const lu = LOGO_EMBED[leg.operating] || (code = leg.operating, logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null);
             var code;
-            lu && parts.push(`<img class="mmrc-logo" src="${esc(lu)}" alt="" aria-hidden="true" ` + `onerror="this.style.display='none'">`);
+            lu && parts.push(`<img class="mmrc-logo" src="${esc(lu)}" alt="" aria-hidden="true" ` + `data-code="${esc(leg.operating || "")}" ` + `onerror="var s=document.createElement('span');s.className='mmrc-logofallback';` + `s.textContent=this.dataset.code;this.replaceWith(s)">`);
             leg.operatingName && parts.push(`<span class="mmrc-air${leg.codeshare ? " is-codeshare" : ""}"` + (leg.codeshare ? ` title="Durchgeführt von ${esc(leg.operatingName)}"` : "") + `>${esc(leg.operatingName)}</span>`);
             parts.push(`<span class="mmrc-fno">${esc(fmtFlightNo(leg.flightNo))}</span>`);
             seatmapOn() && apiOf() && leg.mkt && leg.mktNo && leg.depDate ? parts.push(`<button type="button" class="mmrc-seatbtn${leg.widebody ? " is-wide" : ""}" ` + `data-leg="${legIdx}" title="${esc(leg.aircraftName)} – Sitzplan ansehen">` + (leg => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="` + ((leg => /TRAIN|RAIL/i.test(String(leg && leg.aircraftName || "")))(leg) ? TRAIN_PATH : (leg => /\bBUS\b/i.test(String(leg && leg.aircraftName || "")))(leg) ? BUS_PATH : PLANE_PATH) + `"/></svg>`)(leg) + `${esc(acLabel)}</button>`) : parts.push(`<span class="mmrc-ac${leg.widebody ? " is-wide" : ""}" title="${esc(leg.aircraftName)}">${esc(acLabel)}</span>`);
             const cabinBadges = [];
             leg.allegris && cabinBadges.push(`<span class="mmrc-allegris">Allegris</span>`);
             leg.newBiz && cabinBadges.push(`<span class="mmrc-newbiz" title="Umgerüsteter A380 mit der neuen Business Class (1-2-1, direkter Gangzugang)">BC Retrofit</span>`);
+            leg.premium && cabinBadges.push(`<span class="mmrc-premcab" title="${esc(leg.premium.title)}">${esc(leg.premium.label)}</span>`);
             const acIdx = parts.length - 1;
             cabinBadges.length && (parts[acIdx] = `<span class="mmrc-acgroup">${parts[acIdx]}` + `<span class="mmrc-cabinbadges">${cabinBadges.join("")}</span></span>`);
             return `<div class="mmrc-row is-leg">` + ((leg, extra) => `<span class="mmrc-t" data-iata="${esc(leg.from)}">${esc(leg.dep)}</span>` + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + `<span class="mmrc-t" data-iata="${esc(leg.to)}">${esc(leg.arr)}${extra || ""}</span>`)(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
@@ -6332,7 +6447,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     } catch (e) {}
                     return properCase(leg.toCity || leg.to || "");
                 })();
-                const time = null != dur ? `${tight ? `<span class="mmrc-run" title="Kurze Umstiegszeit">${RUN_SVG}</span>` : long ? `<span class="mmrc-lounge" title="Langer Aufenthalt">${LOUNGE_SVG}</span>` : ""}<b>${esc(fmtDur(dur))}</b>` : "";
+                const time = null != dur ? `${tight ? `<span class="mmrc-run" title="Kurze Umstiegszeit">${RUN_SVG}</span>` : long && !airportChanged ? `<span class="mmrc-lounge" title="Langer Aufenthalt">${LOUNGE_SVG}</span>` : ""}<b>${esc(fmtDur(dur))}</b>` : "";
                 let cls = "", lead = "", mark = "";
                 if (airportChanged) {
                     cls = " is-apchange";
@@ -6386,6 +6501,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         return m ? m[1] + " × " + m[2] + " kg" : properCase(s || "");
     }
     let pendingBooking = null;
+    const bookingInFlight = () => !!(pendingBooking && pendingBooking.nativeBtn && pendingBooking.nativeBtn.isConnected && pendingBooking.nativeBtn.disabled);
     const TIER_ORDER = [ "Basic", "Light", "Classic", "Comfort", "Comfort +", "Flex", "Standard" ];
     let openFareCol = null;
     function closeFarePop() {
@@ -6476,7 +6592,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                         pendingBooking = {
                             key: boundKey,
                             code: fare.code,
-                            text: t
+                            text: t,
+                            listSig: boundsData().listSig || null
                         };
                         if (t === CART && 0 === t.indexOf("Rückflüge")) try {
                             sessionStorage.setItem("mmrc_outbound_pick", JSON.stringify({
@@ -6507,7 +6624,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     };
                     const CART = (() => {
                         try {
-                            if (!/availability\/0(\/|$)/.test(location.pathname)) return "Warenkorb wird geöffnet …";
+                            if ("return" === listSide()) return "Warenkorb wird geöffnet …";
                             const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
                             return (o.entities[o.selectedAirBoundsSearchId].itineraries || []).length > 1 ? "Rückflüge werden geladen …" : "Warenkorb wird geöffnet …";
                         } catch (e) {
@@ -6519,6 +6636,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     const direct = find();
                     if (direct) {
                         busy(CART);
+                        pendingBooking && (pendingBooking.nativeBtn = direct);
                         direct.click();
                         return;
                     }
@@ -6567,6 +6685,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                         })();
                         if (target) {
                             busy(CART);
+                            pendingBooking && (pendingBooking.nativeBtn = target);
                             target.click();
                             return;
                         }
@@ -6700,7 +6819,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             const retry = panel.querySelector(".mmrc-seatretry");
             retry && retry.addEventListener("click", () => openSeatmap(it, idx));
         }).catch(e => {
-            ov.dataset.legKey === legKey(leg) && (panel.innerHTML = '<div class="mmrc-seatmsg">' + (e && "7425" === e.apiCode ? "Zu diesem Flug ist im Buchungssystem kein Sitzplan hinterlegt." : "Der Sitzplan konnte nicht geladen werden.") + ' <span class="mmrc-seatmsgdetail">' + esc(String(e && e.message || "")) + "</span></div>");
+            if (ov.dataset.legKey !== legKey(leg)) return;
+            const known = e && "7425" === e.apiCode ? "Zu diesem Flug ist im Buchungssystem kein Sitzplan hinterlegt." : e && String(e.apiCode || "").indexOf("65019") >= 0 ? "Diese Airline liefert dem Buchungssystem keinen Sitzplan." : "Der Sitzplan konnte nicht geladen werden.";
+            panel.innerHTML = '<div class="mmrc-seatmsg">' + known + ' <span class="mmrc-seatmsgdetail">' + esc(String(e && e.message || "")) + "</span></div>";
         });
     }
     const view = {
@@ -7153,13 +7274,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     if (bd) {
         bd.onUpdate && (state._offData = bd.onUpdate(() => {
             noOffer = null;
-            pendingBooking && "outbound" === listSide() && (pendingBooking = null);
+            pendingBooking && "outbound" === listSide() && bd.listSig !== pendingBooking.listSig && !bookingInFlight() && (pendingBooking = null);
             scheduleRender();
         }));
         bd.onRequest && (state._offReq = bd.onRequest((active, meta) => {
             searching = Math.max(0, searching + (active ? 1 : -1));
             if (!state.superseded && cardsOn()) if (active) {
-                if (!meta || meta.fresh) {
+                if ((!meta || meta.fresh && meta.sig !== bd.listSig) && !bookingInFlight()) {
                     pendingBooking = null;
                     try {
                         sessionStorage.removeItem("mmrc_outbound_pick");
@@ -8647,7 +8768,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.2.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.3.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
