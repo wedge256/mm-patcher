@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 — 2026-08-24
+
+### Behoben
+
+- **Hin- und Rückflug: Beim Wechsel des Rückflugdatums zeigt der Kalender
+  nicht mehr die Tarife der alten Suche**
+
 ## 1.2.0 — 2026-08-24
 
 ### Hinzugefügt
