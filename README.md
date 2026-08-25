@@ -11,6 +11,9 @@ Das Script bringt ihn - zusammen mit ein paar optionalen Extra Features - wieder
 ## Installation
 
 1. [Tampermonkey](https://www.tampermonkey.net/) installieren (Chrome, Firefox, Edge)
+
+   1a. Chrome only: URL eingeben: [chrome://extensions](chrome://extensions) -> Tampermonkey -> Details: "Nutzerscripte zulassen" aktivieren
+
 2. [**mm-searchbar.user.js**](https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js)
    anklicken - Tampermonkey öffnet den Installationsdialog
 
