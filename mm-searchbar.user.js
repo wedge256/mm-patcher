@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.3.0
+// @version      1.4.0
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -887,7 +887,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 46;
+    const VERSION = 52;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -903,6 +903,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         swap: !0,
         iata: !0,
         iataExt: !0,
+        country: !0,
+        suggest: !0,
         calendar: !0,
         bbd: !0,
         currency: !0,
@@ -917,13 +919,15 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         swap: "search",
         iata: "search",
         iataExt: "search",
+        country: "search",
+        suggest: "search",
         bbd: "calendar",
         seatmap: "results"
     };
     const GROUPS = [ {
         key: "search",
         label: "🔍 Suchpanel",
-        tip: 'Schaltet den „Ändern"-Button wieder frei \\o/',
+        tip: "Extras für die Suchmaske: Flughafen-Auswahl, Vorschlagsliste, " + "Richtungstausch.",
         subs: [ {
             key: "iata",
             label: "🔤 Bessere IATA-Suche",
@@ -931,7 +935,18 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }, {
             key: "iataExt",
             label: "🌍 Mehr Flughäfen",
-            tip: "Nutzt die 8700 Flughäfen/Bahnhöfe der Hauptseite, statt " + "die 1500 der Awardsuchseite. [höhere Rechenlast; kann die " + "Eingabe träger werden lassen]"
+            reload: !0,
+            tip: "Nutzt die 8700 Flughäfen/Bahnhöfe der Hauptseite statt " + "der 1500 der Awardsuchseite. [höhere Rechenlast] Greift " + "beim Neuladen."
+        }, {
+            key: "country",
+            label: "🗺️ Ländersuche",
+            reload: !0,
+            tip: 'Ein Ländername („Brasilien") listet alle Städte des ' + "Landes. Greift beim Neuladen."
+        }, {
+            key: "suggest",
+            label: "🏷️ Bessere Vorschlagsliste",
+            reload: !0,
+            tip: 'Vorschläge als „Stadt, Ort (Kürzel)", Land in zweiter ' + "Zeile, Flughäfen vor Bahnhöfen. Reihenfolge greift beim " + "Neuladen."
         }, {
             key: "swap",
             label: "⇄ Richtungstausch",
@@ -940,39 +955,39 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }, {
         key: "calendar",
         label: "📅 Besserer Kalender",
-        tip: "Scannt vollen Monat statt eine Woche; je nach Einstellung für " + "alle 4 Kabinen. Kann auf manchen Routen noch um BBD erweitert " + "werden (volles Jahr für alle Kabinen).",
+        tip: "Voller Monat statt einer Woche, je nach Einstellung für alle " + "4 Kabinen.",
         subs: [ {
             key: "bbd",
             label: "📈 Best-by-Day-Preise",
-            tip: "Ergänzt den Kalender um die von der Hauptseite bekannten " + "Preise. [findet für jeden Tag den besten Preis/Kabine]; " + "wird serverseitig lange gecached und ist demnach oft nicht " + "mehr aktuell."
+            tip: "Ergänzt den Kalender um die Preise der Hauptseite " + "(bester Preis pro Tag und Kabine). Serverseitig lange " + "gecached, oft veraltet."
         } ]
     }, {
         key: "results",
         label: "🛬 Neue Ergebnisansicht",
-        tip: "Neue Ansicht mit mehr Details und weniger Klickerei bis zum " + "Buchen.",
+        tip: "Eigene Ergebniskarten mit mehr Details und direkter Buchung.",
         subs: [ {
             key: "seatmap",
             label: "💺 Sitzplan",
-            tip: "Zeigt bei Hover / Klick auf den Flugzeugtyp die passende " + "Seatmap an."
+            tip: "Sitzplan bei Hover oder Klick auf den Flugzeugtyp."
         } ]
     }, {
         header: "🧰 Wartung & Sonstiges",
         subs: [ {
             key: "currency",
             label: "💱 Währungsumrechnung",
-            tip: "Zeigt bei Fremdwährungen den Betrag in € an (Kalender, " + "Ergebniskarten, Sitzplan)."
+            tip: "Fremdwährungsbeträge zusätzlich in € (Kalender, Karten, " + "Sitzplan)."
         }, {
             key: "keepalive",
             label: "🔐 Angemeldet bleiben",
-            tip: "Verhindert, dass die Session nach 15 Minuten Inaktivität " + "beendet wird."
+            tip: "Verhindert das Session-Ende nach 15 Minuten Inaktivität."
         }, {
             key: "waiting",
             label: "⚠️ Verbesserte Fehlermeldungen",
-            tip: "Ergänzt die generische Fehlerseite um den tatsächlichen " + "Fehler und eine Möglichkeit zum direkten Relogin."
+            tip: "Fehlerseite nennt die echte Ursache, mit Relogin-Knopf."
         }, {
             key: "authrepair",
             label: "🔑 Fehlerbehebung Anmeldung",
-            tip: "Behebt Probleme, die bei manchen Abflugsorten auf der " + "Hauptseite auftreten (Error 401)."
+            tip: "Behebt den 401-Fehler bei manchen Abflugsorten."
         }, {
             key: "updates",
             label: "🔔 Update-Hinweis",
@@ -1004,6 +1019,9 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         };
     })();
     const listeners = inherited && Array.isArray(inherited._listeners) ? inherited._listeners : [];
+    const bootPrefs = inherited && inherited._bootPrefs || {
+        ...prefs
+    };
     const save = () => {
         try {
             localStorage.setItem(KEY, JSON.stringify(prefs));
@@ -1019,6 +1037,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const state = {
         version: VERSION,
         _listeners: listeners,
+        _bootPrefs: bootPrefs,
         get: k => prefs[k],
         all: () => ({
             ...prefs
@@ -1026,16 +1045,24 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         set: (k, v) => {
             prefs[k] = !!v;
             save();
-            panel && panel.querySelectorAll(".mmset-row[data-key]").forEach(row => {
-                const key = row.dataset.key;
-                const inp = row.querySelector("input[data-feature]");
-                if (!inp) return;
-                inp.checked = !!prefs[key];
-                const parent = SUB_OF[key];
-                const dim = !(!parent || prefs[parent]);
-                row.classList.toggle("is-dim", dim);
-                inp.disabled = dim;
-            });
+            !function() {
+                if (!panel) return;
+                panel.querySelectorAll(".mmset-row[data-key]").forEach(row => {
+                    const key = row.dataset.key;
+                    const inp = row.querySelector("input[data-feature]");
+                    if (!inp) return;
+                    inp.checked = !!prefs[key];
+                    const parent = SUB_OF[key];
+                    const dim = !(!parent || prefs[parent]);
+                    row.classList.toggle("is-dim", dim);
+                    inp.disabled = dim;
+                });
+                const eff = (p, k) => !(!p[k] || SUB_OF[k] && !p[SUB_OF[k]]);
+                panel.querySelectorAll(".mmset-reload[data-for]").forEach(el => {
+                    const k = el.dataset.for;
+                    el.hidden = eff(prefs, k) === eff(bootPrefs, k);
+                });
+            }();
             (k => {
                 listeners.forEach(fn => {
                     try {
@@ -1065,6 +1092,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }
     let panel = null;
     let tipEl = null;
+    const RELOADS = {};
+    GROUPS.forEach(g => g.subs.forEach(s => {
+        s.reload && (RELOADS[s.key] = !0);
+    }));
     function toggleRow(key, label, isSub) {
         const parent = SUB_OF[key];
         const dim = !(!parent || prefs[parent]);
@@ -1074,7 +1105,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 <input type="checkbox" data-feature="${key}" ${prefs[key] ? "checked" : ""} ${dim ? "disabled" : ""}>
                 <span class="mmset-track"></span>
             </label>
-        </div>`;
+        </div>` + (RELOADS[key] ? `<div class="mmset-reload" data-for="${key}" hidden>↻ Greift nach Neuladen: ` + `<a class="mmset-reload-link">jetzt neu laden</a></div>` : "");
     }
     function groupHtml(g) {
         return `<div class="mmset-grp">` + (g.header ? `<div class="mmset-head">${g.header}</div>` : toggleRow(g.key, g.label, !1)) + g.subs.map(s => toggleRow(s.key, s.label, !0)).join("") + `</div>`;
@@ -1144,6 +1175,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmset-row.is-sub .mmset-sw input:checked + .mmset-track::before { transform: translateX(12px); }
 .mmset-row.is-dim { opacity: .45; }
 .mmset-row.is-dim .mmset-track { cursor: not-allowed; }
+.mmset-reload { margin: -2px 0 4px 21px; font-size: 11px; color: ${INK_muted}; }
+.mmset-reload-link { color: ${INK_accent}; text-decoration: underline; cursor: pointer; }
 .mmset-label { font-size: 13px; color: ${INK_primary}; min-width: 0; }
 .mmset-tip { position: fixed; z-index: 2147483002; width: 252px;
              background: ${INK_primary}; color: #fff; border-radius: 7px; padding: 8px 10px;
@@ -1160,6 +1193,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmset-sw input:checked + .mmset-track { background: ${INK_accent}; }
 .mmset-sw input:checked + .mmset-track::before { transform: translateX(16px); }
 .mmset-foot { margin-top: 10px; font-size: 10px; color: ${INK_muted}; }
+.mmset-verline { margin-top: 4px; }
+.mmset-verline a { color: ${INK_muted}; text-decoration: underline; cursor: pointer; }
+.mmset-updres { font-weight: 600; }
+.mmset-updres a { color: #1a6b2f; }
 
 `;
             let el = document.getElementById("mmset-styles");
@@ -1182,7 +1219,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             <p class="mmset-title">M&amp;M Patcher</p>
             <p class="mmset-sub">Ist ein Hauptschalter aus, verhält sich der Bereich wie im Original.</p>
             ${GROUPS.map(groupHtml).join("")}
-            <p class="mmset-foot">Einstellung bleibt gespeichert.</p>`;
+            <p class="mmset-foot">Einstellung bleibt gespeichert.</p>
+            <p class="mmset-foot mmset-verline"><span class="mmset-ver"></span> ·
+                <a href="#" class="mmset-upd">Auf Updates prüfen</a>
+                <span class="mmset-updres"></span></p>`;
         document.body.appendChild(panel);
         !function() {
             if (!tipEl) {
@@ -1206,9 +1246,54 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             });
             panel.addEventListener("mouseleave", () => tipEl.classList.remove("is-on"));
         }();
+        const verEl = panel.querySelector(".mmset-ver");
+        const updRes = panel.querySelector(".mmset-updres");
+        const updLink = panel.querySelector(".mmset-upd");
+        updLink && updRes && updLink.addEventListener("click", async e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const u = window.__mmUpdate;
+            if (u && u.check) {
+                updRes.textContent = "prüfe …";
+                try {
+                    await u.check(!0);
+                    const s = u.status();
+                    if (s.error) {
+                        updRes.textContent = "Prüfung fehlgeschlagen";
+                        return;
+                    }
+                    if (s.latest && s.current && s.latest !== s.current) {
+                        updRes.textContent = "";
+                        const a = document.createElement("a");
+                        a.href = s.page || "#";
+                        a.target = "_blank";
+                        a.rel = "noopener";
+                        a.textContent = "v" + s.latest + " verfügbar";
+                        updRes.appendChild(a);
+                    } else updRes.textContent = "✓ aktuell";
+                } catch (e2) {
+                    updRes.textContent = "Prüfung fehlgeschlagen";
+                }
+            } else updRes.textContent = "Update-Hinweis ist abgeschaltet";
+        });
         fab.addEventListener("click", e => {
             e.stopPropagation();
-            panel.classList.toggle("is-open") && positionPanel();
+            if (panel.classList.toggle("is-open")) {
+                positionPanel();
+                if (verEl && !verEl.textContent) {
+                    const v = (() => {
+                        try {
+                            const s = window.__mmUpdate && window.__mmUpdate.status();
+                            if (s && s.current) return s.current;
+                        } catch (e) {}
+                        try {
+                            if ("undefined" != typeof GM_info && GM_info.script && GM_info.script.version) return GM_info.script.version;
+                        } catch (e) {}
+                        return null;
+                    })();
+                    verEl.textContent = "MM Patcher" + (v ? " v" + v : "");
+                }
+            }
         });
         document.addEventListener("click", e => {
             panel.classList.contains("is-open") && !panel.contains(e.target) && e.target !== fab && panel.classList.remove("is-open");
@@ -1223,6 +1308,9 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         } catch (e) {}
         panel.querySelectorAll("input[data-feature]").forEach(inp => {
             inp.addEventListener("change", () => state.set(inp.dataset.feature, inp.checked));
+        });
+        panel.addEventListener("click", e => {
+            e.target.closest && e.target.closest(".mmset-reload-link") && location.reload();
         });
         dock();
         let dockTimer = null;
@@ -1264,7 +1352,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 12;
+    const VERSION = 26;
     if (window.__mmIata && window.__mmIata.version >= VERSION) return;
     const inherited = window.__mmIata;
     if (inherited) {
@@ -1294,8 +1382,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         } catch (e2) {}
     }
     const searchMasterOn = () => !window.__mmSettings || !1 !== window.__mmSettings.get("search");
+    const countryOn = () => searchMasterOn() && (!window.__mmSettings || !1 !== window.__mmSettings.get("country"));
+    const suggestOn = () => searchMasterOn() && (!window.__mmSettings || !1 !== window.__mmSettings.get("suggest"));
     const originalFetch = window.__mmIataOrigFetch || (window.__mmIataOrigFetch = window.fetch);
     const RAIL_METRO = [ [ "XHJ", "Aachen Hbf Rail Station", "Aachen/Maastricht" ], [ "QPP", "Berlin Hbf Rail Station", "Berlin" ], [ "ZQU", "Braunschweig/Wolfsburg Rail Station", "Braunschweig" ], [ "DHC", "Bremen Hbf", "Bremen" ], [ "DTZ", "Dortmund Hbf Rail Station", "Dortmund" ], [ "XIR", "Dresden Hbf Rail Station", "Dresden" ], [ "QDU", "Düsseldorf Hauptbahnhof", "Düsseldorf" ], [ "XIU", "Erfurt Hbf Rail Station", "Erfurt" ], [ "ESZ", "Essen Hbf Rail Station", "Essen" ], [ "ZRB", "Frankfurt Hbf Rail Station", "Frankfurt" ], [ "QFB", "Freiburg Hbf", "Freiburg" ], [ "ZEU", "Göttingen Rail Station", "Göttingen" ], [ "ZMB", "Hamburg Hbf Rail Station", "Hamburg" ], [ "ZVR", "Hannover Hbf Rail Station", "Hannover" ], [ "KJR", "Karlsruhe Hauptbahnhof", "Karlsruhe" ], [ "KWQ", "Kassel/Calden", "Kassel" ], [ "QKL", "Köln Hbf Rail Station", "Köln" ], [ "QKU", "Köln Messe/Deutz Bahnhof", "Köln" ], [ "XIT", "Leipzig Hbf Rail Station", "Leipzig/Halle" ], [ "MHJ", "Mannheim Hbf Railway Station", "Mannheim" ], [ "AGY", "Augsburg Hbf Rail Station", "München" ], [ "ZMU", "München Hbf Rail Station", "München" ], [ "MKF", "Münster Hbf", "Münster/Osnabrück" ], [ "ZPE", "Osnabrück Hbf", "Münster/Osnabrück" ], [ "ZAQ", "Nürnberg Hauptbahnhof", "Nürnberg" ], [ "ZPY", "Siegburg/Bonn Bahnhof", "Siegburg/Bonn" ], [ "ZWS", "Stuttgart Hauptbahnhof", "Stuttgart" ], [ "QUL", "Ulm Rail Station", "Ulm" ], [ "QWU", "Würzburg Hauptbahnhof", "Würzburg" ], [ "ZBA", "Basel Bad Rail Station", "Basel" ], [ "ZDH", "Basel SBB Rail Station", "Basel" ], [ "ZDI", "Bellinzona Rail Station", "Bellinzona" ], [ "ZDJ", "Bern Rail Station", "Bern" ], [ "ZDT", "Chur Rail Station", "Chur" ], [ "ZHF", "Fribourg Rail Station", "Fribourg" ], [ "ZHT", "Genf Rail Station", "Genf" ], [ "ZIN", "Interlaken Ost", "Interlaken" ], [ "QLS", "Lausanne Rail Station", "Lausanne" ], [ "QLJ", "Luzern Rail Station", "Luzern" ], [ "QDL", "Lugano Railway Station", "Lugano" ], [ "ZKO", "Sierre/Siders Rail Station", "Sierre" ], [ "XGZ", "Bregenz Rail Station", "Bregenz" ], [ "GGZ", "Graz Rail Station", "Graz" ], [ "LZS", "Linz Rail Station", "Linz" ], [ "ZSB", "Salzburg Hbf Rail Station", "Salzburg" ] ];
+    const RAIL_CODES = new Set(RAIL_METRO.map(([code]) => code));
+    const STATION_RE = /rail|railway|bahnhof|\bbhf\b|\bhbf\b|bus station|bus stn|harbour|ferry/i;
     const ATLAS_URL = "https://api.miles-and-more.com/content/v3/atlas/airport-atlas.json?lang=de";
     const ATLAS_KEY = "agGBZmuTGwFXWzVDg8ckGKGBytemE1nS";
     const ATLAS_STORE = "mmiata_atlas";
@@ -1311,29 +1403,162 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }).then(r => r.ok ? r.json() : null).then(j => {
             const codes = [];
             const seen = new Set;
-            (((j || {}).language || {}).countries || []).forEach(c => (c.cities || []).forEach(ct => (ct.airports || []).forEach(a => {
-                const code = String(a.code || "").toUpperCase();
-                if (/^[A-Z]{3}$/.test(code) && !seen.has(code)) {
-                    seen.add(code);
-                    codes.push(code);
-                }
-            })));
+            const cc = {};
+            (((j || {}).language || {}).countries || []).forEach(c => (c.cities || []).forEach(ct => {
+                ct.code && c.name && (cc[String(ct.code).toUpperCase()] = c.name);
+                (ct.airports || []).forEach(a => {
+                    const code = String(a.code || "").toUpperCase();
+                    c.name && !cc[code] && (cc[code] = c.name);
+                    if (/^[A-Z]{3}$/.test(code) && !seen.has(code)) {
+                        seen.add(code);
+                        codes.push(code);
+                    }
+                });
+            }));
             if (!codes.length) return null;
+            const store = {
+                ts: Date.now(),
+                codes: codes,
+                cc: cc
+            };
             try {
-                localStorage.setItem(ATLAS_STORE, JSON.stringify({
-                    ts: Date.now(),
-                    codes: codes
-                }));
+                localStorage.setItem(ATLAS_STORE, JSON.stringify(store));
             } catch (e) {}
-            return codes;
+            return store;
         }).catch(() => null).then(c => {
             atlasPromise = null;
             return c;
         });
         return atlasPromise;
     }
+    function atlasData() {
+        let hit = null;
+        try {
+            hit = JSON.parse(localStorage.getItem(ATLAS_STORE) || "null");
+        } catch (e) {}
+        if (hit && Array.isArray(hit.codes) && hit.codes.length && hit.cc) {
+            Date.now() - (hit.ts || 0) > ATLAS_TTL && fetchAtlasCodes();
+            return Promise.resolve(hit);
+        }
+        return fetchAtlasCodes();
+    }
     const CITY_STORE = "mmiata_cities";
+    const AIRPORT_STORE = "mmiata_airports";
     let cityNames = null;
+    let airportNames = null;
+    function keepCityNames(data) {
+        const map = {};
+        const ap = {};
+        for (const k of Object.keys(data)) if (0 === k.lastIndexOf("global.cities.", 0)) {
+            const code = k.slice(14);
+            3 === code.length && data[k] && (map[code] = String(data[k]));
+        } else if (0 === k.lastIndexOf("global.airports.", 0)) {
+            const code = k.slice(16);
+            3 === code.length && data[k] && (ap[code] = String(data[k]));
+        }
+        if (Object.keys(ap).length) {
+            airportNames = ap;
+            labelCache.clear();
+            try {
+                localStorage.setItem(AIRPORT_STORE, JSON.stringify({
+                    ts: Date.now(),
+                    map: ap
+                }));
+            } catch (e) {}
+            try {
+                reformatFields();
+            } catch (e) {}
+        }
+        if (Object.keys(map).length) {
+            cityNames = map;
+            labelCache.clear();
+            try {
+                localStorage.setItem(CITY_STORE, JSON.stringify({
+                    ts: Date.now(),
+                    map: map
+                }));
+            } catch (e) {}
+        }
+    }
+    const fromStore = storeKey => {
+        try {
+            const s = JSON.parse(localStorage.getItem(storeKey) || "null");
+            return s && s.map || {};
+        } catch (e) {
+            return {};
+        }
+    };
+    const CITYMAP_STORE = "mmiata_citymap";
+    let cityMap = null;
+    let cityMapPromise = null;
+    let cityMapFailed = !1;
+    function cityMapData() {
+        if (cityMap) return Promise.resolve(cityMap);
+        if (cityMapFailed) return Promise.resolve(null);
+        try {
+            const s = JSON.parse(localStorage.getItem(CITYMAP_STORE) || "null");
+            if (s && s.map && Date.now() - (s.ts || 0) <= ATLAS_TTL) {
+                cityMap = s.map;
+                return Promise.resolve(cityMap);
+            }
+        } catch (e) {}
+        if (cityMapPromise) return cityMapPromise;
+        const base = document.body && document.body.dataset && document.body.dataset.dynamiccontentpath;
+        if (!base) return Promise.resolve(null);
+        cityMapPromise = originalFetch.call(window, String(base).replace(/\/$/, "") + "/assets/airport-code-city-code.json").then(r => r.ok ? r.text() : null).then(t => {
+            if (!t) {
+                cityMapFailed = !0;
+                return null;
+            }
+            65279 === t.charCodeAt(0) && (t = t.slice(1));
+            const map = JSON.parse(t);
+            cityMap = map;
+            labelCache.clear();
+            try {
+                localStorage.setItem(CITYMAP_STORE, JSON.stringify({
+                    ts: Date.now(),
+                    map: map
+                }));
+            } catch (e) {}
+            formatOptions(!0);
+            try {
+                reformatFields();
+            } catch (e) {}
+            return map;
+        }).catch(() => {
+            cityMapFailed = !0;
+            return null;
+        }).then(m => {
+            cityMapPromise = null;
+            return m;
+        });
+        return cityMapPromise;
+    }
+    function cityName(code) {
+        if (!code) return null;
+        cityNames || (cityNames = fromStore(CITY_STORE));
+        const c = String(code).toUpperCase();
+        if (cityNames[c]) return cityNames[c];
+        cityMapData();
+        const prim = cityMap && cityMap[c];
+        return prim && cityNames[String(prim).toUpperCase()] || null;
+    }
+    function airportName(code) {
+        if (!code) return null;
+        airportNames || (airportNames = fromStore(AIRPORT_STORE));
+        return airportNames[String(code).toUpperCase()] || null;
+    }
+    let ccMap = null;
+    function countryOf(code) {
+        if (!code) return null;
+        if (!ccMap) try {
+            const s = JSON.parse(localStorage.getItem(ATLAS_STORE) || "null");
+            ccMap = s && s.cc || {};
+        } catch (e) {
+            ccMap = {};
+        }
+        return ccMap[String(code).toUpperCase()] || null;
+    }
     const LOCALE_RE = /\/[a-z]{2}-[A-Z]{2}\.json(\?|$)/;
     window.__mmIataHooks = {
         on: () => searchMasterOn() && (!window.__mmSettings || !1 !== window.__mmSettings.get("iataExt")),
@@ -1350,21 +1575,28 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 }
             };
             try {
-                (await function() {
-                    let hit = null;
-                    try {
-                        hit = JSON.parse(localStorage.getItem(ATLAS_STORE) || "null");
-                    } catch (e) {}
-                    if (hit && Array.isArray(hit.codes) && hit.codes.length) {
-                        Date.now() - (hit.ts || 0) > ATLAS_TTL && fetchAtlasCodes();
-                        return Promise.resolve(hit.codes);
-                    }
-                    return fetchAtlasCodes();
-                }() || []).forEach(add);
+                (await atlasData().then(d => d && d.codes || null) || []).forEach(add);
             } catch (e) {}
             state.atlas = added;
             RAIL_METRO.forEach(([code]) => add(code));
             state.added = added;
+            if (suggestOn()) try {
+                const cmap = await cityMapData() || {};
+                const atlas = await atlasData();
+                const atlasSet = atlas && atlas.codes ? new Set(atlas.codes) : null;
+                const L = data.defaultAirportList;
+                const prim = c => cmap[c] || c;
+                const rankOf = new Map(L.map(c => [ c, RAIL_CODES.has(c) || STATION_RE.test(airportName(c) || "") || atlasSet && !atlasSet.has(c) && cmap[c] ? 1 : 0 ]));
+                const groupMin = new Map;
+                const orig = new Map;
+                L.forEach((c, i) => {
+                    orig.set(c, i);
+                    const p = prim(c);
+                    groupMin.has(p) || groupMin.set(p, i);
+                });
+                L.sort((a, b) => groupMin.get(prim(a)) - groupMin.get(prim(b)) || rankOf.get(a) - rankOf.get(b) || orig.get(a) - orig.get(b));
+                state.ranked = L.filter(c => rankOf.get(c)).length;
+            } catch (e) {}
             return new Response(JSON.stringify(data), {
                 status: response.status,
                 statusText: response.statusText,
@@ -1393,23 +1625,23 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 }
             }
             state.railNamed = changed;
-            !function(data) {
-                const map = {};
-                for (const k of Object.keys(data)) {
-                    if (0 !== k.lastIndexOf("global.cities.", 0)) continue;
-                    const code = k.slice(14);
-                    3 === code.length && data[k] && (map[code] = String(data[k]));
-                }
-                if (Object.keys(map).length) {
-                    cityNames = map;
-                    try {
-                        localStorage.setItem(CITY_STORE, JSON.stringify({
-                            ts: Date.now(),
-                            map: map
-                        }));
-                    } catch (e) {}
-                }
-            }(data);
+            keepCityNames(data);
+            if (countryOn()) try {
+                const atlas = await atlasData();
+                const cc = atlas && atlas.cc || {};
+                let tagged = 0;
+                Object.keys(data).forEach(k => {
+                    if (0 !== k.indexOf("global.airports.")) return;
+                    const country = cc[k.slice(16).toUpperCase()];
+                    const v = data[k];
+                    if (country && "string" == typeof v && -1 === v.indexOf(country)) {
+                        data[k] = v + " · " + country;
+                        tagged++;
+                    }
+                });
+                state.countryTagged = tagged;
+                tagged && changed++;
+            } catch (e) {}
             return changed ? new Response(JSON.stringify(data), {
                 status: response.status,
                 statusText: response.statusText,
@@ -1438,16 +1670,118 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         };
     }
     state.hooked = !0;
-    state.cityName = function(code) {
-        if (!code) return null;
-        if (!cityNames) try {
-            const s = JSON.parse(localStorage.getItem(CITY_STORE) || "null");
-            cityNames = s && s.map || {};
-        } catch (e) {
-            cityNames = {};
-        }
-        return cityNames[String(code).toUpperCase()] || null;
+    state.cityName = cityName;
+    state.placeLabel = code => {
+        const l = optionLabel(String(code || "").toUpperCase());
+        return l ? l.replace(/ \([A-Z0-9]{3}\)$/, "") : null;
     };
+    const esc = s => String(null == s ? "" : s).replace(/[&<>"]/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;"
+    }[c]));
+    const protoValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    const normName = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const labelCache = new Map;
+    function optionLabel(code) {
+        if (labelCache.has(code)) return labelCache.get(code);
+        const label = (() => {
+            const anRaw = airportName(code);
+            if (!anRaw) return null;
+            const an = String(anRaw).replace(/\s+/g, " ").trim();
+            const cnRaw = cityName(code);
+            const cn = cnRaw ? String(cnRaw).replace(/\s+/g, " ").trim() : null;
+            if (!cn) return an + " (" + code + ")";
+            if (-1 !== normName(cn).indexOf(normName(an))) return cn + " (" + code + ")";
+            const place = function(an, cn) {
+                const cands = [ cn ].concat(String(cn).split("/")).map(s => s.trim()).filter(s => s.length > 2).sort((a, b) => b.length - a.length);
+                let p = an;
+                for (let round = 0; round < 2; round++) for (const c of cands) {
+                    const n = normName(c), np = normName(p);
+                    0 === np.lastIndexOf(n + " ", 0) ? p = p.slice(c.length + 1) : np.length > n.length && -1 !== np.indexOf(" " + n, np.length - n.length - 1) && (p = p.slice(0, p.length - c.length - 1));
+                }
+                p = p.replace(/^[-–,.\s]+|[-–,.\s]+$/g, "");
+                const paren = /^\((.+)\)$/.exec(p);
+                return paren ? paren[1] : p;
+            }(an, cn);
+            return place ? cn + ", " + place + " (" + code + ")" : cn + " (" + code + ")";
+        })();
+        labelCache.set(code, label);
+        return label;
+    }
+    function highlighted(label, query) {
+        const q = (query || "").trim();
+        if (q.length < 2) return esc(label);
+        const i = label.toLowerCase().indexOf(q.toLowerCase());
+        return -1 === i ? esc(label) : esc(label.slice(0, i)) + '<span class="highlight-match">' + esc(label.slice(i, i + q.length)) + "</span>" + esc(label.slice(i + q.length));
+    }
+    let namesFetched = !1;
+    const FMT_CHUNK = 120;
+    let fmtTimer = null;
+    function formatOptions(force) {
+        if (state.superseded || !suggestOn()) return;
+        const opts = document.querySelectorAll(".mat-mdc-autocomplete-panel mat-option");
+        if (!opts.length) return;
+        !function() {
+            if (namesFetched) return;
+            airportName("XXX");
+            if (airportNames && Object.keys(airportNames).length) return;
+            namesFetched = !0;
+            const base = document.body && document.body.dataset && document.body.dataset.dynamiccontentpath;
+            if (!base) return;
+            const lang = /^[a-z]{2}-[A-Z]{2}$/.test(document.documentElement.lang || "") ? document.documentElement.lang : "de-DE";
+            originalFetch.call(window, String(base).replace(/\/$/, "") + "/" + lang + ".json").then(r => r.ok ? r.json() : null).then(d => {
+                if (d) {
+                    keepCityNames(d);
+                    formatOptions();
+                    reformatFields();
+                }
+            }).catch(() => {});
+        }();
+        let q = "";
+        const ae = document.activeElement;
+        if (ae && "INPUT" === ae.tagName && protoValue && protoValue.get) try {
+            q = String(protoValue.get.call(ae));
+        } catch (e) {}
+        let rebuilt = 0;
+        for (const opt of opts) {
+            const line = opt.querySelector(".mdc-list-item__primary-text");
+            if (!line) continue;
+            const m = /\(([A-Z0-9]{3})\)\s*$/.exec(line.textContent || "");
+            const code = m ? m[1] : line.querySelector(".mmiata-opt") ? opt.dataset.mmiataFmt : null;
+            if (!code) continue;
+            if (!force && opt.dataset.mmiataFmt === code && line.querySelector(".mmiata-opt")) continue;
+            if (rebuilt >= FMT_CHUNK) {
+                fmtTimer || (fmtTimer = setTimeout(() => {
+                    fmtTimer = null;
+                    formatOptions(force);
+                }, 40));
+                return;
+            }
+            const label = optionLabel(code);
+            if (null == label) continue;
+            const country = countryOn() ? countryOf(code) : null;
+            line.innerHTML = '<span class="mmiata-opt">' + '<span class="mmiata-opt-main">' + highlighted(label, q) + "</span>" + (country ? '<span class="mmiata-opt-country">' + esc(country) + "</span>" : "") + "</span>";
+            opt.classList.toggle("mmiata-two", !!country);
+            opt.dataset.mmiataFmt = code;
+            rebuilt++;
+        }
+    }
+    function reformatFields() {
+        suggestOn() && protoValue && protoValue.get && document.querySelectorAll('input[id$="origin"], input[id$="destination"]').forEach(el => {
+            if (!el.__mmiataPatched) return;
+            const v = protoValue.get.call(el);
+            const m = /\(([A-Z0-9]{3})\)\s*$/.exec(String(v || ""));
+            if (!m) return;
+            const label = optionLabel(m[1]);
+            if (label && label !== v) {
+                el.__mmiataOrig = v;
+                el.__mmiataDisp = label;
+                protoValue.set.call(el, label);
+            }
+        });
+    }
     function patchInputs() {
         const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
         if (!desc || !desc.get) return () => {};
@@ -1458,17 +1792,51 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 Object.defineProperty(input, "value", {
                     get() {
                         const v = desc.get.call(this);
-                        return !searchMasterOn() || window.__mmSettings && !1 === window.__mmSettings.get("iata") || !/^[A-Za-z]{3}$/.test(v) ? v : "(" + v.toUpperCase() + ")";
+                        return null != this.__mmiataOrig && v === this.__mmiataDisp ? this.__mmiataOrig : !searchMasterOn() || window.__mmSettings && !1 === window.__mmSettings.get("iata") || !/^[A-Za-z]{3}$/.test(v) ? v : "(" + v.toUpperCase() + ")";
                     },
                     set(v) {
+                        this.__mmiataOrig = null;
+                        if (suggestOn()) {
+                            const m = /\(([A-Z0-9]{3})\)\s*$/.exec(String(null == v ? "" : v));
+                            const label = m ? optionLabel(m[1]) : null;
+                            if (label && label !== v) {
+                                this.__mmiataOrig = v;
+                                this.__mmiataDisp = label;
+                                v = label;
+                            }
+                        }
                         desc.set.call(this, v);
                     },
                     configurable: !0
                 });
+                input.__mmiataPatched = !0;
                 state.patched++;
+                reformatFields();
             }
         };
-        const scan = () => document.querySelectorAll('input[id$="origin"], input[id$="destination"]').forEach(patch);
+        const scan = () => {
+            if (!state.superseded) {
+                document.querySelectorAll('input[id$="origin"], input[id$="destination"]').forEach(patch);
+                try {
+                    formatOptions();
+                } catch (e) {}
+            }
+        };
+        !function() {
+            const css = `
+.mat-mdc-autocomplete-panel mat-option { content-visibility: auto; contain-intrinsic-size: auto 48px; }
+.mat-mdc-autocomplete-panel mat-option .mmiata-opt { display: flex; flex-direction: column;
+    align-items: flex-start; line-height: 1.35; padding: 3px 0; }
+.mat-mdc-autocomplete-panel mat-option .mmiata-opt-country { font-size: 11px; color: #898781; }
+.mat-mdc-autocomplete-panel mat-option.mmiata-two { height: auto; min-height: 48px; }`;
+            let el = document.getElementById("mmiata-styles");
+            if (!el) {
+                el = document.createElement("style");
+                el.id = "mmiata-styles";
+                document.head.appendChild(el);
+            }
+            el.textContent !== css && (el.textContent = css);
+        }();
         scan();
         const obs = new MutationObserver(scan);
         document.body && obs.observe(document.body, {
@@ -3204,7 +3572,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 75;
+    const VERSION = 79;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -3665,7 +4033,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const legend = order.filter(c => cabinsPresent.has(c)).map(c => '<span class="mmcal-legend-item"><span class="mmcal-pip" style="background:' + CABIN_META[c].color + '"></span>' + CABIN_META[c].full + "</span>").join("");
         const wantAll = !!cal.allCabins;
         const route = boundLabel() + esc((cal.route || "").replace("-", " → "));
-        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (isLoading || atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (isLoading || !state.dayOffset ? " disabled" : "") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (isLoading ? " disabled" : "") + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<span class="mmcal-legend">' + (legend || "<span>keine Verfügbarkeit im Zeitraum</span>") + "</span>" + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen. Das sind vier Abfragen statt einer.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
+        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (isLoading || atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (isLoading || !state.dayOffset ? " disabled" : "") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (isLoading ? " disabled" : "") + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<span class="mmcal-legend">' + (legend || "<span>keine Verfügbarkeit im Zeitraum</span>") + "</span>" + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
         const loadBtn = state.root.querySelector("[data-load]");
         loadBtn && loadBtn.addEventListener("click", () => ensureMonthLoaded());
         const poolsBtn = state.root.querySelector("[data-pools]");
@@ -4987,7 +5355,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 125;
+    const VERSION = 135;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -5545,6 +5913,17 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
           font-variant-numeric: tabular-nums; letter-spacing: .01em; line-height: 1.15; }
 .mmrc-t::after { content: attr(data-iata); font-size: 15px; font-weight: 700;
                  color: ${INK_secondary}; letter-spacing: .02em; }
+.mmrc-list [data-place] { position: relative; }
+.mmrc-list [data-place]::before { content: attr(data-place); position: absolute;
+    left: 0; bottom: calc(100% + 4px); z-index: 40;
+    background: #fff; border: 1px solid ${INK_hairline}; color: ${INK_secondary};
+    font-size: 11px; font-weight: 500; letter-spacing: 0; line-height: 1.3;
+    padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+    pointer-events: none; opacity: 0; visibility: hidden;
+    transition: opacity .12s; box-shadow: 0 3px 10px rgba(5,22,77,.10); }
+.mmrc-list [data-place]:hover::before { opacity: 1; visibility: visible; transition-delay: .15s; }
+.mmrc-row > .mmrc-t[data-place]:nth-of-type(2)::before { left: auto; right: 0; }
+.mmrc-seg [data-place]::before { bottom: auto; top: calc(100% + 4px); }
 .mmrc-arrow { position: relative; align-self: center; height: 18px; }
 .mmrc-arrow::before { content: ''; position: absolute; left: 0; right: 6px; top: 12px;
                       height: 1px; background: #cbd2df; }
@@ -6408,8 +6787,20 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             inner.style.marginBottom = "-" + Math.ceil(needH * (1 - k)) + "px";
         }
     }
+    function placeName(code, fallbackCity) {
+        try {
+            const ia = window.__mmIata;
+            const l = ia && "function" == typeof ia.placeLabel ? ia.placeLabel(code) : null;
+            if (l) return l;
+        } catch (e) {}
+        return fallbackCity ? properCase(fallbackCity) : "";
+    }
     function timelineHtml(it) {
         const termLabel = t => "TN" === t ? "Fernbahnhof" : "T" + t;
+        const tSpan = (code, city, inner) => {
+            const t = placeName(code, city);
+            return `<span class="mmrc-t" data-iata="${esc(code)}"${t ? ` data-place="${esc(t)}"` : ""}>${inner}</span>`;
+        };
         const legRow = (leg, legIdx) => {
             const acLabel = shortAircraft(leg.aircraftName);
             const parts = [];
@@ -6425,7 +6816,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             leg.premium && cabinBadges.push(`<span class="mmrc-premcab" title="${esc(leg.premium.title)}">${esc(leg.premium.label)}</span>`);
             const acIdx = parts.length - 1;
             cabinBadges.length && (parts[acIdx] = `<span class="mmrc-acgroup">${parts[acIdx]}` + `<span class="mmrc-cabinbadges">${cabinBadges.join("")}</span></span>`);
-            return `<div class="mmrc-row is-leg">` + ((leg, extra) => `<span class="mmrc-t" data-iata="${esc(leg.from)}">${esc(leg.dep)}</span>` + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + `<span class="mmrc-t" data-iata="${esc(leg.to)}">${esc(leg.arr)}${extra || ""}</span>`)(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
+            return `<div class="mmrc-row is-leg">` + ((leg, extra) => tSpan(leg.from, leg.fromCity, esc(leg.dep)) + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + tSpan(leg.to, leg.toCity, `${esc(leg.arr)}${extra || ""}`))(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
         };
         const extraOf = (leg, i) => i === it.legs.length - 1 && it.daysOffset ? `<span class="mmrc-nextday" title="Ankunft ${it.daysOffset} Tag${it.daysOffset > 1 ? "e" : ""} später">` + `+${it.daysOffset}</span>` : "";
         const rows = [];
@@ -6500,6 +6891,34 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const m = /(\d+)\s+(?:CHECKED BAGS?|CABIN BAGS?)[^0-9]*(\d+)\s*KG/i.exec(s || "");
         return m ? m[1] + " × " + m[2] + " kg" : properCase(s || "");
     }
+    function anchorSig(card) {
+        const q = sel => {
+            const el = card.querySelector(sel);
+            return el ? el.textContent.replace(/\s+/g, " ").trim() : null;
+        };
+        const dep = q(".bound-departure-airport-code"), arr = q(".bound-arrival-airport-code");
+        const dt = q(".bound-departure-datetime"), at = q(".bound-arrival-datetime");
+        if (!(dep && arr && dt && at)) return null;
+        const nb = q(".bound-nb-stop");
+        const st = q(".bound-stop-text");
+        const stops = null != nb && /^\d+$/.test(nb) ? parseInt(nb, 10) : null != st && /direkt|direct|nonstop/i.test(st) ? 0 : null;
+        return null == stops ? null : dep + "|" + arr + "|" + dt + "|" + at + "|" + stops;
+    }
+    function textSig(card) {
+        let txt = "";
+        !function walk(node) {
+            if (3 !== node.nodeType) {
+                if (1 === node.nodeType && !("REFX-FLIGHT-DETAILS" === node.tagName || node.classList && node.classList.contains("cdk-visually-hidden"))) for (let n = node.firstChild; n; n = n.nextSibling) walk(n);
+            } else txt += node.nodeValue + " ";
+        }(card);
+        txt = txt.replace(/\s+/g, " ");
+        const times = txt.match(/\b(\d{2}:\d{2})\b/g);
+        const codes = txt.match(/\b([A-Z]{3})\b/g);
+        if (!times || times.length < 2 || !codes || codes.length < 2) return null;
+        const stopM = /(\d+)[^0-9]{0,24}?stopp?s?\b/i.exec(txt);
+        const stops = /direkt|direct|nonstop/i.test(txt) ? 0 : stopM ? parseInt(stopM[1]) : 0;
+        return codes[0] + "|" + codes[1] + "|" + times[0] + "|" + times[1] + "|" + stops;
+    }
     let pendingBooking = null;
     const bookingInFlight = () => !!(pendingBooking && pendingBooking.nativeBtn && pendingBooking.nativeBtn.isConnected && pendingBooking.nativeBtn.disabled);
     const TIER_ORDER = [ "Basic", "Light", "Classic", "Comfort", "Comfort +", "Flex", "Standard" ];
@@ -6554,7 +6973,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const lower = (CABIN[l.cabin] || {}).rank < meta.rank;
                 const label = (CABIN[l.cabin] || {}).name || l.cabin;
                 const cls = note ? "is-note" : lower ? "is-down" : "";
-                return `<div class="mmrc-seg"><span>${esc(l.from)}→${esc(l.to)}</span>` + `<em class="${cls}">${esc(label)}${note ? " · " + esc(note) : lower ? " ↓" : ""}</em></div>`;
+                const segTitle = [ placeName(l.from), placeName(l.to) ];
+                return `<div class="mmrc-seg"><span` + (segTitle[0] && segTitle[1] ? ` data-place="${esc(segTitle[0])} → ${esc(segTitle[1])}"` : "") + `>${esc(l.from)}→${esc(l.to)}</span>` + `<em class="${cls}">${esc(label)}${note ? " · " + esc(note) : lower ? " ↓" : ""}</em></div>`;
             }).join("");
             html += `<div class="mmrc-segs"><span class="mmrc-lbl">Gemischte Kabinen</span>${segs}</div>`;
         } else html += `<div class="mmrc-segs"></div>`;
@@ -6644,21 +7064,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                         const km = /^(.*?)(?:#(\d+))?$/.exec(String(key || ""));
                         const want = km[1], nth = km[2] ? parseInt(km[2], 10) : 1;
                         let hits = 0;
-                        const cards = document.querySelectorAll("refx-flight-card-pres");
-                        for (const card of cards) try {
-                            let txt = "";
-                            (function walk(node) {
-                                if (3 !== node.nodeType) {
-                                    if (1 === node.nodeType && "REFX-FLIGHT-DETAILS" !== node.tagName) for (let n = node.firstChild; n; n = n.nextSibling) walk(n);
-                                } else txt += node.nodeValue + " ";
-                            })(card);
-                            txt = txt.replace(/\s+/g, " ");
-                            const times = txt.match(/\b(\d{2}:\d{2})\b/g);
-                            const codes = txt.match(/\b([A-Z]{3})\b/g);
-                            if (!times || times.length < 2 || !codes || codes.length < 2) continue;
-                            const stopM = /(\d+)[^0-9]{0,24}?stopp?s?\b/i.exec(txt);
-                            const stops = /direkt|direct|nonstop/i.test(txt) ? 0 : stopM ? parseInt(stopM[1]) : 0;
-                            if (codes[0] + "|" + codes[1] + "|" + times[0] + "|" + times[1] + "|" + stops === want && ++hits === nth) return card;
+                        for (const card of document.querySelectorAll("refx-flight-card-pres")) try {
+                            if ((anchorSig(card) || textSig(card)) === want && ++hits === nth) return card;
                         } catch (e) {}
                         return null;
                     }(boundKey);
@@ -6851,6 +7258,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const host = container();
         if (!host) return null;
         host.parentNode && (state._skelAnchor = host.parentNode);
+        state._skelWidth = host.offsetWidth || state._skelWidth;
         let list = host.querySelector(".mmrc-list");
         if (!list) {
             document.querySelectorAll(".mmrc-list").forEach(e => e.remove());
@@ -6915,9 +7323,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     const FLOAT_ID = "mmrc-skel-float";
     function showFloatSkel() {
         if (document.getElementById(FLOAT_ID)) return;
-        const host = state._skelAnchor && state._skelAnchor.isConnected && state._skelAnchor || document.querySelector(".main-content") || document.body;
+        let fallback = null;
+        document.querySelectorAll(".main-content").forEach(e => {
+            (!fallback || e.offsetWidth < fallback.offsetWidth) && (fallback = e);
+        });
+        const host = state._skelAnchor && state._skelAnchor.isConnected && state._skelAnchor || fallback || document.body;
         const div = document.createElement("div");
         div.id = FLOAT_ID;
+        if (state._skelWidth) {
+            div.style.width = Math.round(state._skelWidth) + "px";
+            div.style.maxWidth = "100%";
+            div.style.margin = "0 auto";
+        }
         div.innerHTML = skelHtml();
         host.appendChild(div);
     }
@@ -7060,9 +7477,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     return !1;
                 }
             })();
+            const originCountry = (() => {
+                try {
+                    const first = all[0];
+                    return (((boundsData().dictionaries || {}).location || {})[first.origin] || {}).countryCode || null;
+                } catch (e) {
+                    return null;
+                }
+            })();
+            const officeMatches = off && off.country && originCountry === off.country;
             const li = document.createElement("li");
             li.className = "mmrc-msg mmrc-office";
-            li.innerHTML = "Buchungsbüro " + esc(label) + ": Zuzahlungen werden in " + esc(foreign) + " berechnet" + (converts ? " (Anzeige in € umgerechnet)" : "") + ". Eine neue Suche über die " + '<a href="https://www.miles-and-more.com/" class="mmrc-office-link">Hauptseite</a> ' + "setzt das Büro aufs Abflugland.";
+            li.innerHTML = "Buchungsbüro " + esc(label) + ": Zuzahlungen werden in " + esc(foreign) + " berechnet" + (converts ? " (Anzeige in € umgerechnet)" : "") + "." + (officeMatches ? "" : " Eine neue Suche über die " + '<a href="https://www.miles-and-more.com/" class="mmrc-office-link">Hauptseite</a> ' + "setzt das Büro aufs Abflugland.");
             return li;
         }(all);
         officeNote && list.appendChild(officeNote);
@@ -7325,6 +7751,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     window.__mmSettings && (state._offSettings = window.__mmSettings.onChange(k => {
         state.superseded || "results" !== k || (cardsOn() ? render() : state.destroy());
     }));
+    state.render = render;
     function boot() {
         if (!state.superseded && cardsOn()) {
             injectStyles();
@@ -8768,7 +9195,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.3.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.4.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
