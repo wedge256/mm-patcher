@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.0 — 2026-08-31
+
+### Hinzugefügt
+
+- **Ländersuche: Ein Ländername listet alle Städte des Landes**
+
+### Geändert
+
+- **Darstellung während der Sucheingabe optimiert**
+
+### Behoben
+
+- **„Wählen" scheiterte mit „Auswahl nicht möglich. Seite neu laden."**
+- **Darstellungsfehler und kosmetische Bugs gefixt**
+- **Performance-Optimierung**
+
 ## 1.3.0 — 2026-08-24
 
 ### Hinzugefügt
