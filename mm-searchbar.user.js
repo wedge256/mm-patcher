@@ -7233,11 +7233,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     }
     const view = {
         cmp: null,
-        pred: null
+        pred: null,
+        cabins: null
     };
     state.setView = v => {
         view.cmp = v && v.cmp || null;
         view.pred = v && v.pred || null;
+        view.cabins = v && v.cabins || null;
         render();
     };
     state.items = () => {
@@ -7434,11 +7436,12 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             return null;
         }();
         const dicts = boundsData().dictionaries;
-        const cabins = function(items) {
+        const cabinsAll = function(items) {
             return ORDER.filter(c => items.some(it => (it.fares || []).some(f => f.cabin === c)));
         }(all);
+        const cabins = view.cabins ? cabinsAll.filter(c => view.cabins.has(c)) : cabinsAll;
         list.innerHTML = "";
-        if (searched && !cabins.includes(searched)) {
+        if (searched && !cabinsAll.includes(searched)) {
             const li = document.createElement("li");
             li.className = "mmrc-msg mmrc-nofare";
             li.textContent = "In der " + CABIN[searched].name + " Class gibt es an diesem Tag " + "keine Prämienflüge. Die Karten zeigen die übrigen Klassen.";
@@ -7926,19 +7929,39 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         label: "max. 1 Stopp",
         max: 1
     } ];
+    const CABINS = [ {
+        key: "eco",
+        label: "Economy"
+    }, {
+        key: "ecoPremium",
+        label: "Prem. Eco"
+    }, {
+        key: "business",
+        label: "Business"
+    }, {
+        key: "first",
+        label: "First"
+    } ];
     const filter = {
+        cabins: null,
         stops: null,
         dep: null,
         arr: null,
         airlines: null
     };
     let filterRoute = null;
-    const filterActive = () => null != filter.stops || null != filter.dep || null != filter.arr || filter.airlines && filter.airlines.size;
+    const filterActive = () => filter.cabins && filter.cabins.size || null != filter.stops || null != filter.dep || null != filter.arr || filter.airlines && filter.airlines.size;
     function resetFilter() {
+        filter.cabins = null;
         filter.stops = null;
         filter.dep = null;
         filter.arr = null;
         filter.airlines = null;
+    }
+    function listedCabins(items) {
+        const seen = new Set;
+        for (const it of items) for (const f of it && it.fares || []) f.cabin && seen.add(f.cabin);
+        return seen;
     }
     function listedAirlines(items) {
         const seen = new Set;
@@ -7948,6 +7971,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     function buildPred() {
         if (!filterActive()) return null;
         const f = {
+            cabins: filter.cabins && filter.cabins.size ? new Set(filter.cabins) : null,
             stops: filter.stops,
             dep: filter.dep,
             arr: filter.arr,
@@ -7955,6 +7979,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         };
         return it => {
             if (!it) return !1;
+            if (f.cabins && !(it.fares || []).some(fa => f.cabins.has(fa.cabin))) return !1;
             if (null != f.stops && it.stops > f.stops) return !1;
             if (f.dep) {
                 const m = minutes(it.depTime);
@@ -7988,7 +8013,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             }(c.items ? c.items() : []);
             c.setView({
                 cmp: buildCmp(),
-                pred: buildPred()
+                pred: buildPred(),
+                cabins: filter.cabins && filter.cabins.size ? new Set(filter.cabins) : null
             });
             state.sorted++;
         }
@@ -8025,11 +8051,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             pop.setAttribute("aria-label", "Filter");
             bar.appendChild(pop);
         }
-        const pill = (fact, i, label, on, title) => `<button type="button" class="mmflt-pill${on ? " is-on" : ""}" data-fact="${fact}"` + ` data-i="${i}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`;
+        const pill = (fact, i, label, on, title, dim) => `<button type="button" class="mmflt-pill${on ? " is-on" : ""}${dim ? " is-na" : ""}" data-fact="${fact}"` + ` data-i="${i}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`;
         const grp = (lbl, inner) => `<div class="mmflt-grp"><span class="mmflt-lbl">${lbl}</span><div class="mmflt-pills">${inner}</div></div>`;
         const items = listedItems();
         const airlines = listedAirlines(items);
         let html = "";
+        const cabinsAvail = listedCabins(items);
+        html += grp("Klasse", pill("cab", -1, "Alle", !filter.cabins || !filter.cabins.size) + CABINS.map((c, i) => pill("cab", i, c.label, !!filter.cabins && filter.cabins.has(c.key), cabinsAvail.has(c.key) ? null : "Zu dieser Suche gibt es keine Tarife in dieser Klasse.", !cabinsAvail.has(c.key))).join(""));
         html += grp("Stopps", pill("stop", -1, "Alle", null == filter.stops) + STOPS.map((s, i) => pill("stop", i, s.label, filter.stops === s.max)).join(""));
         html += grp("Abflug", pill("dep", -1, "Alle", null == filter.dep) + WINDOWS.map((w, i) => pill("dep", i, w.label, !!filter.dep && filter.dep.from === w.from, w.title)).join(""));
         html += grp("Ankunft", pill("arr", -1, "Alle", null == filter.arr) + WINDOWS.map((w, i) => pill("arr", i, w.label, !!filter.arr && filter.arr.from === w.from, w.title)).join(""));
@@ -8187,6 +8215,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
               color: ${INK_secondary}; cursor: pointer; line-height: 1.3;
               transition: background .12s, border-color .12s; }
 .mmflt-pill:hover { border-color: #b9c6e0; background: #f8fafd; }
+.mmflt-pill.is-na { color: ${INK_muted}; background: #f7f7f5; }
 .mmflt-pill.is-on { background: ${INK_primary}; border-color: ${INK_primary}; color: #fff; }
 .mmflt-pill:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 2px; }
 .mmflt-foot { display: flex; align-items: center; gap: 8px; padding-top: 10px;
@@ -8244,7 +8273,15 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                                 !function(pillBtn) {
                                     const fact = pillBtn.dataset.fact;
                                     const i = +pillBtn.dataset.i;
-                                    if ("stop" === fact) filter.stops = i < 0 ? null : STOPS[i].max; else if ("dep" === fact || "arr" === fact) filter[fact] = i < 0 ? null : {
+                                    if ("cab" === fact) {
+                                        if (i < 0) filter.cabins = null; else {
+                                            const key = CABINS[i] && CABINS[i].key;
+                                            if (!key) return;
+                                            filter.cabins || (filter.cabins = new Set);
+                                            filter.cabins.has(key) ? filter.cabins.delete(key) : filter.cabins.add(key);
+                                            filter.cabins.size || (filter.cabins = null);
+                                        }
+                                    } else if ("stop" === fact) filter.stops = i < 0 ? null : STOPS[i].max; else if ("dep" === fact || "arr" === fact) filter[fact] = i < 0 ? null : {
                                         from: WINDOWS[i].from,
                                         to: WINDOWS[i].to
                                     }; else if ("air" === fact) if (i < 0) filter.airlines = null; else {
