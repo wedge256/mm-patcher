@@ -7958,6 +7958,11 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         filter.arr = null;
         filter.airlines = null;
     }
+    function listedCabins(items) {
+        const seen = new Set;
+        for (const it of items) for (const f of it && it.fares || []) f.cabin && seen.add(f.cabin);
+        return seen;
+    }
     function listedAirlines(items) {
         const seen = new Set;
         for (const it of items) for (const l of it && it.legs || []) l.operatingName && seen.add(l.operatingName);
@@ -8046,12 +8051,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             pop.setAttribute("aria-label", "Filter");
             bar.appendChild(pop);
         }
-        const pill = (fact, i, label, on, title) => `<button type="button" class="mmflt-pill${on ? " is-on" : ""}" data-fact="${fact}"` + ` data-i="${i}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`;
+        const pill = (fact, i, label, on, title, dim) => `<button type="button" class="mmflt-pill${on ? " is-on" : ""}${dim ? " is-na" : ""}" data-fact="${fact}"` + ` data-i="${i}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`;
         const grp = (lbl, inner) => `<div class="mmflt-grp"><span class="mmflt-lbl">${lbl}</span><div class="mmflt-pills">${inner}</div></div>`;
         const items = listedItems();
         const airlines = listedAirlines(items);
         let html = "";
-        html += grp("Klasse", pill("cab", -1, "Alle", !filter.cabins || !filter.cabins.size) + CABINS.map((c, i) => pill("cab", i, c.label, !!filter.cabins && filter.cabins.has(c.key))).join(""));
+        const cabinsAvail = listedCabins(items);
+        html += grp("Klasse", pill("cab", -1, "Alle", !filter.cabins || !filter.cabins.size) + CABINS.map((c, i) => pill("cab", i, c.label, !!filter.cabins && filter.cabins.has(c.key), cabinsAvail.has(c.key) ? null : "Zu dieser Suche gibt es keine Tarife in dieser Klasse.", !cabinsAvail.has(c.key))).join(""));
         html += grp("Stopps", pill("stop", -1, "Alle", null == filter.stops) + STOPS.map((s, i) => pill("stop", i, s.label, filter.stops === s.max)).join(""));
         html += grp("Abflug", pill("dep", -1, "Alle", null == filter.dep) + WINDOWS.map((w, i) => pill("dep", i, w.label, !!filter.dep && filter.dep.from === w.from, w.title)).join(""));
         html += grp("Ankunft", pill("arr", -1, "Alle", null == filter.arr) + WINDOWS.map((w, i) => pill("arr", i, w.label, !!filter.arr && filter.arr.from === w.from, w.title)).join(""));
@@ -8209,6 +8215,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
               color: ${INK_secondary}; cursor: pointer; line-height: 1.3;
               transition: background .12s, border-color .12s; }
 .mmflt-pill:hover { border-color: #b9c6e0; background: #f8fafd; }
+.mmflt-pill.is-na { color: ${INK_muted}; background: #f7f7f5; }
 .mmflt-pill.is-on { background: ${INK_primary}; border-color: ${INK_primary}; color: #fff; }
 .mmflt-pill:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 2px; }
 .mmflt-foot { display: flex; align-items: center; gap: 8px; padding-top: 10px;
