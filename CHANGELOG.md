@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 — 2026-09-12
+
+### Hinzugefügt
+
+- **Freie Plätze auf jeder Ergebniskarte**
+- **Suchzähler: warnt vor dem IP-Limit von Miles & More**
+
+### Behoben
+
+- **Bugfixes und bessere Behandlung des IP-Limits**
+
 ## 1.4.0 — 2026-08-31
 
 ### Hinzugefügt
