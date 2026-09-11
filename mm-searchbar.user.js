@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.4.0
+// @version      1.5.0
 // @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -4691,7 +4691,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 24;
+    const VERSION = 27;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -4813,6 +4813,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         inherited.dictionaries && (state.dictionaries = inherited.dictionaries);
         inherited.lastRaw && (state.lastRaw = inherited.lastRaw);
         inherited.listSig && (state.listSig = inherited.listSig);
+        inherited.lastError && (state.lastError = inherited.lastError);
         inherited.api && (state.api = inherited.api);
         Array.isArray(inherited.listeners) && (state.listeners = inherited.listeners);
         Array.isArray(inherited.reqListeners) && (state.reqListeners = inherited.reqListeners);
@@ -4988,7 +4989,59 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             };
         }).filter(f => null != f.miles);
     }
-    function ingest(json) {
+    const CALLS_KEY = "mm_bounds_calls";
+    const BUDGET_WINDOW_MS = 61 * 60 * 1e3;
+    const BUDGET_LIMIT = 40;
+    function readCalls() {
+        try {
+            const a = JSON.parse(localStorage.getItem(CALLS_KEY) || "[]");
+            const floor = Date.now() - BUDGET_WINDOW_MS;
+            return Array.isArray(a) ? a.filter(t => "number" == typeof t && t > floor) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    state.budget = () => {
+        const a = readCalls();
+        const lastAt = a.length ? a[a.length - 1] : null;
+        return {
+            calls: a.length,
+            limit: BUDGET_LIMIT,
+            windowMs: BUDGET_WINDOW_MS,
+            lastAt: lastAt,
+            freeAt: lastAt ? lastAt + BUDGET_WINDOW_MS : null
+        };
+    };
+    function failed(status, detail) {
+        const http = Number(status) || 0;
+        const what = detail ? String(detail).slice(0, 200) : null;
+        const blocked = 429 === http || 0 === http;
+        const title = 429 === http ? "Suchlimit erreicht (HTTP 429)." : 0 === http ? "Keine Antwort von Miles & More (Netzfehler" + (what ? ": " + what : "") + ")." : "Suche fehlgeschlagen (HTTP " + http + ").";
+        const free = blocked ? state.budget().freeAt : null;
+        const why = blocked ? "Um den Wünschen unserer Kunden besser gerecht zu werden, haben wir Ihre IP-Adresse vorsorglich für etwa eine Stunde gesperrt" + (free ? " (voraussichtlich bis " + (ms => {
+            try {
+                return new Date(ms).toLocaleTimeString("de-DE", {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            } catch (e) {
+                return "";
+            }
+        })(free) + ")" : "") + "." : "Auf vielfachen Kundenwunsch legt der Server eine kurze Pause ein.";
+        state.lastError = {
+            code: null,
+            http: http,
+            transport: !0,
+            title: title,
+            why: why,
+            detail: what,
+            t: Date.now()
+        };
+        state.current = [];
+        state.listSig = state._pendingSig || null;
+        emit();
+    }
+    function ingest(json, status) {
         try {
             if (json && Array.isArray(json.errors) && json.errors.length) {
                 const e = json.errors[0] || {};
@@ -4996,9 +5049,14 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                     code: e.code || null,
                     title: e.title || null,
                     detail: e.detail || null,
+                    http: Number(status) || null,
                     t: Date.now()
                 };
                 emit();
+                return;
+            }
+            if (Number(status) >= 400 && !(json && json.data && json.data.airBoundGroups)) {
+                failed(status, json && (json.message || json.error || json.title));
                 return;
             }
             state.lastError = null;
@@ -5012,6 +5070,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             const keys = [];
             const dup = new Map;
             groups.forEach(g => {
+                if (!(g.airBounds || []).some(ab => ab && ab.prices)) return;
                 const it = function(group, dicts) {
                     const bd = group.boundDetails;
                     if (!bd || !bd.segments || !bd.segments.length) return null;
@@ -5220,6 +5279,29 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     }();
     window.__mmBoundsHooks = {
         ingest: ingest,
+        ingestText: function(text, status) {
+            let json = null;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {}
+            json && "object" == typeof json ? ingest(json, status) : failed(status, String(text || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+        },
+        failed: failed,
+        prepare: function(bodyText) {
+            if ("string" != typeof bodyText) return bodyText;
+            try {
+                const b = JSON.parse(bodyText);
+                if (!b || !Array.isArray(b.itineraries)) return bodyText;
+                const p = b.searchPreferences && "object" == typeof b.searchPreferences ? b.searchPreferences : {};
+                if (!0 === p.showUnavailableEntries) return bodyText;
+                b.searchPreferences = Object.assign({}, p, {
+                    showUnavailableEntries: !0
+                });
+                return JSON.stringify(b);
+            } catch (e) {
+                return bodyText;
+            }
+        },
         noteApi: function(url, headers) {
             const h = {};
             Object.keys(headers || {}).forEach(k => {
@@ -5263,22 +5345,32 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             } catch (e) {}
             return out;
         },
-        start: body => emitRequest(!0, (body => {
-            try {
-                const b = JSON.parse(body);
-                const meta = {
-                    fresh: !b.selectedBoundId,
-                    sig: searchSig(b)
-                };
-                state._pendingSig = meta.sig;
-                return meta;
-            } catch (e) {
-                return {
-                    fresh: !0,
-                    sig: null
-                };
-            }
-        })(body)),
+        start: body => {
+            !function() {
+                const a = readCalls();
+                a.push(Date.now());
+                try {
+                    localStorage.setItem(CALLS_KEY, JSON.stringify(a));
+                } catch (e) {}
+            }();
+            state.lastBody = "string" == typeof body ? body : null;
+            emitRequest(!0, (body => {
+                try {
+                    const b = JSON.parse(body);
+                    const meta = {
+                        fresh: !b.selectedBoundId,
+                        sig: searchSig(b)
+                    };
+                    state._pendingSig = meta.sig;
+                    return meta;
+                } catch (e) {
+                    return {
+                        fresh: !0,
+                        sig: null
+                    };
+                }
+            })(body));
+        },
         end: () => emitRequest(!1)
     };
     if (!window.__mmBoundsHooked) {
@@ -5294,11 +5386,44 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                     const c = h();
                     c.noteApi && c.noteApi(url, c.headersToObject((args[1] || {}).headers));
                 });
-                safe(() => h().start && h().start((args[1] || {}).body));
+                let sentBody = (args[1] || {}).body;
+                safe(() => {
+                    const c = h();
+                    if (c.prepare && args[1] && "string" == typeof args[1].body) {
+                        const fixed = c.prepare(args[1].body);
+                        fixed !== args[1].body && (args[1] = Object.assign({}, args[1], {
+                            body: fixed
+                        }));
+                        sentBody = args[1].body;
+                    }
+                });
+                if ("string" != typeof sentBody && args[0] && "object" == typeof args[0] && "function" == typeof args[0].clone && (!args[1] || null == args[1].body)) try {
+                    const t = await args[0].clone().text();
+                    const c = h();
+                    const fixed = c.prepare ? c.prepare(t) : t;
+                    fixed !== t && (args[0] = new Request(args[0], {
+                        body: fixed
+                    }));
+                    sentBody = fixed;
+                } catch (e) {}
+                safe(() => h().start && h().start(sentBody));
             }
             try {
-                const res = await originalFetch.apply(this, args);
-                watched && res.clone().json().then(j => h().ingest && h().ingest(j)).catch(e => {});
+                let res;
+                try {
+                    res = await originalFetch.apply(this, args);
+                } catch (e) {
+                    watched && safe(() => h().failed && h().failed(0, e && e.message));
+                    throw e;
+                }
+                if (watched) {
+                    const status = res.status;
+                    res.clone().text().then(t => {
+                        h().ingestText ? h().ingestText(t, status) : h().ingest && h().ingest(JSON.parse(t), status);
+                    }).catch(e => {
+                        safe(() => h().failed && h().failed(status, e && e.message));
+                    });
+                }
                 return res;
             } finally {
                 watched && safe(() => h().end && h().end());
@@ -5322,9 +5447,14 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                 const h = () => window.__mmBoundsHooks || {};
                 this.addEventListener("load", () => {
                     if (this.__mmBoundsWatched) try {
-                        h().ingest && h().ingest(JSON.parse(this.responseText));
-                    } catch (e) {}
+                        h().ingestText ? h().ingestText(this.responseText, this.status) : h().ingest && h().ingest(JSON.parse(this.responseText), this.status);
+                    } catch (e) {
+                        safe(() => h().failed && h().failed(this.status, e && e.message));
+                    }
                 });
+                [ "error", "abort", "timeout" ].forEach(ev => this.addEventListener(ev, () => {
+                    this.__mmBoundsWatched && safe(() => h().failed && h().failed(0, ev));
+                }));
                 this.addEventListener("loadend", () => {
                     this.__mmBoundsWatched && safe(() => h().end && h().end());
                 });
@@ -5338,6 +5468,10 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                 safe(() => {
                     const c = h();
                     c.noteApi && c.noteApi(this.__mmBoundsUrl, this.__mmBoundsHeaders);
+                });
+                safe(() => {
+                    const c = h();
+                    c.prepare && "string" == typeof rest[0] && (rest[0] = c.prepare(rest[0]));
                 });
                 safe(() => h().start && h().start(rest[0]));
             }
@@ -5355,7 +5489,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 135;
+    const VERSION = 138;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -5845,7 +5979,7 @@ table.mmrc-seatgrid { border-collapse: separate; border-spacing: 2px; }
     .mmrc-card { grid-template-columns: minmax(0, 1fr); }
 }
 
-.mmrc-msg { padding: 18px 16px; text-align: center; font-size: 13.5px;
+.mmrc-msg { padding: 18px 16px; text-align: center; font-size: 13.5px; white-space: pre-line;
             color: ${INK_secondary}; background: #fff;
             border: 1px solid ${INK_hairline}; border-radius: 10px; }
 .mmrc-msg button { font: inherit; font-size: 12.5px; font-weight: 600; margin-left: 10px;
@@ -6866,7 +7000,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             f.currency && "EUR" !== f.currency && !z.endsWith(curSym(f.currency)) && (z += " (" + money(f.cash) + " " + curSym(f.currency) + ")");
             rows.push([ "Zuzahlung", z, "" ]);
         }
-        null != f.seatsLeft && rows.push([ "Freie Plätze", String(f.seatsLeft), f.seatsLeft <= 3 ? "is-no" : "" ]);
+        rows.push([ "Freie Plätze", null != f.seatsLeft ? f.seatsLeft >= 9 ? "9 oder mehr" : String(f.seatsLeft) : "7 oder mehr", null != f.seatsLeft && f.seatsLeft <= 3 ? "is-no" : "" ]);
         f.baggage && rows.push([ "Aufgabegepäck", bagText(f.baggage), "" ]);
         f.cabinBag && rows.push([ "Handgepäck", bagText(f.cabinBag), "" ]);
         rows.push([ "Pers. Gegenstand", f.personalItem ? "1 Stück" : "–", "" ]);
@@ -6960,7 +7094,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const cur = fares.length ? fares[0].currency : null;
         const uniform = fares.every(f => null == f.cash || f.cash === cash);
         const seatMin = fares.reduce((m, f) => null != f.seatsLeft && (null == m || f.seatsLeft < m) ? f.seatsLeft : m, null);
-        let html = `<div class="mmrc-h"><div class="mmrc-nm">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}">` + (1 === seatMin ? "nur noch 1 Platz" : seatMin + " Plätze übrig") + `</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${uniform ? "Zuzahlung" : "Zuzahlung ab"}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
+        let html = `<div class="mmrc-h"><div class="mmrc-nm">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}${seatMin >= 9 ? " is-many" : ""}">` + (1 === seatMin ? "nur noch 1 Platz" : seatMin >= 9 ? "9+ Plätze" : seatMin + " Plätze übrig") + `</span>` : fares.length ? `<span class="mmrc-seats is-many" title="Miles &amp; More nennt die genaue ` + `Platzzahl erst bei 6 oder weniger.">7+ Plätze</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${uniform ? "Zuzahlung" : "Zuzahlung ab"}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
         const mixed = fares.find(f => f.mixed);
         if (mixed) {
             const segs = mixed.perLeg.map(l => {
@@ -7380,8 +7514,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             li.className = "mmrc-msg mmrc-nooffer";
             const expired = "65012" === String(lastErr.code);
             const noFlight = "7959" === String(lastErr.code);
+            const transport = !!lastErr.transport;
+            const blocked = transport && (429 === lastErr.http || !lastErr.http);
             const seg = /SEGMENT (\d)/.exec(lastErr.detail || "");
-            li.innerHTML = esc(expired ? "Der gewählte Hinflug ist abgelaufen." : noFlight ? "Kein Flug für den " + (seg && "2" === seg[1] ? "Rückflug" : "Hinflug") + " an diesem Tag." : "Suche fehlgeschlagen" + (lastErr.code ? " (" + lastErr.code + (lastErr.detail ? ": " + lastErr.detail : "") + ")" : "") + ".") + (noFlight ? "" : '<button type="button" class="mmrc-restart">Suche neu starten</button>');
+            li.innerHTML = esc(expired ? "Der gewählte Hinflug ist abgelaufen." : noFlight ? "Kein Flug für den " + (seg && "2" === seg[1] ? "Rückflug" : "Hinflug") + " an diesem Tag." : transport && lastErr.title ? lastErr.title + (lastErr.why ? "\n" + lastErr.why : "") : "Suche fehlgeschlagen" + (lastErr.code ? " (" + lastErr.code + (lastErr.detail ? ": " + lastErr.detail : "") + ")" : "") + ".") + (noFlight || blocked ? "" : '<button type="button" class="mmrc-restart">Suche neu starten</button>');
             const rb = li.querySelector(".mmrc-restart");
             rb && rb.addEventListener("click", restartSearch);
             list.appendChild(li);
@@ -7790,7 +7926,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 26;
+    const VERSION = 27;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     if (window.__mmSort) try {
         window.__mmSort.superseded = !0;
@@ -7821,6 +7957,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         ">": "&gt;",
         '"': "&quot;"
     }[c]));
+    const boundsData = () => window.__mmBounds || {};
     const cards = () => window.__mmCards || null;
     const CFF_CABIN = [ [ /^CFFPECO/i, "ecoPremium" ], [ /^CFFECO/i, "eco" ], [ /^CFFBUS/i, "business" ], [ /^CFFFIRS?/i, "first" ] ];
     const minutes = hhmm => {
@@ -8074,7 +8211,23 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const hint = o.hint && name ? ' <span class="mmsort-sub">' + esc(name) + "</span>" : "";
                 return '<button type="button" role="menuitemradio" aria-checked="' + an + '"' + ' class="mmsort-opt' + (an ? " is-on" : "") + '" data-order="' + o.id + '">' + esc(o.label) + hint + "</button>";
             }).join("");
-            return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(aktiv.label) + (aktiv.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>";
+            return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(aktiv.label) + (aktiv.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
+                try {
+                    const bd = boundsData();
+                    if (!bd || "function" != typeof bd.budget) return "";
+                    const b = bd.budget();
+                    if (!b.calls) return "";
+                    const left = b.limit - b.calls;
+                    const cls = left <= 0 ? " is-out" : left <= 6 ? " is-low" : "";
+                    const until = b.freeAt ? new Date(b.freeAt).toLocaleTimeString("de-DE", {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }) : "";
+                    return '<span class="mmsort-budget' + cls + '" title="' + esc("Miles & More erlaubt etwa " + b.limit + " Suchen je IP-Adresse und Stunde, " + "danach ist die Adresse eine Stunde gesperrt. Gezählt wird nur dieser Browser." + (until ? " Zähler wieder leer um " + until + "." : "")) + '">Suchen ' + b.calls + "/" + b.limit + "</span>";
+                } catch (e) {
+                    return "";
+                }
+            }();
         }();
         if (html === lastHtml) return;
         const alteListe = bar.querySelector(".mmsort-list");
@@ -8126,6 +8279,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmsort { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
           padding: 2px 0 16px; position: relative; }
 .mmsort-label { font-size: 13px; color: ${INK_muted}; letter-spacing: .01em; }
+.mmsort-budget { margin-left: auto; font-size: 12px; color: ${INK_muted}; white-space: nowrap;
+                 cursor: default; }
+.mmsort-budget.is-low { color: #b45309; font-weight: 600; }
+.mmsort-budget.is-out { color: #b3261e; font-weight: 600; }
 
 .mmsort-menu { position: relative; display: inline-flex; align-items: center; gap: 8px;
                margin-left: auto; }
@@ -8307,10 +8464,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     "loading" === document.readyState ? document.addEventListener("DOMContentLoaded", start) : start();
     schedule();
     try {
-        const data = window.__mmBounds || {};
+        const data = boundsData();
         data.onUpdate && (state._off = data.onUpdate(() => {
             refreshBar();
             schedule();
+        }));
+        data.onRequest && (state._offReq = data.onRequest(() => {
+            !state.superseded && sortOn() && refreshBar();
         }));
     } catch (e) {}
     try {
@@ -8340,6 +8500,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         } catch (e) {}
         try {
             state._off && state._off();
+        } catch (e) {}
+        try {
+            state._offReq && state._offReq();
         } catch (e) {}
         try {
             state._offRender && state._offRender();
@@ -8392,7 +8555,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 45;
+    const VERSION = 46;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const inherited = window.__mmRecovery;
     if (inherited) {
@@ -8512,7 +8675,42 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
         return detail ? code + ": " + detail : null;
     }
+    function transportCause() {
+        try {
+            const be = window.__mmBounds && window.__mmBounds.lastError;
+            return be && be.transport && be.title ? be : null;
+        } catch (e) {
+            return null;
+        }
+    }
+    const NO_FLIGHT_BANNER_RE = /Leider haben wir keinen Flug gefunden/;
     function rewriteBanners() {
+        const tc = transportCause();
+        document.querySelectorAll("lhg-upsell-link-out .title-label, .no-flight-found .title-label").forEach(n => {
+            if (n.childElementCount) return;
+            const box = n.closest(".upsell-link-out") || n.closest("lhg-upsell-link-out");
+            const msg = box && box.querySelector(".message");
+            if (tc) {
+                if (n.textContent === tc.title) return;
+                if (!NO_FLIGHT_BANNER_RE.test(n.textContent || "")) return;
+                n.dataset.mmrecOrig = n.textContent;
+                n.textContent = tc.title;
+                if (msg && !msg.childElementCount) {
+                    msg.dataset.mmrecOrig = msg.textContent;
+                    msg.textContent = tc.why || "";
+                }
+                injectStyles();
+                box && box.classList.add("mmrec-noanswer");
+            } else if (n.dataset.mmrecOrig) {
+                n.textContent = n.dataset.mmrecOrig;
+                delete n.dataset.mmrecOrig;
+                if (msg && null != msg.dataset.mmrecOrig) {
+                    msg.textContent = msg.dataset.mmrecOrig;
+                    delete msg.dataset.mmrecOrig;
+                }
+                box && box.classList.remove("mmrec-noanswer");
+            }
+        });
         const panels = document.querySelectorAll("refx-messages-panel-cont");
         if (!panels.length) return;
         let cause = null;
@@ -8526,6 +8724,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                         if (t) return t;
                     }
                 } catch (e) {}
+                const tc = transportCause();
+                if (tc) return tc.title + (tc.why ? " " + tc.why : "");
                 try {
                     const m = JSON.parse(sessionStorage.getItem("messages"));
                     const ids = m && m.ids || [];
@@ -8611,6 +8811,10 @@ html.mmrec-own-back refx-recovery .action-button-container { display: none !impo
               font-size: 12.5px; line-height: 1.5; color: ${INK_muted}; }
 .mmrec-note code { font-size: 12px; background: #f4f4f1; padding: 1px 5px; border-radius: 3px; }
 .mmrec-hidden { display: none !important; }
+
+.upsell-link-out.no-availability.mmrec-noanswer .content::before { content: none !important; }
+.upsell-link-out.no-availability.mmrec-noanswer .message { display: block !important; color: ${INK_secondary}; }
+.upsell-link-out.no-availability.mmrec-noanswer .footer { display: none !important; }
 `;
         let el = document.getElementById("mmrec-styles");
         if (!el) {
@@ -9195,7 +9399,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 3;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.4.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.5.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
