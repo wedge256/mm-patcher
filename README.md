@@ -1,10 +1,6 @@
 # M&M Patcher
 
-**Auf vielfachen Kundenwunsch...**
-
-...hat M&M den "Suche Ändern" Button deaktiviert (und in den Tiefen des Quellcodes versteckt).
-
-Das Script bringt ihn - zusammen mit ein paar optionalen Extra Features - wieder zurück.
+Das Script schaltet in der Seite versteckte Funktionalitäten frei und liefert ein paar zusätzliche Features für angenehmere Bedienung der Miles & More Suche.
 
 ---
 
@@ -20,10 +16,6 @@ Das Script bringt ihn - zusammen mit ein paar optionalen Extra Features - wieder
 ---
 
 ## Funktionen
-
-- **The return of the "Ändern" Button**
-
-  Ja, der Ändern Button ist zurück. Toll.
 
 - **verbesserte Flughafensuche**
 
