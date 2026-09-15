@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.5.0
-// @description  Holt den deaktivierten "Ändern"-Button zurück und erweitert Kalender und Trefferliste
+// @version      1.6.0
+// @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
 // @supportURL   https://github.com/wedge256/mm-patcher/issues
