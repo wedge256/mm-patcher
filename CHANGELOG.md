@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.6.0 — 2026-09-15
+
+### Hinzugefügt
+
+- **Buchungsbüro frei wählbar, voreingestellt automatisch nach Abflugland**
+  (Hintergrund: Buchungsbüro DE findet keine ET Flüge ab DE; Büro CH/AT
+  dagegen schon)
+
+### Geändert
+
+- **Verbesserte Erkennung von Städten ohne Flughafen (Konstanz, …)
+  und neuen Flughäfen (WSI)**
+- **Vorschläge beim Tippen erscheinen sofort, unverzüglich**
+- **Kalender lädt nur noch den gesuchten Monat automatisch**
+
+### Behoben
+
+- **Suchen landeten auf der Fehlerseite, obwohl die Anmeldung stand**
+- **Kalender konnte still hängenbleiben**
+- **Viele kleinere Bugs**
+
 ## 1.5.0 — 2026-09-12
 
 ### Hinzugefügt
