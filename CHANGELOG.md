@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 — 2026-09-16
+
+### Behoben
+
+- **Buchungsbüro: Automatikmodus & Bürowechsel**
+
 ## 1.6.0 — 2026-09-15
 
 ### Hinzugefügt
