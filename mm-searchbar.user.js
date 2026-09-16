@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.2
+// @version      1.6.3
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -5242,7 +5242,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 123;
+    const VERSION = 125;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -5782,10 +5782,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const bbd = window.__mmBBD;
         bbd && bbd.error && bbdShown() && (body += '<div class="mmcal-errline">Best-by-day: ' + esc(bbd.error) + "</div>");
         state.pickNotice && (body += '<div class="mmcal-noteline">' + esc(state.pickNotice) + "</div>");
-        const legend = order.filter(c => cabinsPresent.has(c)).map(c => '<span class="mmcal-legend-item"><span class="mmcal-pip" style="background:' + CABIN_META[c].color + '"></span>' + CABIN_META[c].full + "</span>").join("");
+        const legend = known && !order.some(c => cabinsPresent.has(c)) ? "<span>keine Verfügbarkeit im Zeitraum</span>" : "";
         const wantAll = !!cal.allCabins;
         const route = boundLabel() + esc((cal.route || "").replace("-", " → "));
-        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<span class="mmcal-legend">' + (legend || "<span>keine Verfügbarkeit im Zeitraum</span>") + "</span>" + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
+        state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Lädt die Preise aller vier Kabinen.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
         !function(blocked) {
             if (state._blockTick) {
                 clearInterval(state._blockTick);
@@ -6245,7 +6245,6 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
               margin-top: 11px; font-size: 11.5px; color: ${INK_secondary}; }
 .mmcal-legend { display: flex; flex-wrap: wrap; gap: 12px; }
-.mmcal-legend-item { display: inline-flex; align-items: center; gap: 5px; }
 .mmcal-pool { font: inherit; font-size: 11.5px; border: 1px solid ${INK_hairline}; background: #fff;
               color: ${INK_primary}; border-radius: 5px; padding: 3px 9px; cursor: pointer; }
 .mmcal-pool[aria-pressed="true"] { background: ${INK_primary}; color: #fff; border-color: ${INK_primary}; }
@@ -7620,7 +7619,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 171;
+    const VERSION = 186;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -7833,19 +7832,28 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     }
     const HALF_H = .66;
     const CAP_NOSE = 1.15, CAP_TAIL = 1.6;
+    const TAIL_STOP = .72;
     function planeGeom(shape, cabinPx, fusPx) {
         const cabin = cabinPx / fusPx;
         const noseLen = Math.min(shape.nose[0], CAP_NOSE);
         const tailLen = Math.min(shape.tail[0], CAP_TAIL);
         const total = noseLen + cabin + tailLen;
-        const cut = Math.max(0, Math.min(tailLen, total - (shape.htp ? (shape.htp[2] + shape.htp[3]) / 2 * total : total)));
+        const tailDrawn = tailLen * function(arr, w) {
+            const n = arr.length - 1;
+            for (let i = 0; i < n - 1; i++) {
+                const a = arr[1 + i], b = arr[2 + i];
+                if (b <= w) return (i + (a - w) / (a - b || 1)) / (n - 1);
+            }
+            return 1;
+        }(shape.tail, TAIL_STOP);
+        const cut = Math.max(0, tailLen - tailDrawn);
         return {
             cabin: cabin,
             noseLen: noseLen,
             tailLen: tailLen,
             total: total,
             cut: cut,
-            tailDrawn: tailLen - cut,
+            tailDrawn: tailDrawn,
             shown: total - cut
         };
     }
@@ -7945,8 +7953,20 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         logoBase = localStorage.getItem(LOGO_KEY);
     } catch (e) {}
     const LOGO_EMBED = {
-        AV: "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%22130.28%200%2040%2040%22%3E%3Cpath%20d=%22M154.013%2031.2561H157.697C159.226%2031.2561%20159.904%2031.3827%20160.33%2031.5755C159.676%2029.5444%20157.614%2027.9613%20150.346%2027.418C151.507%2028.7616%20152.726%2030.0488%20154.011%2031.2561H154.013Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M150.346%2027.4203C143.293%2019.224%20138.542%208.73765%20136.637%200C136.637%200%20132.76%203.4195%20132.452%2010.611C132.112%2018.4704%20136.328%2026.394%20150.212%2027.4047C150.257%2027.4125%20150.304%2027.4125%20150.346%2027.4183V27.4203Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M154.011%2031.2559C148.537%2031.2559%20139.087%2031.2559%20139.087%2031.2559C139.286%2031.7193%20139.969%2032.0445%20141.525%2032.136C150.841%2032.6891%20152.159%2039.9993%20165.493%2039.9993C166.663%2039.9993%20167.393%2039.9292%20168.131%2039.791C162.862%2038.1708%20158.13%2035.1252%20154.011%2031.2539V31.2559Z%22%20fill=%22%23FF0000%22/%3E%3C/svg%3E"
+        AV: "data:image/png;base64,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",
+        LA: "data:image/png;base64,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",
+        ZH: "data:image/png;base64,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"
     };
+    const LOGO_ALIAS = {
+        VL: "LH",
+        JJ: "LA",
+        "4C": "LA",
+        LP: "LA",
+        XL: "LA",
+        PZ: "LA"
+    };
+    const iconCode = code => LOGO_ALIAS[code] || code;
+    const logoUrl = code => logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null;
     const EMPTY_KEY = "mmrc_logo_empty";
     let emptyIcons = new Set;
     try {
@@ -8449,13 +8469,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         if ((401 === r.status || 403 === r.status) && !retried && bd.refreshAuth && await bd.refreshAuth(!0)) return apiGet(path, !0);
         const text = await r.text();
         if (!r.ok) {
-            let code = "";
+            let code = "", title = "";
             try {
-                code = (JSON.parse(text).errors || []).map(e => e.code).join(",");
+                const errs = JSON.parse(text).errors || [];
+                code = errs.map(e => e.code).join(",");
+                title = errs.map(e => e.title).filter(Boolean).join(",");
             } catch (e) {}
             const err = new Error("HTTP " + r.status + (code ? " (" + code + ")" : ""));
             err.status = r.status;
             err.apiCode = code;
+            err.apiTitle = title;
             throw err;
         }
         return JSON.parse(text);
@@ -8647,11 +8670,21 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     r.slim = null != ref && e.widths[r.cabin] === ref && ((e, cabin) => {
                         const ecoY = e.letterYByCabin.eco, ownY = e.letterYByCabin[cabin];
                         if (!ecoY || !ownY || "eco" === cabin) return !0;
-                        if ((ownY => {
+                        if ("first" === cabin) return !1;
+                        if (!((ownY, ecoY) => {
+                            const eco = new Set(Object.values(ecoY));
+                            return Object.values(ownY).every(y => eco.has(y));
+                        })(ownY, ecoY)) return !1;
+                        if (((ownY, ecoY) => {
+                            const abc = Object.keys(ecoY || ownY).sort((a, b) => (ecoY || ownY)[a] - (ecoY || ownY)[b]);
+                            const at = L => {
+                                const i = abc.indexOf(L);
+                                return i < 0 ? L.charCodeAt(0) : i;
+                            };
                             const Ls = Object.keys(ownY).sort((a, b) => ownY[a] - ownY[b]);
-                            for (let i = 1; i < Ls.length; i++) if (ownY[Ls[i]] - ownY[Ls[i - 1]] === 1 && Ls[i].charCodeAt(0) - Ls[i - 1].charCodeAt(0) > 1) return !0;
+                            for (let i = 1; i < Ls.length; i++) if (ownY[Ls[i]] - ownY[Ls[i - 1]] === 1 && at(Ls[i]) - at(Ls[i - 1]) > 1) return !0;
                             return !1;
-                        })(ownY)) return !0;
+                        })(ownY, ecoY)) return !0;
                         const ecoLanes = new Set(Object.values(ecoY));
                         const ownLanes = new Set(Object.values(ownY));
                         const max = Math.max(...ecoLanes);
@@ -8671,6 +8704,31 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 };
             })
         };
+    }
+    function demoteLoneFirst(merged) {
+        const has = new Set;
+        merged.decks.forEach(d => d.rows.forEach(r => {
+            r.cabin && has.add(r.cabin);
+        }));
+        const fehl = merged.failedCabins || [];
+        if (!has.has("first") || !has.has("eco")) return merged;
+        if (has.has("business") || has.has("ecoPremium")) return merged;
+        if (fehl.indexOf("business") >= 0 || fehl.indexOf("ecoPremium") >= 0) return merged;
+        merged.decks.forEach(d => {
+            d.rows.forEach(r => {
+                "first" === r.cabin && (r.cabin = "business");
+            });
+            const move = m => {
+                if (m && void 0 !== m.first) {
+                    m.business = m.first;
+                    delete m.first;
+                }
+            };
+            move(d.widths);
+            move(d.letterYByCabin);
+        });
+        merged.demotedFirst = !0;
+        return merged;
     }
     function loadAll(leg) {
         const key = legKey(leg) + "|all";
@@ -8753,6 +8811,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     const firstErr = results.find(r => "rejected" === r.status);
                     if (firstErr) throw firstErr.reason;
                 }
+                demoteLoneFirst(merged);
                 if (merged.failedCabins.length) {
                     seatCache.get(key) === p && seatCache.delete(key);
                     layout && layout.zones && merged.decks.forEach(deck => {
@@ -8791,6 +8850,30 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const refY = deck.letterY || {};
         const refLetters = Object.keys(refY);
         const H = refWidth * CELL_PX;
+        const sectionOf = new Map;
+        const sectionsBy = {};
+        deck.rows.forEach(r => {
+            const own = {};
+            Object.keys(r.seats).forEach(L => {
+                const y = (r.seats[L] || {}).y;
+                null != y && (own[L] = y);
+            });
+            const list = sectionsBy[r.cabin] = sectionsBy[r.cabin] || [];
+            let sec = list.find(s => Object.keys(own).every(L => null == s.y[L] || s.y[L] === own[L]));
+            if (!sec) {
+                sec = {
+                    key: r.cabin + "#" + list.length,
+                    y: {},
+                    rows: []
+                };
+                list.push(sec);
+            }
+            Object.keys(own).forEach(L => {
+                sec.y[L] = own[L];
+            });
+            sec.rows.push(r);
+            sectionOf.set(r, sec);
+        });
         const plans = {};
         const cols = deck.rows.slice().sort((a, b) => b.row - a.row);
         const exit = new Set(deck.exitRows || []);
@@ -8802,7 +8885,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             first: 6
         };
         const disp = r => r.slim ? "eco" : r.cabin;
-        const colCls = cols.map((r, i) => "c-" + disp(r) + (i > 0 && cols[i - 1].cabin !== r.cabin ? " is-cut" : ""));
+        const colCls = cols.map((r, i) => {
+            return "c-" + disp(r) + (i > 0 && ((a = cols[i - 1]).cabin !== (b = r).cabin || Object.keys(a.seats).length > 0 && Object.keys(b.seats).length > 0 && sectionOf.get(a) !== sectionOf.get(b)) ? " is-cut" : "");
+            var a, b;
+        });
         const colSty = cols.map(r => r.gapBefore ? ' style="padding-right:' + ((PADX[disp(r)] || 1) + 7 * r.gapBefore) + 'px"' : "");
         const stairCols = {
             fore: new Set,
@@ -8861,15 +8947,17 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         html += '<tr><td class="mmrc-seatrail" style="height:' + H + 'px">' + rail + "</td>";
         cols.forEach((r, i) => {
             const plan = (r => {
-                const key = r.cabin + (r.slim ? "|slim" : "");
+                const sec = sectionOf.get(r);
+                const geteilt = (sectionsBy[r.cabin] || []).length > 1;
+                const key = geteilt ? sec.key : r.cabin + (r.slim ? "|slim" : "");
                 if (plans[key]) return plans[key];
-                if (r.slim && refLetters.length) return plans[key] = {
+                if (!geteilt && r.slim && refLetters.length) return plans[key] = {
                     width: refWidth,
                     y: refY,
                     exact: !0
                 };
-                const rows = deck.rows.filter(x => x.cabin === r.cabin);
-                let own = (deck.letterYByCabin || {})[r.cabin];
+                const rows = geteilt ? sec.rows : deck.rows.filter(x => x.cabin === r.cabin);
+                let own = geteilt ? sec.y : (deck.letterYByCabin || {})[r.cabin];
                 if (!own || !Object.keys(own).length) {
                     own = {};
                     [ ...new Set(rows.flatMap(x => Object.keys(x.seats))) ].sort().forEach((L, i) => {
@@ -8884,7 +8972,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 });
                 const across = rows.reduce((n, x) => Math.max(n, Object.keys(x.seats).length), 1);
                 const gaps = groups.length - 1;
-                const w = (c => {
+                const w = geteilt ? Math.max(letters.length + gaps, ...Object.values(own).map(v => v + 1)) : (c => {
                     const w = (deck.widths || {})[c];
                     return null != w && w >= 2 ? w : null;
                 })(r.cabin) || letters.length + gaps;
@@ -8971,8 +9059,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         html += "</tr></table>";
         return '<div class="mmrc-plane' + (null != wing[0] ? " has-wings" : "") + '" data-shape="' + esc(shapeKey || "") + '">' + '<div class="mmrc-fuselage' + (stairs ? " has-stairs-" + stairs : "") + '">' + (stairs ? '<div class="mmrc-stairs is-fore" title="Treppe zwischen den Decks"></div>' : "") + ("both" === stairs ? '<div class="mmrc-stairs is-aft" title="Treppe zwischen den Decks"></div>' : "") + html + "</div></div>";
     }
-    function seatCabinName(leg, cabin) {
-        if ("first" === cabin && leg && "NH" === leg.mkt) {
+    function seatCabinName(leg, cabin, demoted) {
+        if (demoted && "business" === cabin && leg && "NH" === leg.mkt) {
             const loc = (boundsData().dictionaries || {}).location || {};
             const jp = c => "JP" === (loc[c] || {}).countryCode;
             if (jp(leg.from) && jp(leg.to)) return "Premium Class";
@@ -8998,7 +9086,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         if (!data.decks.length) return '<div class="mmrc-seatmsg">Für diesen Flug liegt kein Sitzplan vor.</div>';
         const noPrice = data.warnings.indexOf("8700") >= 0;
         const failed = (data.failedCabins || []).filter(c => CABIN[c]);
-        const nameOf = c => seatCabinName(leg, c);
+        const nameOf = c => seatCabinName(leg, c, data.demotedFirst);
         const acLabel = shortAircraft(leg.aircraftName);
         const bizSeats = data.decks.reduce((n, d2) => n + d2.rows.filter(r => "business" === r.cabin).reduce((m, r) => m + Object.keys(r.seats).length, 0), 0);
         const theRoom = "NH" === leg.operating && /777-300/.test(leg.aircraftName || "") && 64 === bizSeats;
@@ -9029,7 +9117,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             }).join("");
         }(data.decks, nameOf) + "</div>" + '<div class="mmrc-seatlegend"><span>umrandet = frei</span>' + '<span><i class="is-occupied"></i>belegt</span>' + '<span class="is-exit">EXIT = Notausstiegsreihe</span></div>' + (data.decks.length > 1 ? '<div class="mmrc-decktabs">' + data.decks.map((d, i) => '<button type="button" class="mmrc-decktab' + (i === mainDeckIdx(data.decks) ? " is-on" : "") + '" data-deck="' + i + '">' + esc(DECK_NAME[d.type] || d.type) + "</button>").join("") + "</div>" : "") + '<div class="mmrc-planes"><div class="mmrc-planesin">' + data.decks.map((d, di) => {
             const stairs = data.decks.length > 1 ? /A380|380/i.test(leg.aircraftName || "") || /^(L38|G38)/.test(leg.acv || "") ? "both" : "fore" : null;
-            return '<div class="mmrc-deck' + (data.decks.length > 1 && di !== mainDeckIdx(data.decks) ? " is-off" : "") + '" data-deck="' + di + '">' + deckHtml(d, 0, stairs, nameOf, shapeKeyFor(leg)) + "</div>";
+            return '<div class="mmrc-deck' + (data.decks.length > 1 && di !== mainDeckIdx(data.decks) ? " is-off" : "") + '" data-deck="' + di + '"' + (data.decks.length > 1 && di !== mainDeckIdx(data.decks) ? ' data-upper="1"' : "") + ">" + deckHtml(d, 0, stairs, nameOf, shapeKeyFor(leg)) + "</div>";
         }).join("") + "</div></div>" + (failed.length ? '<div class="mmrc-seatnote">Nicht geladen: ' + failed.map(c => esc(nameOf(c))).join(", ") + ". " + '<button type="button" class="mmrc-seatretry">Erneut laden</button></div>' : "") + (noPrice ? '<div class="mmrc-seatnote">Diese Airline meldet keine Sitzpreise an das ' + "Buchungssystem. Belegung und Ausstattung stimmen.</div>" : "");
     }
     function decorateSeatmap(panel) {
@@ -9050,7 +9138,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             };
             const sr_height = seatRow.offsetHeight;
             const shape = SHAPES[plane.getAttribute("data-shape")] || SHAPES.a320;
-            const wings = plane.querySelectorAll("th[data-w]").length > 0;
+            const wings = !plane.closest(".mmrc-deck[data-upper]");
             const fusPx = 1.11 * sr_height;
             const svg = planeSvg(shape, fr.width, fusPx, wings);
             const old = plane.querySelector(".mmrc-silhouette");
@@ -9116,11 +9204,23 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const legRow = (leg, legIdx) => {
             const acLabel = shortAircraft(leg.aircraftName);
             const parts = [];
-            const code = leg.operating;
-            const lu = LOGO_EMBED[code] || (emptyIcons.has(code) ? null : (code => logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null)(code));
-            if (lu) {
-                parts.push(`<img class="mmrc-logo" src="${esc(lu)}" alt="" aria-hidden="true" ` + `data-code="${esc(code || "")}" ` + `onerror="var s=document.createElement('span');s.className='mmrc-logofallback';` + `s.textContent=this.dataset.code;this.replaceWith(s)">`);
-                LOGO_EMBED[code] || function(code, url) {
+            const mark = function(leg) {
+                const code = leg.operating || "";
+                const own = iconCode(code);
+                const src = LOGO_EMBED[own] || (emptyIcons.has(own) ? null : logoUrl(own));
+                const mkt = leg.mkt && leg.mkt !== code ? iconCode(leg.mkt) : null;
+                const alt = mkt ? LOGO_EMBED[mkt] || (emptyIcons.has(mkt) ? null : logoUrl(mkt)) : null;
+                return {
+                    code: code,
+                    icon: own,
+                    src: src || alt,
+                    alt: src ? alt : null,
+                    embedded: !!LOGO_EMBED[own]
+                };
+            }(leg);
+            if (mark.src) {
+                parts.push(`<img class="mmrc-logo" src="${esc(mark.src)}" alt="" aria-hidden="true" ` + `data-code="${esc(mark.code)}" data-icon="${esc(mark.icon)}"` + (mark.alt ? ` data-alt="${esc(mark.alt)}"` : "") + ` onerror="if(this.dataset.alt){this.src=this.dataset.alt;` + `this.removeAttribute('data-alt');return;}` + `var s=document.createElement('span');s.className='mmrc-logofallback';` + `s.textContent=this.dataset.code;this.replaceWith(s)">`);
+                mark.embedded || function(code, url) {
                     if (code && !iconChecked.has(code) && !emptyIcons.has(code)) {
                         iconChecked.add(code);
                         fetch(url).then(r => r.ok ? r.text() : null).then(t => {
@@ -9132,17 +9232,22 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                                         codes: [ ...emptyIcons ]
                                     }));
                                 } catch (e) {}
-                                document.querySelectorAll('img.mmrc-logo[data-code="' + code + '"]').forEach(img => img.replaceWith(function(code) {
-                                    const s = document.createElement("span");
-                                    s.className = "mmrc-logofallback";
-                                    s.textContent = code;
-                                    return s;
-                                }(code)));
+                                document.querySelectorAll('img.mmrc-logo[data-icon="' + code + '"]').forEach(img => {
+                                    if (img.dataset.alt) {
+                                        img.src = img.dataset.alt;
+                                        img.removeAttribute("data-alt");
+                                    } else img.replaceWith(function(code) {
+                                        const s = document.createElement("span");
+                                        s.className = "mmrc-logofallback";
+                                        s.textContent = code;
+                                        return s;
+                                    }(img.dataset.code || code));
+                                });
                             }(code);
                         }).catch(() => {});
                     }
-                }(code, lu);
-            } else emptyIcons.has(code) && parts.push(`<span class="mmrc-logofallback">${esc(code)}</span>`);
+                }(mark.icon, mark.src);
+            } else parts.push(`<span class="mmrc-logofallback">${esc(mark.code)}</span>`);
             leg.operatingName && parts.push(`<span class="mmrc-air${leg.codeshare ? " is-codeshare" : ""}"` + (leg.codeshare ? ` title="Durchgeführt von ${esc(leg.operatingName)}"` : "") + `>${esc(leg.operatingName)}</span>`);
             parts.push(`<span class="mmrc-fno">${esc(fmtFlightNo(leg.flightNo))}</span>`);
             seatmapOn() && apiOf() && leg.mkt && leg.mktNo && leg.depDate ? parts.push(`<button type="button" class="mmrc-seatbtn${leg.widebody ? " is-wide" : ""}" ` + `data-leg="${legIdx}" title="${esc(leg.aircraftName)}: Sitzplan ansehen">` + (leg => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="` + (isRail(leg) ? TRAIN_PATH : isBus(leg) ? BUS_PATH : PLANE_PATH) + `"/></svg>`)(leg) + `${esc(acLabel)}</button>`) : parts.push(`<span class="mmrc-ac${leg.widebody ? " is-wide" : ""}" title="${esc(leg.aircraftName)}">${esc(acLabel)}</span>`);
@@ -10325,6 +10430,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     state._balanceHtml = balanceHtml;
     state._apiGet = apiGet;
     state._seatCabinName = seatCabinName;
+    state._demoteLoneFirst = demoteLoneFirst;
     state._planeSvg = planeSvg;
     state._shapeKeyFor = shapeKeyFor;
     state._normaliseSeatmap = normaliseSeatmap;
@@ -11944,7 +12050,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.6.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.6.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
