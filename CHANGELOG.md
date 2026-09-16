@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2 — 2026-09-16
+
+### Behoben
+
+- **Update-Hinweis erschien bis zu 24 h nach einem Release**
+
 ## 1.6.1 — 2026-09-16
 
 ### Behoben
