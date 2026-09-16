@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.1
+// @version      1.6.2
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -11942,9 +11942,9 @@ jederzeit von Hand starten.</p>` : ""}
 
 (() => {
     "use strict";
-    const VERSION = 4;
+    const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.6.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.6.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
@@ -11954,9 +11954,7 @@ jederzeit von Hand starten.</p>` : ""}
     }
     document.querySelectorAll(".mmupd-chip").forEach(e => e.remove());
     const KEY = "mm_update";
-    const SESSION_KEY = "mm_update_checked";
-    const MAX_AGE = 24 * 3600 * 1e3;
-    const RETRY_AFTER = 6 * 3600 * 1e3;
+    const RETRY_AFTER = 10 * 60 * 1e3;
     const START_DELAY = 8e3;
     const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781";
     const readState = () => {
@@ -12005,14 +12003,6 @@ jederzeit von Hand starten.</p>` : ""}
     function show(latest) {
         if (api.superseded || !document.body) return;
         if (chip && chip.isConnected) return;
-        const s = readState();
-        const stamp = (t => {
-            const d = new Date(t);
-            return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-        })(Date.now()) + "|" + latest;
-        if (s.shownOn === stamp) return;
-        s.shownOn = stamp;
-        writeState(s);
         !function() {
             const css = `
 .mmupd-chip { position: fixed; right: 18px; bottom: 18px; z-index: 2147482900;
@@ -12083,24 +12073,13 @@ jederzeit von Hand starten.</p>` : ""}
         if (!DIST_meta || "0.0.0-dev" === DIST_version) return null;
         const s = readState();
         const age = s.last ? Date.now() - s.last : 1 / 0;
-        if (!(force || !(() => {
-            try {
-                return "1" === sessionStorage.getItem(SESSION_KEY);
-            } catch (e) {
-                return !1;
-            }
-        })() || age > (s.failed ? RETRY_AFTER : MAX_AGE))) {
+        if (!force && (s.failed && age <= RETRY_AFTER)) {
             if (s.latest && cmp(s.latest, DIST_version) > 0 && s.seen !== s.latest) {
                 state.latest = s.latest;
                 show(s.latest);
             }
             return s.latest || null;
         }
-        (() => {
-            try {
-                sessionStorage.setItem(SESSION_KEY, "1");
-            } catch (e) {}
-        })();
         try {
             const r = await fetch(DIST_meta, {
                 method: "GET",
@@ -12120,7 +12099,6 @@ jederzeit von Hand starten.</p>` : ""}
                 last: Date.now(),
                 latest: latest,
                 seen: s.seen,
-                shownOn: s.shownOn,
                 failed: !1
             });
             cmp(latest, DIST_version) > 0 && s.seen !== latest && show(latest);
