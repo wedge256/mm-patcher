@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.3 — 2026-09-16
+
+### Behoben
+
+- **Kalender: doppelte Kabinen-Beschriftung unter dem Raster entfernt**
+- **Airline-Symbole: fehlende und leere Logos ergänzt**
+- **Sitzplan: Kabinen, Sitzbreiten und Rumpf korrigiert**
+
 ## 1.6.2 — 2026-09-16
 
 ### Behoben
