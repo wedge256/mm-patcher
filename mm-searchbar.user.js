@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.0
+// @version      1.6.1
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -1049,7 +1049,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 70;
+    const VERSION = 74;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -1060,7 +1060,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }
     document.querySelectorAll(".mmset-fab, .mmset-panel, .mmset-tip").forEach(e => e.remove());
     const KEY = "mm_features";
-    const OFFICES = [ [ "Deutschland (FRA)", "FRALH08MP" ], [ "Österreich (VIE)", "VIELH08MP" ], [ "Schweiz (ZRH)", "ZRHLH08MP" ], [ "Niederlande (AMS)", "AMSLH08MP" ], [ "Belgien (BRU)", "BRULH08MP" ], [ "Luxemburg (LUX)", "LUXLH08MP" ], [ "Frankreich (PAR)", "PARLH08MP" ], [ "Italien (MIL)", "MILLH08MP" ], [ "Spanien (MAD)", "MADLH08MP" ], [ "Portugal (LIS)", "LISLH08MP" ], [ "Irland (DUB)", "DUBLH08MP" ], [ "Großbritannien (LON)", "LONLH08MP" ], [ "Finnland (HEL)", "HELLH08MP" ], [ "Schweden (STO)", "STOLH08MP" ], [ "Polen (WAW)", "WAWLH08MP" ], [ "Griechenland (ATH)", "ATHLH08MP" ], [ "Türkei (IST)", "ISTLH08MP" ], [ "USA / Argentinien (NYC)", "NYCLH08MP" ], [ "Kanada (YTO)", "YTOLH08MP" ], [ "Mexiko (MEX)", "MEXLH08MP" ], [ "Brasilien (SAO)", "SAOLH08MP" ], [ "Singapur (SIN)", "SINLH08MP" ], [ "Japan (TYO)", "TYOLH08MP" ], [ "China (BJS)", "BJSLH08MP" ], [ "Hongkong (HKG)", "HKGLH08MP" ], [ "Südkorea (SEL)", "SELLH08MP" ], [ "Thailand (BKK)", "BKKLH08MP" ], [ "Malaysia (KUL)", "KULLH08MP" ], [ "Indien (DEL)", "DELLH08MP" ], [ "VAE (DXB)", "DXBLH08MP" ], [ "Südafrika (JNB)", "JNBLH08MP" ], [ "Australien (SYD)", "SYDLH08MP" ], [ "Neuseeland (AKL)", "AKLLH08MP" ] ];
+    const OFFICES = [ [ "Deutschland (FRA)", "FRALH08MP" ], [ "Österreich (VIE)", "VIELH08MP" ], [ "Schweiz (ZRH)", "ZRHLH08MP" ], [ "Niederlande (AMS)", "AMSLH08MP" ], [ "Belgien (BRU)", "BRULH08MP" ], [ "Luxemburg (LUX)", "LUXLH08MP" ], [ "Frankreich (PAR)", "PARLH08MP" ], [ "Italien (MIL)", "MILLH08MP" ], [ "Spanien (MAD)", "MADLH08MP" ], [ "Portugal (LIS)", "LISLH08MP" ], [ "Irland (DUB)", "DUBLH08MP" ], [ "Großbritannien (LON)", "LONLH08MP" ], [ "Finnland (HEL)", "HELLH08MP" ], [ "Schweden (STO)", "STOLH08MP" ], [ "Polen (WAW)", "WAWLH08MP" ], [ "Griechenland (ATH)", "ATHLH08MP" ], [ "Türkei (IST)", "ISTLH08MP" ], [ "USA (NYC)", "NYCLH08MP" ], [ "Kanada (YTO)", "YTOLH08MP" ], [ "Mexiko (MEX)", "MEXLH08MP" ], [ "Brasilien (SAO)", "SAOLH08MP" ], [ "Singapur (SIN)", "SINLH08MP" ], [ "Japan (TYO)", "TYOLH08MP" ], [ "China (BJS)", "BJSLH08MP" ], [ "Hongkong (HKG)", "HKGLH08MP" ], [ "Südkorea (SEL)", "SELLH08MP" ], [ "Thailand (BKK)", "BKKLH08MP" ], [ "Malaysia (KUL)", "KULLH08MP" ], [ "Indien (DEL)", "DELLH08MP" ], [ "VAE (DXB)", "DXBLH08MP" ], [ "Südafrika (JNB)", "JNBLH08MP" ], [ "Australien (SYD)", "SYDLH08MP" ], [ "Neuseeland (AKL)", "AKLLH08MP" ] ];
     const DEFAULTS = {
         smartsearch: !0,
         iataExt: !0,
@@ -1133,6 +1133,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     } ];
     const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab";
     const PANEL_W = 284;
+    const normText = v => {
+        const s = String(null == v ? "" : v).trim();
+        return /^auto$/i.test(s) ? "auto" : s.toUpperCase();
+    };
     let prefs = (() => {
         let stored = null;
         try {
@@ -1162,7 +1166,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             ...DEFAULTS
         };
         Object.keys(DEFAULTS).forEach(k => {
-            stored && void 0 !== stored[k] && (out[k] = stored[k]);
+            stored && void 0 !== stored[k] && (out[k] = "string" == typeof DEFAULTS[k] ? normText(stored[k]) : stored[k]);
         });
         return out;
     })();
@@ -1191,7 +1195,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             ...prefs
         }),
         set: (k, v) => {
-            prefs[k] = "string" == typeof DEFAULTS[k] ? String(null == v ? "" : v).trim().toUpperCase() : !!v;
+            prefs[k] = "string" == typeof DEFAULTS[k] ? normText(v) : !!v;
             save();
             syncUI();
             (k => {
@@ -1501,6 +1505,16 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             subtree: !0
         });
     }
+    const isAuto = v => "auto" === v;
+    function originCountry() {
+        try {
+            const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+            const iata = window.__mmIata;
+            return iata && iata.isoOf && iata.isoOf(o.entities[o.selectedAirBoundsSearchId].itineraries[0].originLocationCode) || null;
+        } catch (err) {
+            return null;
+        }
+    }
     let officeRun = 0;
     async function applyOffice() {
         const pend = panel && panel.querySelector(".mmset-office-pending");
@@ -1512,28 +1526,37 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 pend.textContent = t || "";
             }
         };
-        if (B && "function" == typeof B.handover) {
-            say("Büro wird gewechselt …");
+        if (!B || "function" != typeof B.handover) {
+            say("Greift nach Neuladen.");
+            return;
+        }
+        const office = String(prefs.office || "");
+        let ctx;
+        if (isAuto(office)) {
+            const land = originCountry();
+            ctx = land ? {
+                country: land
+            } : {};
+        } else ctx = office ? {
+            officeId: office
+        } : {};
+        say("Büro wird gewechselt …");
+        try {
+            await B.handover(ctx);
+            if (run !== officeRun) return;
+            say("");
+            syncUI();
             try {
-                const office = String(prefs.office || "");
-                await B.handover(office ? {
-                    officeId: office
-                } : {});
-                if (run !== officeRun) return;
-                say("");
-                syncUI();
-                try {
-                    window.dispatchEvent(new CustomEvent("mm:office", {
-                        detail: {
-                            office: office
-                        }
-                    }));
-                } catch (e) {}
-            } catch (e) {
-                if (run !== officeRun) return;
-                say("Wechsel fehlgeschlagen: " + (e && e.message ? e.message : e));
-            }
-        } else say("Greift nach Neuladen.");
+                window.dispatchEvent(new CustomEvent("mm:office", {
+                    detail: {
+                        office: office
+                    }
+                }));
+            } catch (e) {}
+        } catch (e) {
+            if (run !== officeRun) return;
+            say("Wechsel fehlgeschlagen: " + (e && e.message ? e.message : e));
+        }
     }
     state._applyOffice = applyOffice;
     state.officeName = id => {
@@ -1571,15 +1594,14 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 const hit = OFFICES.find(([, x]) => x === id);
                 return hit ? hit[0].replace(/\s*\([A-Z]{3}\)$/, "") : null;
             };
-            let off = !(!want || "auto" === want || !live || want === live);
-            if ("auto" === want) try {
-                const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
-                const iata = window.__mmIata;
-                const soll = iata && iata.isoOf ? iata.isoOf(o.entities[o.selectedAirBoundsSearchId].itineraries[0].originLocationCode) : null;
-                const ist = window.__mmAuth && window.__mmAuth.activeCountry ? window.__mmAuth.activeCountry() : null;
+            let off = !(!want || isAuto(want) || !live || want === live);
+            if (isAuto(want)) {
+                const soll = originCountry();
+                let ist = null;
+                try {
+                    ist = window.__mmAuth && window.__mmAuth.activeCountry ? window.__mmAuth.activeCountry() : null;
+                } catch (err) {}
                 off = !(!soll || !ist || soll === ist);
-            } catch (err) {
-                off = !1;
             }
             act.textContent = live ? live + (landOf(live) ? " · " + landOf(live) : "") : "unbekannt (noch kein Token)";
             act.classList.toggle("is-off", off);
@@ -6447,7 +6469,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 54;
+    const VERSION = 55;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -7091,17 +7113,31 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         auth.inflight = p;
         return p;
     }
-    function postToken(base, tail) {
+    async function postToken(base, tail) {
         const body = "client_id=" + encodeURIComponent(auth.form.id) + "&client_secret=" + encodeURIComponent(auth.form.secret) + "&" + tail;
-        return fetch(base + TOKEN_PATH, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "content-type": "application/x-www-form-urlencoded",
-                accept: "application/json"
-            },
-            body: body
-        }).then(r => r.ok ? r.json() : null).catch(() => null);
+        let r;
+        try {
+            r = await fetch(base + TOKEN_PATH, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "content-type": "application/x-www-form-urlencoded",
+                    accept: "application/json"
+                },
+                body: body
+            });
+        } catch (e) {
+            throw new Error("Netzfehler, kein HTTP-Status (" + (e && e.message || e) + ")");
+        }
+        if (!r.ok) {
+            let grund = "";
+            try {
+                const j = await r.json();
+                grund = j && (j.error_description || j.error || j.message) || "";
+            } catch (e) {}
+            throw new Error("HTTP " + r.status + (grund ? ": " + String(grund).slice(0, 120) : ""));
+        }
+        return r.json();
     }
     const AUTHZ_SCOPE = "AUTHENTICATED%20IDENTIFIED%20urn%3Amilesandmore%3Atech%3Abackground%3Av1%3Aactive";
     function portalLocale() {
@@ -7135,8 +7171,13 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             const bootCtx = Object.assign({
                 country: portalLocale().country
             }, context || {});
-            const anon = await postToken(base, "grant_type=client_credentials&context=" + encodeURIComponent(JSON.stringify(bootCtx)));
-            if (!anon || !anon.refresh_token) throw new Error("anonymes Token nicht ausgestellt");
+            let anon;
+            try {
+                anon = await postToken(base, "grant_type=client_credentials&context=" + encodeURIComponent(JSON.stringify(bootCtx)));
+            } catch (e) {
+                throw new Error("anonymes Token nicht ausgestellt (Land " + bootCtx.country + "), " + (e && e.message || e));
+            }
+            if (!anon.refresh_token) throw new Error("anonymes Token ohne refresh_token (Land " + bootCtx.country + ")");
             const r = await fetch(authzUrl, {
                 credentials: "include",
                 headers: {
@@ -7152,8 +7193,13 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                 authenticationCode: m[1],
                 userRedirectUri: location.origin
             });
-            const tok = await postToken(base, "grant_type=refresh_token&refresh_token=" + encodeURIComponent(anon.refresh_token) + "&context=" + encodeURIComponent(ctx));
-            if (!tok || !tok.access_token) throw new Error("Einlösung des Codes fehlgeschlagen");
+            let tok;
+            try {
+                tok = await postToken(base, "grant_type=refresh_token&refresh_token=" + encodeURIComponent(anon.refresh_token) + "&context=" + encodeURIComponent(ctx));
+            } catch (e) {
+                throw new Error("Einlösung des Codes fehlgeschlagen, " + (e && e.message || e));
+            }
+            if (!tok.access_token) throw new Error("Einlösung des Codes ohne access_token");
             !function(j) {
                 const cur = storedToken();
                 const all = cur && cur.all || {};
@@ -7574,7 +7620,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 170;
+    const VERSION = 171;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -7901,6 +7947,13 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     const LOGO_EMBED = {
         AV: "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%22130.28%200%2040%2040%22%3E%3Cpath%20d=%22M154.013%2031.2561H157.697C159.226%2031.2561%20159.904%2031.3827%20160.33%2031.5755C159.676%2029.5444%20157.614%2027.9613%20150.346%2027.418C151.507%2028.7616%20152.726%2030.0488%20154.011%2031.2561H154.013Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M150.346%2027.4203C143.293%2019.224%20138.542%208.73765%20136.637%200C136.637%200%20132.76%203.4195%20132.452%2010.611C132.112%2018.4704%20136.328%2026.394%20150.212%2027.4047C150.257%2027.4125%20150.304%2027.4125%20150.346%2027.4183V27.4203Z%22%20fill=%22%23FF0000%22/%3E%3Cpath%20d=%22M154.011%2031.2559C148.537%2031.2559%20139.087%2031.2559%20139.087%2031.2559C139.286%2031.7193%20139.969%2032.0445%20141.525%2032.136C150.841%2032.6891%20152.159%2039.9993%20165.493%2039.9993C166.663%2039.9993%20167.393%2039.9292%20168.131%2039.791C162.862%2038.1708%20158.13%2035.1252%20154.011%2031.2539V31.2559Z%22%20fill=%22%23FF0000%22/%3E%3C/svg%3E"
     };
+    const EMPTY_KEY = "mmrc_logo_empty";
+    let emptyIcons = new Set;
+    try {
+        const c = JSON.parse(localStorage.getItem(EMPTY_KEY) || "null");
+        c && c.base === logoBase && (emptyIcons = new Set(c.codes || []));
+    } catch (e) {}
+    const iconChecked = new Set;
     const CSS = `
 html.mmrc-active .upsell-premium-pres-container > mat-accordion { display: none !important; }
 
@@ -9060,6 +9113,47 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             const t = placeName(code, city);
             return `<span class="mmrc-t" data-iata="${esc(code)}"${t ? ` data-place="${esc(t)}"` : ""}>${inner}</span>`;
         };
+        const legRow = (leg, legIdx) => {
+            const acLabel = shortAircraft(leg.aircraftName);
+            const parts = [];
+            const code = leg.operating;
+            const lu = LOGO_EMBED[code] || (emptyIcons.has(code) ? null : (code => logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null)(code));
+            if (lu) {
+                parts.push(`<img class="mmrc-logo" src="${esc(lu)}" alt="" aria-hidden="true" ` + `data-code="${esc(code || "")}" ` + `onerror="var s=document.createElement('span');s.className='mmrc-logofallback';` + `s.textContent=this.dataset.code;this.replaceWith(s)">`);
+                LOGO_EMBED[code] || function(code, url) {
+                    if (code && !iconChecked.has(code) && !emptyIcons.has(code)) {
+                        iconChecked.add(code);
+                        fetch(url).then(r => r.ok ? r.text() : null).then(t => {
+                            t && !/<(path|polygon|polyline|circle|ellipse|text|image|use)\b/i.test(t) && function(code) {
+                                emptyIcons.add(code);
+                                try {
+                                    localStorage.setItem(EMPTY_KEY, JSON.stringify({
+                                        base: logoBase,
+                                        codes: [ ...emptyIcons ]
+                                    }));
+                                } catch (e) {}
+                                document.querySelectorAll('img.mmrc-logo[data-code="' + code + '"]').forEach(img => img.replaceWith(function(code) {
+                                    const s = document.createElement("span");
+                                    s.className = "mmrc-logofallback";
+                                    s.textContent = code;
+                                    return s;
+                                }(code)));
+                            }(code);
+                        }).catch(() => {});
+                    }
+                }(code, lu);
+            } else emptyIcons.has(code) && parts.push(`<span class="mmrc-logofallback">${esc(code)}</span>`);
+            leg.operatingName && parts.push(`<span class="mmrc-air${leg.codeshare ? " is-codeshare" : ""}"` + (leg.codeshare ? ` title="Durchgeführt von ${esc(leg.operatingName)}"` : "") + `>${esc(leg.operatingName)}</span>`);
+            parts.push(`<span class="mmrc-fno">${esc(fmtFlightNo(leg.flightNo))}</span>`);
+            seatmapOn() && apiOf() && leg.mkt && leg.mktNo && leg.depDate ? parts.push(`<button type="button" class="mmrc-seatbtn${leg.widebody ? " is-wide" : ""}" ` + `data-leg="${legIdx}" title="${esc(leg.aircraftName)}: Sitzplan ansehen">` + (leg => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="` + (isRail(leg) ? TRAIN_PATH : isBus(leg) ? BUS_PATH : PLANE_PATH) + `"/></svg>`)(leg) + `${esc(acLabel)}</button>`) : parts.push(`<span class="mmrc-ac${leg.widebody ? " is-wide" : ""}" title="${esc(leg.aircraftName)}">${esc(acLabel)}</span>`);
+            const cabinBadges = [];
+            leg.allegris && cabinBadges.push(`<span class="mmrc-allegris">Allegris</span>`);
+            leg.newBiz && cabinBadges.push(`<span class="mmrc-newbiz" title="Umgerüsteter A380 mit der neuen Business Class (1-2-1, direkter Gangzugang)">BC Retrofit</span>`);
+            leg.premium && cabinBadges.push(`<span class="mmrc-premcab" title="${esc(leg.premium.title)}">${esc(leg.premium.label)}</span>`);
+            const acIdx = parts.length - 1;
+            cabinBadges.length && (parts[acIdx] = `<span class="mmrc-acgroup">${parts[acIdx]}` + `<span class="mmrc-cabinbadges">${cabinBadges.join("")}</span></span>`);
+            return `<div class="mmrc-row is-leg">` + ((leg, extra) => tSpan(leg.from, leg.fromCity, esc(leg.dep)) + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + tSpan(leg.to, leg.toCity, `${esc(leg.arr)}${extra || ""}`))(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
+        };
         const extraOf = (leg, i) => i === it.legs.length - 1 && it.daysOffset ? `<span class="mmrc-nextday" title="Ankunft ${it.daysOffset} Tag${it.daysOffset > 1 ? "e" : ""} später">` + `+${it.daysOffset}</span>` : "";
         const techPlace = t => {
             try {
@@ -9071,23 +9165,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         };
         const rows = [];
         it.legs.forEach((leg, i) => {
-            rows.push(((leg, legIdx) => {
-                const acLabel = shortAircraft(leg.aircraftName);
-                const parts = [];
-                const lu = LOGO_EMBED[leg.operating] || (code = leg.operating, logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null);
-                var code;
-                lu && parts.push(`<img class="mmrc-logo" src="${esc(lu)}" alt="" aria-hidden="true" ` + `data-code="${esc(leg.operating || "")}" ` + `onerror="var s=document.createElement('span');s.className='mmrc-logofallback';` + `s.textContent=this.dataset.code;this.replaceWith(s)">`);
-                leg.operatingName && parts.push(`<span class="mmrc-air${leg.codeshare ? " is-codeshare" : ""}"` + (leg.codeshare ? ` title="Durchgeführt von ${esc(leg.operatingName)}"` : "") + `>${esc(leg.operatingName)}</span>`);
-                parts.push(`<span class="mmrc-fno">${esc(fmtFlightNo(leg.flightNo))}</span>`);
-                seatmapOn() && apiOf() && leg.mkt && leg.mktNo && leg.depDate ? parts.push(`<button type="button" class="mmrc-seatbtn${leg.widebody ? " is-wide" : ""}" ` + `data-leg="${legIdx}" title="${esc(leg.aircraftName)}: Sitzplan ansehen">` + (leg => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="` + (isRail(leg) ? TRAIN_PATH : isBus(leg) ? BUS_PATH : PLANE_PATH) + `"/></svg>`)(leg) + `${esc(acLabel)}</button>`) : parts.push(`<span class="mmrc-ac${leg.widebody ? " is-wide" : ""}" title="${esc(leg.aircraftName)}">${esc(acLabel)}</span>`);
-                const cabinBadges = [];
-                leg.allegris && cabinBadges.push(`<span class="mmrc-allegris">Allegris</span>`);
-                leg.newBiz && cabinBadges.push(`<span class="mmrc-newbiz" title="Umgerüsteter A380 mit der neuen Business Class (1-2-1, direkter Gangzugang)">BC Retrofit</span>`);
-                leg.premium && cabinBadges.push(`<span class="mmrc-premcab" title="${esc(leg.premium.title)}">${esc(leg.premium.label)}</span>`);
-                const acIdx = parts.length - 1;
-                cabinBadges.length && (parts[acIdx] = `<span class="mmrc-acgroup">${parts[acIdx]}` + `<span class="mmrc-cabinbadges">${cabinBadges.join("")}</span></span>`);
-                return `<div class="mmrc-row is-leg">` + ((leg, extra) => tSpan(leg.from, leg.fromCity, esc(leg.dep)) + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + tSpan(leg.to, leg.toCity, `${esc(leg.arr)}${extra || ""}`))(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
-            })(leg, i));
+            rows.push(legRow(leg, i));
             const stops = leg.techStops || [];
             stops.length && (isRail(leg) || isBus(leg)) ? rows.push((stops => {
                 const orte = stops.map(techPlace).filter(Boolean);
@@ -11866,7 +11944,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 4;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.6.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.6.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
