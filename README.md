@@ -73,6 +73,14 @@ Fehlerseite, die die tatsächliche Ursache nennt.
   M&M erlaubt etwa 40 Suchen je IP-Adresse und Stunde, danach ist die Adresse eine
   Stunde gesperrt. Ein Zähler zeigt den Stand und lässt sich nach IP-Wechsel leeren.
 
+- **Gespeicherte Suchen**
+
+  M&M vergisst die letzten Suchen bei jedem Logout. Auf der Ergebnisseite merkt
+  "☆ Suche speichern" oben in der Suchleiste die aktuelle Suche (erneuter Klick entfernt
+  sie), die Liste öffnet "★ Gespeicherte Suchen" unten links. Auf der
+  Prämienflug-Seite von www.miles-and-more.com stehen die gespeicherten Suchen direkt
+  unter der Suchmaske und starten per Klick.
+
 - **Buchungsbüro wechseln**
 
   Das Büro entscheidet mit, welche Flüge erscheinen - DE findet keine ET-Flüge ab

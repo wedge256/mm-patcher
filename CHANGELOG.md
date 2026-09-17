@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 — 2026-09-17
+
+### Hinzugefügt
+
+- **Gespeicherte Suchen: Suche auf der Ergebnisseite merken und per Klick
+  erneut starten – auch von der M&M-Hauptseite (Prämienflüge) aus**
+
 ## 1.6.3 — 2026-09-16
 
 ### Behoben
