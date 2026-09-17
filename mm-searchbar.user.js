@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.3
+// @version      1.7.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
 // @supportURL   https://github.com/wedge256/mm-patcher/issues
 // @icon         https://www.awardmap.net/favicon.svg
 // @match        https://shop.miles-and-more.com/*
+// @match        https://www.miles-and-more.com/*/spend/flights*
 // @updateURL    https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js
 // @downloadURL  https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js
 // @run-at       document-start
@@ -12050,7 +12051,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.6.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.7.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
@@ -12266,6 +12267,251 @@ jederzeit von Hand starten.</p>` : ""}
     } catch (e) {}
 })();
     }
+
+    function __mmSaved() {
+        "use strict";
+        if (window.__mmSavedUI) return;
+        window.__mmSavedUI = !0;
+        const COOKIE = "mmp_saved";
+        const MAX_BYTES = 3800;
+        const SHOP_SEARCH = "https://shop.miles-and-more.com/reward/reward/availability" + "?lang=de-DE&portalCountry=de";
+        const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781";
+        const CFF_CABIN = [ [ /^CFFPECO/i, "PREMIUMECO" ], [ /^CFFECO/i, "ECONOMY" ], [ /^CFFBUS/i, "BUSINESS" ], [ /^CFFFIRS?/i, "FIRST" ] ];
+        const CABIN_LABEL = {
+            ECONOMY: "Economy",
+            PREMIUMECO: "Premium Economy",
+            BUSINESS: "Business",
+            FIRST: "First"
+        };
+        const CODE_RE = /^\w{3,5}$/;
+        const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+        const valid = s => !!s && Array.isArray(s.i) && s.i.length > 0 && s.i.every(l => Array.isArray(l) && CODE_RE.test(l[0]) && CODE_RE.test(l[1]) && DATE_RE.test(l[2])) && Array.isArray(s.t) && s.t.every(p => CODE_RE.test(p)) && (!s.f || Array.isArray(s.f) && s.f.every(f => /^\w+$/.test(f)));
+        function load() {
+            try {
+                const m = new RegExp("(?:^|;\\s*)" + COOKIE + "=([^;]*)").exec(document.cookie || "");
+                const a = m ? JSON.parse(decodeURIComponent(m[1])) : [];
+                return Array.isArray(a) ? a.filter(valid) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        function save(list) {
+            const payload = encodeURIComponent(JSON.stringify(list));
+            if (payload.length > MAX_BYTES) return !1;
+            try {
+                document.cookie = COOKIE + "=" + payload + "; Max-Age=" + (list.length ? 34560000 : 0) + "; path=/; domain=.miles-and-more.com; SameSite=Lax; Secure";
+            } catch (e) {
+                return !1;
+            }
+            return load().length === list.length;
+        }
+        function currentSearch() {
+            if ("shop.miles-and-more.com" !== location.hostname || !/availability/.test(location.pathname) || /\/recovery/.test(location.pathname)) return null;
+            try {
+                const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+                const e = o.entities[o.selectedAirBoundsSearchId];
+                const cff = e.commercialFareFamilies && e.commercialFareFamilies[0];
+                const hit = cff && CFF_CABIN.find(([re]) => re.test(String(cff)));
+                const s = {
+                    c: hit && hit[1] || e.cabin || "ECONOMY",
+                    i: e.itineraries.map(l => [ l.originLocationCode, l.destinationLocationCode, String(l.departureDateTime).slice(0, 10) ]),
+                    t: (e.travelers || [ {
+                        passengerTypeCode: "ADT"
+                    } ]).map(t => t.passengerTypeCode),
+                    f: e.commercialFareFamilies || void 0
+                };
+                return valid(s) ? s : null;
+            } catch (e) {
+                return null;
+            }
+        }
+        function runSearch(s) {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = SHOP_SEARCH;
+            form.style.display = "none";
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "search";
+            input.value = JSON.stringify({
+                cabin: s.c,
+                itineraries: s.i.map(l => ({
+                    departureDateTime: l[2] + "T00:00:00.000",
+                    originLocationCode: l[0],
+                    destinationLocationCode: l[1]
+                })),
+                travelers: s.t.map(p => ({
+                    passengerTypeCode: p
+                })),
+                commercialFareFamilies: s.f || void 0
+            });
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+        function label(s) {
+            const legs = s.i.map(l => l[0] + " → " + l[1] + " " + l[2].slice(8, 10) + "." + l[2].slice(5, 7) + "." + l[2].slice(0, 4));
+            return legs.join(" / ") + " · " + (CABIN_LABEL[s.c] || s.c) + (s.t.length > 1 ? " · " + s.t.length + " Pers." : "");
+        }
+        let fab = null;
+        let panel = null;
+        function render(msg) {
+            panel.textContent = "";
+            const add = (tag, cls, text) => {
+                const el = document.createElement(tag);
+                el.className = cls;
+                text && (el.textContent = text);
+                "button" === tag && (el.type = "button");
+                return el;
+            };
+            panel.appendChild(add("div", "mmsv-title", "Gespeicherte Suchen"));
+            const list = load();
+            list.length || panel.appendChild(add("div", "mmsv-empty", "Noch nichts gespeichert. Auf der Ergebnisseite oben in der Suchleiste „☆ Suche speichern“ wählen."));
+            list.forEach(s => {
+                const row = add("div", "mmsv-row");
+                const go = add("button", "mmsv-go", label(s));
+                go.title = "Suche starten";
+                go.addEventListener("click", () => runSearch(s));
+                const del = add("button", "mmsv-del", "✕");
+                del.title = "Löschen";
+                del.setAttribute("aria-label", "Löschen: " + label(s));
+                del.addEventListener("click", () => {
+                    const key = JSON.stringify(s);
+                    save(load().filter(x => JSON.stringify(x) !== key));
+                    render();
+                    syncStar();
+                });
+                row.appendChild(go);
+                row.appendChild(del);
+                panel.appendChild(row);
+            });
+            msg && panel.appendChild(add("div", "mmsv-msg", msg));
+        }
+        let star = null;
+        function syncStar() {
+            const host = document.querySelector("refx-search-recap-cont .flight-recap") || document.querySelector("refx-search-recap-cont");
+            const cur = host && currentSearch();
+            if (!cur) {
+                star && star.isConnected && star.remove();
+                return;
+            }
+            if (!star) {
+                star = document.createElement("button");
+                star.type = "button";
+                star.className = "mmsv-star";
+                star.addEventListener("click", () => {
+                    const now = currentSearch();
+                    if (!now) return;
+                    const key = JSON.stringify(now);
+                    const list = load();
+                    const rest = list.filter(s => JSON.stringify(s) !== key);
+                    if (rest.length === list.length && !save(list.concat([ now ]))) {
+                        toggle(!0);
+                        render("Speicher voll – bitte zuerst eine Suche löschen.");
+                        return;
+                    }
+                    rest.length < list.length && save(rest);
+                    panel.classList.contains("is-open") && render();
+                    syncStar();
+                });
+            }
+            star.parentElement !== host && host.appendChild(star);
+            const key = JSON.stringify(cur);
+            const on = load().some(s => JSON.stringify(s) === key);
+            const text = on ? "★ Gespeichert" : "☆ Suche speichern";
+            if (star.textContent !== text) {
+                star.textContent = text;
+                star.title = on ? "Aus den gespeicherten Suchen entfernen" : "Diese Suche zu den gespeicherten Suchen hinzufügen";
+                star.setAttribute("aria-pressed", on ? "true" : "false");
+            }
+        }
+        function toggle(open) {
+            panel.classList.toggle("is-open", open);
+            fab.setAttribute("aria-expanded", open ? "true" : "false");
+            open && render();
+        }
+        function mount() {
+            if (fab && fab.isConnected) return;
+            const style = document.createElement("style");
+            style.textContent = `
+.mmsv-fab { position: fixed; left: 18px; bottom: 18px; z-index: 2147482800;
+            border: 1px solid ${INK_hairline}; background: #fff; color: ${INK_primary};
+            font: 600 12px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+            padding: 4px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+.mmsv-fab:hover { background: #f2f5fa; }
+.mmsv-panel { position: fixed; left: 18px; bottom: 54px; z-index: 2147482801; display: none;
+              width: min(380px, calc(100vw - 36px)); max-height: calc(100vh - 80px); overflow-y: auto;
+              box-sizing: border-box; background: #fff; color: ${INK_primary};
+              border: 1px solid ${INK_hairline}; border-radius: 10px; padding: 12px 14px;
+              box-shadow: 0 6px 24px rgba(0,0,0,.18);
+              font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.mmsv-panel.is-open { display: block; }
+.mmsv-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.mmsv-star { align-self: center; margin-left: 16px; flex: 0 0 auto; width: auto !important; max-width: max-content;
+             border: 1px solid ${INK_hairline}; background: #fff; color: ${INK_primary};
+             font-size: 12px; font-weight: 600; line-height: 1.6; padding: 4px 12px;
+             border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.mmsv-star:hover { background: #f2f5fa; }
+.mmsv-star[aria-pressed="true"] { background: ${INK_accent}; border-color: ${INK_accent}; color: #fff; }
+.mmsv-star[aria-pressed="true"]:hover { background: #174d8f; }
+.mmsv-row { display: flex; align-items: center; gap: 6px; border-top: 1px solid ${INK_hairline}; }
+.mmsv-go { flex: 1 1 auto; min-width: 0; text-align: left; border: 0; background: none; cursor: pointer;
+           color: ${INK_primary}; font: inherit; padding: 7px 2px; }
+.mmsv-go:hover { color: ${INK_accent}; text-decoration: underline; }
+.mmsv-del { flex: 0 0 auto; border: 0; background: none; cursor: pointer;
+            color: ${INK_muted}; font-size: 14px; line-height: 1; padding: 4px 6px; }
+.mmsv-del:hover { color: ${INK_primary}; }
+.mmsv-empty, .mmsv-msg { font-size: 12px; color: ${INK_muted}; padding: 4px 0; }
+.mmsv-inline { margin-top: 20px; padding-top: 14px; border-top: 1px solid ${INK_hairline}; color: ${INK_primary};
+               font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.mmsv-inline .mmsv-title { font-size: 16px; }
+.mmsv-inline .mmsv-row { display: inline-flex; max-width: 100%; margin: 4px 8px 4px 0; padding: 0 4px 0 12px;
+                         border: 1px solid ${INK_accent}; border-radius: 999px; background: #fff; }
+.mmsv-inline .mmsv-go { padding: 6px 2px; font-weight: 600; }
+`;
+            document.head.appendChild(style);
+            const anchor = "www.miles-and-more.com" === location.hostname && document.querySelector(".flightawardsearchrtw__recentSearches");
+            if (anchor) {
+                panel = document.createElement("div");
+                panel.className = "mmsv-inline";
+                anchor.parentNode.insertBefore(panel, anchor);
+                render();
+                return;
+            }
+            fab = document.createElement("button");
+            fab.type = "button";
+            fab.className = "mmsv-fab";
+            fab.textContent = "★ Gespeicherte Suchen";
+            fab.setAttribute("aria-expanded", "false");
+            panel = document.createElement("div");
+            panel.className = "mmsv-panel";
+            fab.addEventListener("click", () => toggle(!panel.classList.contains("is-open")));
+            document.addEventListener("click", e => {
+                panel.classList.contains("is-open") && !panel.contains(e.target) && e.target !== fab && e.target !== star && e.target.isConnected && toggle(!1);
+            });
+            document.addEventListener("keydown", e => {
+                "Escape" === e.key && panel.classList.contains("is-open") && toggle(!1);
+            });
+            document.body.appendChild(fab);
+            document.body.appendChild(panel);
+            syncStar();
+            let starTimer = null;
+            new MutationObserver(() => {
+                starTimer || (starTimer = setTimeout(() => {
+                    starTimer = null;
+                    syncStar();
+                }, 150));
+            }).observe(document.body, {
+                childList: !0,
+                subtree: !0
+            });
+        }
+        document.body ? mount() : document.addEventListener("DOMContentLoaded", mount);
+    }
+
+    if (location.hostname === 'www.miles-and-more.com') { __mmSaved(); return; }
+    __mmSaved();
 
     var sandboxed = false;
     try {
