@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.4 — 2026-09-19
+
+### Neu
+
+- **Reiseklassenfilter in der Trefferliste**
+
+### Behoben
+
+- **Kalenderklick auf eine andere Kabine am bereits gesuchten Tag löst wieder
+  eine Suche aus**
+
 ## 1.6.3 — 2026-09-16
 
 ### Behoben
