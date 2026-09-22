@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.5 — 2026-09-22
+
+### Neu
+
+- **Meilen pro Person: neuer Schalter „Σ Gesamte Meilensumme“ unter Ergebnisse.
+  Ausgeschaltet zeigen Karten und Tarifdetails bei mehreren Reisenden den Preis
+  je Person statt der Summe für alle**
+
 ## 1.6.4 — 2026-09-19
 
 ### Neu

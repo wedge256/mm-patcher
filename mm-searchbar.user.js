@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.4
+// @version      1.6.5
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -1073,7 +1073,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         officeAutoMigrated: 0,
         keepalive: !0,
         currency: !0,
-        waiting: !0
+        waiting: !0,
+        milesTotal: !0
     };
     const GROUPS = [ {
         header: "🔍 Suche",
@@ -1113,6 +1114,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             key: "seatmap",
             label: "💺 Sitzplan",
             tip: "Sitzplan bei Hover oder Klick auf den Flugzeugtyp. Wirkt nur " + "mit Ergebniskarten."
+        }, {
+            key: "milesTotal",
+            label: "Σ Gesamte Meilensumme",
+            tip: "Bei mehreren Reisenden Meilen und Zuzahlung für alle zusammen " + "(wie M&M). Aus: Preis pro Person. Wirkt nur mit Ergebniskarten."
         } ]
     }, {
         header: "🧰 Sonstiges",
@@ -7766,6 +7771,19 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     const cardsOn = () => !window.__mmSettings || !1 !== window.__mmSettings.get("results");
     const boundsData = () => window.__mmBounds || {};
     const seatmapOn = () => cardsOn() && (!window.__mmSettings || !1 !== window.__mmSettings.get("seatmap"));
+    const milesTotalOn = () => !window.__mmSettings || !1 !== window.__mmSettings.get("milesTotal");
+    const perPax = () => {
+        if (milesTotalOn()) return 1;
+        try {
+            const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+            const n = (o.entities[o.selectedAirBoundsSearchId].travelers || []).length;
+            return n > 1 ? n : 1;
+        } catch (e) {
+            return 1;
+        }
+    };
+    const shownMiles = f => null == f.miles ? null : Math.round(f.miles / perPax());
+    const shownCash = f => null == f.cash ? null : f.cash / perPax();
     const esc = s => String(null == s ? "" : s).replace(/[&<>"]/g, c => ({
         "&": "&amp;",
         "<": "&lt;",
@@ -9394,8 +9412,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     function detailRows(f) {
         const rows = [];
         if (null != f.cash) {
-            let z = cashLabel(f.cash, f.currency);
-            f.currency && "EUR" !== f.currency && !z.endsWith(curSym(f.currency)) && (z += " (" + money(f.cash) + " " + curSym(f.currency) + ")");
+            const cash = shownCash(f);
+            let z = cashLabel(cash, f.currency);
+            f.currency && "EUR" !== f.currency && !z.endsWith(curSym(f.currency)) && (z += " (" + money(cash) + " " + curSym(f.currency) + ")");
             rows.push([ "Zuzahlung", z, "" ]);
         }
         rows.push([ "Freie Plätze", null != f.seatsLeft ? f.seatsLeft >= 9 ? "9 oder mehr" : String(f.seatsLeft) : "7 oder mehr", null != f.seatsLeft && f.seatsLeft <= 3 ? "is-no" : "" ]);
@@ -9697,10 +9716,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const col = document.createElement("div");
         col.className = "mmrc-col" + (fares.length ? "" : " is-empty") + (searched && cabin === searched ? " is-searched" : "");
         col.style.setProperty("--mmc", meta.color);
-        const cashes = fares.map(f => f.cash).filter(v => null != v);
+        const cashes = fares.map(shownCash).filter(v => null != v);
         const cash = cashes.length ? Math.min(...cashes) : null;
         const cur = fares.length ? fares[0].currency : null;
-        const uniform = fares.every(f => null == f.cash || f.cash === cash);
+        const uniform = fares.every(f => null == f.cash || shownCash(f) === cash);
         const seatMin = fares.reduce((m, f) => null != f.seatsLeft && (null == m || f.seatsLeft < m) ? f.seatsLeft : m, null);
         let html = `<div class="mmrc-h"><div class="mmrc-nm">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}${seatMin >= 9 ? " is-many" : ""}">` + (1 === seatMin ? "nur noch 1 Platz" : seatMin >= 9 ? "9+ Plätze" : seatMin + " Plätze übrig") + `</span>` : fares.length ? `<span class="mmrc-seats is-many" title="Miles &amp; More nennt die genaue ` + `Platzzahl erst bei 6 oder weniger.">7+ Plätze</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${uniform ? "Zuzahlung" : "Zuzahlung ab"}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
         const mixed = fares.find(f => f.mixed);
@@ -9722,7 +9741,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         } else html += `<div class="mmrc-segs"></div>`;
         html += fares.length ? `<div class="mmrc-body"><div class="mmrc-flist">` + (axis && axis.length ? axis : fares.map(f => f.tier || "")).map(tier => {
             const f = fares.filter(x => (x.tier || "") === tier).sort((a, b) => a.miles - b.miles)[0];
-            return f ? `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num(f.miles)}</span>` + `</div>` : `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
+            return f ? `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num(shownMiles(f))}</span>` + `</div>` : `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
         }).join("") + `</div></div>` : `<div class="mmrc-none">kein Angebot</div>`;
         let note = "";
         searched && cabin !== searched && (note = fares.length ? `Alle ${esc(meta.name)}-Tarife erscheinen erst bei einer ${esc(meta.name)}-Suche.` : `Eine eigene ${esc(meta.name)}-Suche kann weitere Tarife finden.`);
@@ -9769,8 +9788,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     const dl = list => '<dl class="mmrc-fback-rows" lang="de">' + list.map(([k, v, c]) => "__sub" === k ? `<div class="is-sub"><dt class="is-sub">${esc(v)}</dt><dd></dd></div>` : `<div><dt>${esc(k)}</dt><dd class="${c}">${esc(v)}</dd></div>`).join("") + "</dl>";
                     const bodyRows = rows.filter(([k]) => "Zuzahlung" !== k);
                     const price = [];
-                    null != f.miles && price.push(`<b>${esc(num(f.miles))}</b> Meilen`);
-                    null != f.cash && price.push(`+ <b>${esc(cashLabel(f.cash, f.currency))}</b>`);
+                    null != f.miles && price.push(`<b>${esc(num(shownMiles(f)))}</b> Meilen`);
+                    null != f.cash && price.push(`+ <b>${esc(cashLabel(shownCash(f), f.currency))}</b>`);
+                    perPax() > 1 && price.length && price.push("pro Person");
                     return `<button type="button" class="mmrc-fclose" title="Schließen" aria-label="Schließen">✕</button>` + `<div class="mmrc-fback-head">` + `<div class="mmrc-fback-cabin">${esc(cabinMeta.name)}</div>` + `<div class="mmrc-fback-tier">${esc(f.tier || "")}</div>` + `<div class="mmrc-fback-price">${price.join(" ")}</div>` + balanceHtml(f) + `</div>` + dl(bodyRows) + (flex.length ? `<div class="mmrc-fback-sep"></div>` + dl(flex) : "") + `<button type="button" class="mmrc-fchoose">Wählen</button>`;
                 }(f, meta);
                 flip.appendChild(fp);
@@ -10518,7 +10538,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         document.querySelectorAll(".mmrc-list, .mmrc-seatoverlay, .mmrc-seatpeek").forEach(e => e.remove());
     };
     window.__mmSettings && (state._offSettings = window.__mmSettings.onChange(k => {
-        state.superseded || "results" !== k || (cardsOn() ? render() : state.destroy());
+        state.superseded || ("results" === k ? cardsOn() ? render() : state.destroy() : "milesTotal" === k && cardsOn() && render());
     }));
     state.render = render;
     function boot() {

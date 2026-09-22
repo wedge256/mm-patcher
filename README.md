@@ -66,7 +66,8 @@ Fehlerseite, die die tatsächliche Ursache nennt.
 
   Jede Tarifspalte nennt die noch buchbaren Plätze, soweit M&M sie herausgibt.
   Sortiert wird nach Meilen, Zuzahlung, Abflug oder Dauer - gerechnet in der
-  gesuchten Kabine.
+  gesuchten Kabine. Bei mehreren Reisenden zeigt M&M nur die Summe für alle;
+  der Schalter „Σ Gesamte Meilensumme“ im Panel stellt auf Preis je Person um.
 
 - **Suchlimit im Blick**
 
