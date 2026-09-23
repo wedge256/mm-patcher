@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.6.4
+// @version      1.7.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -195,7 +195,7 @@
 
 (() => {
     "use strict";
-    const VERSION = "1.14.2";
+    const VERSION = "1.14.6";
     const vnum = s => String(s || "0").split(".").reduce((a, n) => 1e3 * a + (parseInt(n, 10) || 0), 0);
     if (window.mmSearchUnlock && vnum(window.mmSearchUnlock.version) >= vnum(VERSION)) return;
     const FLAGS = [ "enableOriginDestinationModification", "showModifyExpansionButton", "showModifyCancelButton" ];
@@ -384,6 +384,20 @@
                 input.name = "search";
                 input.value = JSON.stringify(search);
                 form.appendChild(input);
+                !function(form) {
+                    let value = null;
+                    try {
+                        value = window.__mmSponsor && window.__mmSponsor.postField();
+                    } catch (e) {
+                        return;
+                    }
+                    if (!value) return;
+                    const el = document.createElement("input");
+                    el.type = "hidden";
+                    el.name = "portalFacts";
+                    el.value = value;
+                    form.appendChild(el);
+                }(form);
                 document.body.appendChild(form);
                 form.submit();
             }(search);
@@ -1049,7 +1063,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 74;
+    const VERSION = 77;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -1634,6 +1648,430 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             }
         });
     } catch (e) {}
+})();
+
+(() => {
+    "use strict";
+    const VERSION = 20;
+    if (window.__mmSponsor && window.__mmSponsor.version >= VERSION) return;
+    if (window.__mmSponsor) try {
+        window.__mmSponsor.teardown();
+    } catch (e) {}
+    const state = {
+        version: VERSION
+    };
+    try {
+        Object.defineProperty(window, "__mmSponsor", {
+            value: state,
+            enumerable: !1,
+            configurable: !0
+        });
+    } catch (e) {
+        try {
+            window.__mmSponsor = state;
+        } catch (e2) {}
+    }
+    const KEY = "bookForOthers";
+    const PREF = "mm_book_for_others";
+    const POST = "_post";
+    const PARAM = "portalFacts";
+    const HOST = "refx-passenger-type-selection-popup-pres";
+    const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab";
+    const SP = Object.getPrototypeOf(sessionStorage);
+    const rawGet = k => {
+        try {
+            return SP.getItem.call(sessionStorage, k);
+        } catch (e) {
+            return null;
+        }
+    };
+    const rawSet = (k, v) => {
+        try {
+            SP.setItem.call(sessionStorage, k, v);
+        } catch (e) {}
+    };
+    const wanted = () => {
+        try {
+            return "1" === localStorage.getItem(PREF);
+        } catch (e) {
+            return !1;
+        }
+    };
+    state.wanted = wanted;
+    state.active = () => "true" === rawGet(KEY);
+    const readPost = () => {
+        try {
+            const raw = rawGet(POST);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    };
+    const factsOf = obj => {
+        try {
+            const raw = obj && obj[PARAM];
+            if (!raw) return [];
+            const v = "string" == typeof raw ? JSON.parse(raw) : raw;
+            return Array.isArray(v) ? v : [];
+        } catch (e) {
+            return [];
+        }
+    };
+    const hasFact = list => list.some(f => f && f.key === KEY && "true" === String(f.value));
+    state.postField = () => {
+        const list = factsOf(readPost()).filter(f => f && f.key !== KEY);
+        if (!wanted()) return list.length ? JSON.stringify(list) : null;
+        list.push({
+            key: KEY,
+            value: "true"
+        });
+        return JSON.stringify(list);
+    };
+    function alignPost() {
+        const post = readPost();
+        const list = factsOf(post);
+        if (hasFact(list) === wanted()) return;
+        const rest = list.filter(f => f && f.key !== KEY);
+        wanted() && rest.push({
+            key: KEY,
+            value: "true"
+        });
+        rest.length ? post[PARAM] = JSON.stringify(rest) : delete post[PARAM];
+        rawSet(POST, JSON.stringify(post));
+    }
+    function alignKey() {
+        wanted() ? "true" !== rawGet(KEY) && rawSet(KEY, "true") : null !== rawGet(KEY) && (k => {
+            try {
+                SP.removeItem.call(sessionStorage, k);
+            } catch (e) {}
+        })(KEY);
+    }
+    state.set = on => {
+        try {
+            localStorage.setItem(PREF, on ? "1" : "0");
+        } catch (e) {}
+        alignKey();
+        alignPost();
+        paint();
+    };
+    alignKey();
+    alignPost();
+    window.__mmSponsorStore = {
+        patch: (key, value) => {
+            try {
+                if (key === KEY) return wanted() ? "true" : "false";
+                if (key !== POST) return value;
+                const obj = JSON.parse(value || "{}");
+                if (!obj || "object" != typeof obj) return value;
+                const list = factsOf(obj);
+                if (hasFact(list) === wanted()) return value;
+                const rest = list.filter(f => f && f.key !== KEY);
+                wanted() && rest.push({
+                    key: KEY,
+                    value: "true"
+                });
+                rest.length ? obj[PARAM] = JSON.stringify(rest) : delete obj[PARAM];
+                return JSON.stringify(obj);
+            } catch (e) {
+                return value;
+            }
+        }
+    };
+    if (!window.__mmSponsorStoreHooked) {
+        window.__mmSponsorStoreHooked = !0;
+        try {
+            const prev = sessionStorage.setItem.bind(sessionStorage);
+            sessionStorage.setItem = function(key, value) {
+                try {
+                    const h = window.__mmSponsorStore;
+                    h && (value = h.patch(key, value));
+                } catch (e) {}
+                return prev(key, value);
+            };
+        } catch (e) {}
+    }
+    const JWT_NONE = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.";
+    const SEARCH_RE = /\/search\/air-/i;
+    const FACTS_HDR = "ama-client-facts";
+    state.applyFacts = facts => {
+        const o = Object.assign({
+            sub: "fact"
+        }, facts || {});
+        if (wanted()) {
+            o.bookForOthers = "true";
+            delete o.isCompanion;
+        } else {
+            delete o.bookForOthers;
+            o.isCompanion = "true";
+        }
+        return o;
+    };
+    state.fixJwt = (value, url) => {
+        if (!SEARCH_RE.test(String(url || ""))) return null;
+        try {
+            const parts = String(value || "").split(".");
+            if (parts.length < 2) return null;
+            const cur = JSON.parse((t => {
+                let x = String(t).replace(/-/g, "+").replace(/_/g, "/");
+                for (;x.length % 4; ) x += "=";
+                return atob(x);
+            })(parts[1]));
+            return cur && "object" == typeof cur ? "true" === String(cur.bookForOthers) === wanted() ? null : JWT_NONE + (s = JSON.stringify(state.applyFacts(cur)), 
+            btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) + "." : null;
+        } catch (e) {
+            return null;
+        }
+        var s;
+    };
+    window.__mmSponsorHook = {
+        fix: (v, url) => state.fixJwt(v, url)
+    };
+    if (!window.__mmSponsorHooked) {
+        window.__mmSponsorHooked = !0;
+        const urlOf = input => {
+            try {
+                if ("string" == typeof input) return input;
+                if (input && "string" == typeof input.url) return input.url;
+            } catch (e) {}
+            return "";
+        };
+        const origFetch = window.fetch;
+        "function" == typeof origFetch && (window.fetch = function(input, init) {
+            try {
+                const h = window.__mmSponsorHook;
+                const url = urlOf(input);
+                if (h && init && init.headers) {
+                    const hdrs = init.headers;
+                    if ("undefined" != typeof Headers && hdrs instanceof Headers) {
+                        const cur = hdrs.get(FACTS_HDR);
+                        const next = cur && h.fix(cur, url);
+                        next && hdrs.set(FACTS_HDR, next);
+                    } else if ("object" == typeof hdrs) {
+                        const key = Object.keys(hdrs).find(k => k.toLowerCase() === FACTS_HDR);
+                        const next = key && h.fix(hdrs[key], url);
+                        next && (hdrs[key] = next);
+                    }
+                }
+            } catch (e) {}
+            return origFetch.apply(this, arguments);
+        });
+        const origOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+            try {
+                this.__mmSponsorUrl = String(url || "");
+            } catch (e) {}
+            return origOpen.apply(this, arguments);
+        };
+        const origSet = XMLHttpRequest.prototype.setRequestHeader;
+        XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
+            try {
+                if (String(name).toLowerCase() === FACTS_HDR) {
+                    const h = window.__mmSponsorHook;
+                    const next = h && h.fix(value, this.__mmSponsorUrl);
+                    if (next) return origSet.call(this, name, next);
+                }
+            } catch (e) {}
+            return origSet.apply(this, arguments);
+        };
+    }
+    const PANE = ".cdk-overlay-pane:has(" + HOST + ")";
+    const STEP = HOST + " refx-number-stepper .number-stepper-container .stepper-inputs " + "button.stepper-button.mdc-button.mat-mdc-outlined-button.mat-mdc-button-base";
+    const CSS = `
+${PANE} { height: auto !important; max-height: 92vh !important; }
+${PANE} mat-dialog-container { width: 440px !important; max-width: calc(100vw - 32px) !important;
+        min-width: 0 !important; }
+${PANE} .mat-mdc-dialog-surface,
+${PANE} .mat-mdc-dialog-inner-container,
+${PANE} mat-dialog-container { height: auto !important; max-height: 92vh !important; }
+${PANE},
+${PANE} mat-dialog-container,
+${PANE} .mat-mdc-dialog-surface { border-radius: 14px !important; overflow: hidden !important; }
+${PANE} .mat-mdc-dialog-surface { box-shadow: 0 8px 30px rgba(0,0,0,.20) !important;
+        background: #fff !important; }
+
+${HOST} .refx-dialog-container { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: ${INK_primary}; }
+${HOST} .refx-dialog-title { padding: 4px 0 0 !important; margin: 0 0 12px !important;
+        font: 600 17px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        min-height: 0 !important; }
+${HOST} .refx-dialog-content { padding: 0 20px !important; overflow: visible !important;
+        max-height: none !important; }
+${HOST} .refx-dialog-content .container { display: flex; flex-direction: column;
+        border: 1px solid ${INK_hairline}; border-radius: 10px; padding: 0 13px; }
+${HOST} .rows-passengers { border: 0 !important; padding: 0 !important; margin: 0 !important;
+        min-height: 0 !important; }
+${HOST} .rows-passengers + .rows-passengers { border-top: 1px solid ${INK_hairline} !important; }
+${HOST} .row.passengerItem { margin: 0 !important; min-height: 0 !important; height: auto !important; }
+${HOST} .passenger { display: flex !important; align-items: baseline; gap: 7px;
+        height: auto !important; min-height: 0 !important; padding: 9px 0 !important; }
+${HOST} .passenger-desc { color: ${"#898781"}; margin: 0 !important; }
+${HOST} .passenger-count-stepper,
+${HOST} refx-number-stepper,
+${HOST} .number-stepper-container,
+${HOST} .stepper-inputs { height: auto !important; min-height: 0 !important; }
+${HOST} .stepper-button { width: 30px !important; height: 30px !important;
+        min-width: 0 !important; padding: 0 !important; }
+${HOST} .refx-dialog-actions { padding: 12px 20px 14px !important;
+        justify-content: flex-end !important; min-height: 0 !important; }
+
+${HOST} .refx-dialog-header { padding: 14px 14px 0 20px !important; align-items: center !important;
+        min-height: 0 !important; }
+${HOST} h1.refx-title { font: 700 18px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        color: ${INK_primary} !important; margin: 0 !important; }
+${HOST} .refx-dialog-header button.refx-dialog-close-btn-corner.mat-mdc-mini-fab { width: 32px !important;
+        height: 32px !important; min-width: 0 !important; padding: 0 !important; box-shadow: none !important;
+        transform: none !important;
+        background: #f1f0ec !important; color: ${"#52514e"} !important; border-radius: 999px !important; }
+${HOST} .refx-dialog-header button.refx-dialog-close-btn-corner.mat-mdc-mini-fab:hover { background: #e7e6e0 !important; }
+${HOST} .refx-dialog-header button.refx-dialog-close-btn-corner .mdc-button__label,
+${HOST} .refx-dialog-header button.refx-dialog-close-btn-corner .mat-focus-indicator { width: 32px !important;
+        height: 32px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+${HOST} .refx-dialog-header button.refx-dialog-close-btn-corner i { font-size: 15px !important; width: auto !important;
+        height: auto !important; line-height: 1 !important; }
+${HOST} .passenger-type { font: 500 14px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        color: ${INK_primary} !important; }
+${HOST} .passenger-desc { font: 400 11.5px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif !important; }
+${HOST} .passenger { align-items: baseline !important; padding: 11px 0 !important; }
+${HOST} .row.passengerItem { align-items: center !important; }
+${HOST} .stepper-inputs { align-items: center !important; gap: 4px; }
+${STEP} { width: 30px !important; height: 30px !important;
+        min-width: 0 !important; min-height: 0 !important; display: inline-flex !important;
+        align-items: center !important; justify-content: center !important; padding: 0 !important; border-radius: 999px !important;
+        border: 1px solid ${INK_hairline} !important; background: #fff !important; color: ${INK_primary} !important; }
+${STEP}:not(.mat-mdc-button-disabled):hover {
+        border-color: #b9c6e0 !important; background: #f4f8fd !important; }
+${STEP}.mat-mdc-button-disabled { opacity: .35 !important; }
+${STEP} i { display: none !important; }
+${STEP} { position: relative !important; }
+${STEP} .mdc-button__label { position: absolute !important; left: 50% !important; top: 50% !important;
+        transform: translate(-50%, -50%) !important; width: 11px !important; height: 11px !important; margin: 0 !important; }
+${STEP} .mdc-button__label::before,
+${STEP}[id$="plusButton"] .mdc-button__label::after { content: ''; position: absolute; background: ${INK_primary};
+        border-radius: 1px; }
+${STEP} .mdc-button__label::before { left: 0; right: 0; top: 5px; height: 1.5px; }
+${STEP}[id$="plusButton"] .mdc-button__label::after { top: 0; bottom: 0; left: 5px; width: 1.5px; }
+${STEP} .mat-focus-indicator,
+${STEP} .mat-mdc-button-touch-target { width: 30px !important; height: 30px !important; }
+${HOST} .stepper-inputs .value-container { border: 0 !important; width: 30px !important; height: 30px !important; }
+${HOST} .stepper-inputs .number-wrapper { height: 30px !important; border: 0 !important;
+        justify-content: center !important; align-items: center !important; }
+${HOST} .stepper-value { font: 700 15px/1 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        color: ${INK_primary} !important; font-variant-numeric: tabular-nums; }
+${HOST} .confirm-button { border-radius: 999px !important; height: 40px !important; padding: 0 24px !important;
+        background: ${INK_primary} !important; color: #fff !important; }
+${HOST} .confirm-button:hover { background: #1e449c !important; }
+${HOST} .confirm-button span { font: 700 14px/1 system-ui, -apple-system, "Segoe UI", sans-serif !important;
+        letter-spacing: .02em; }
+${HOST} .rows-passengers.mmsp-hidden { display: none !important; }
+${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc { font-size: 0 !important; }
+${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { content: 'ab 12 Jahren';
+        font-size: 11.5px; }
+
+.mmsp-row { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0 0;
+        border: 1px solid ${INK_hairline}; border-radius: 10px; padding: 10px 13px;
+        cursor: pointer; transition: border-color .12s, background .12s;
+        font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: ${INK_primary}; }
+.mmsp-row:hover { border-color: #b9c6e0; background: #f8fafd; }
+.mmsp-row.is-on { border-color: ${INK_accent}; background: #f4f8fd; }
+.mmsp-box { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; border-radius: 4px;
+        border: 1.5px solid #b9c6e0; background: #fff; display: flex; align-items: center;
+        justify-content: center; font-size: 12px; line-height: 1; color: #fff; }
+.mmsp-row.is-on .mmsp-box { background: ${INK_accent}; border-color: ${INK_accent}; }
+.mmsp-txt { display: block; min-width: 0; }
+.mmsp-title { display: block; font-weight: 500; }
+.mmsp-row input { position: absolute; opacity: 0; pointer-events: none; }
+`;
+    const STYLE_ID = "mmsp-style";
+    function ensureStyle() {
+        let el = document.getElementById(STYLE_ID);
+        if (!el) {
+            el = document.createElement("style");
+            el.id = STYLE_ID;
+            (document.head || document.documentElement).appendChild(el);
+        }
+        el.textContent !== CSS && (el.textContent = CSS);
+    }
+    function paint() {
+        const row = document.querySelector(".mmsp-row");
+        if (!row) return;
+        const on = wanted();
+        row.classList.toggle("is-on", on);
+        row.setAttribute("aria-checked", on ? "true" : "false");
+        const box = row.querySelector(".mmsp-box");
+        box && (box.textContent = on ? "✓" : "");
+        const cb = row.querySelector("input");
+        cb && (cb.checked = on);
+    }
+    function mount() {
+        const host = document.querySelector(HOST);
+        if (!host) return;
+        ensureStyle();
+        !function(host) {
+            const rows = host.querySelectorAll(".rows-passengers");
+            if (4 !== rows.length) return;
+            const youth = rows[1];
+            if (!/12/.test((youth.querySelector(".passenger-desc") || {}).textContent || "")) return;
+            const n = parseInt((youth.querySelector(".stepper-value") || {}).textContent, 10) || 0;
+            youth.classList.toggle("mmsp-hidden", 0 === n);
+            rows[0].classList.add("mmsp-adult");
+        }(host);
+        if (host.querySelector(".mmsp-row")) {
+            paint();
+            return;
+        }
+        const anchor = (host => host.querySelector(".refx-dialog-content .container"))(host);
+        if (!anchor) return;
+        ensureStyle();
+        const row = document.createElement("label");
+        row.className = "mmsp-row";
+        row.setAttribute("role", "checkbox");
+        row.innerHTML = '<input type="checkbox">' + '<span class="mmsp-box" aria-hidden="true"></span>' + '<span class="mmsp-txt">' + '<span class="mmsp-title">' + (s = "Ich fliege nicht selbst, sondern führe die " + "Buchung für eine oder mehrere andere Personen durch.", 
+        String(null == s ? "" : s).replace(/[&<>"]/g, c => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;"
+        }[c]))) + "</span>" + "</span>";
+        var s;
+        row.querySelector("input").addEventListener("change", e => state.set(!!e.target.checked));
+        anchor.parentNode.insertBefore(row, anchor.nextSibling);
+        paint();
+    }
+    let timer = null;
+    const obs = new MutationObserver(() => {
+        timer || (timer = setTimeout(() => {
+            timer = null;
+            try {
+                mount();
+            } catch (e) {}
+        }, 60));
+    });
+    const observe = () => {
+        try {
+            obs.observe(document.body || document.documentElement, {
+                childList: !0,
+                subtree: !0
+            });
+        } catch (e) {}
+    };
+    document.body ? observe() : document.addEventListener("DOMContentLoaded", observe, {
+        once: !0
+    });
+    try {
+        mount();
+    } catch (e) {}
+    state.teardown = () => {
+        try {
+            obs.disconnect();
+        } catch (e) {}
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        document.querySelectorAll(".mmsp-row").forEach(e => e.remove());
+        const st = document.getElementById(STYLE_ID);
+        st && st.remove();
+    };
 })();
 
 (() => {
@@ -3474,7 +3912,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 48;
+    const VERSION = 51;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
@@ -3704,6 +4142,13 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const poolsHave = month => POOLS.filter(p => state.poolsLoaded.has(poolKey(month, p)));
     const b64url = s => btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const JWT_NONE = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.";
+    const sponsorFacts = facts => {
+        try {
+            const s = window.__mmSponsor;
+            if (s && "function" == typeof s.applyFacts) return s.applyFacts(facts);
+        } catch (e) {}
+        return facts;
+    };
     let boundsCabinOnce = null;
     function setBoundsCabinOnce(apiCabin) {
         boundsCabinOnce = apiCabin || null;
@@ -3742,7 +4187,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                     b && b.prices && (p = b.prices);
                     b && b.fareFamilyCode && (code = b.fareFamilyCode);
                 }
-                const unit = Array.isArray(p) ? p[0] : p.unitPrices ? p.unitPrices[0] : null;
+                const adultUnit = list => {
+                    const adults = (list || []).filter(u => u && /^ADT-/.test((u.travelerIds || [])[0] || ""));
+                    const miles = u => u.milesConversion && u.milesConversion.convertedMiles && u.milesConversion.convertedMiles.total || 0;
+                    return adults.sort((a, b) => miles(b) - miles(a))[0] || (list || [])[0] || null;
+                };
+                const unit = Array.isArray(p) ? p[0] : p.unitPrices ? adultUnit(p.unitPrices) : null;
                 if (unit) {
                     const price = Array.isArray(unit.prices) ? unit.prices[0] : unit.prices;
                     unit.milesConversion && unit.milesConversion.convertedMiles && (miles = unit.milesConversion.convertedMiles.base);
@@ -3904,8 +4354,15 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 state.dictionaries = dictionaries;
                 state.responses++;
                 try {
-                    const b = requestedBoundOf(json);
-                    state.route = b.originLocationCode + "-" + b.destinationLocationCode;
+                    let route = function() {
+                        const base = String(state.routeKey || "").split("@")[0].split("#")[0];
+                        return /^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(base) ? base : null;
+                    }();
+                    if (!route) {
+                        const b = requestedBoundOf(json);
+                        route = b.originLocationCode + "-" + b.destinationLocationCode;
+                    }
+                    state.route = route;
                     state.routeKey = state.routeKey || state.route;
                 } catch (e) {}
                 const rk = state.routeKey || state.route;
@@ -4024,7 +4481,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             } catch (e) {}
             return {
                 name: key || "ama-client-facts",
-                value: JWT_NONE + b64url(JSON.stringify(facts)) + "."
+                value: JWT_NONE + b64url(JSON.stringify(sponsorFacts(facts))) + "."
             };
         }
     };
@@ -4416,11 +4873,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                     Object.keys(headers).forEach(k => {
                         "ama-client-facts" === k.toLowerCase() && delete headers[k];
                     });
-                    headers["ama-client-facts"] = JWT_NONE + b64url(JSON.stringify({
+                    headers["ama-client-facts"] = JWT_NONE + b64url(JSON.stringify(sponsorFacts({
                         sub: "fact",
                         cabin: pool,
                         isCompanion: "true"
-                    })) + ".";
+                    }))) + ".";
                     delete poolBody.selectedBoundId;
                 }
                 let okCount = 0, lastStatus = null, lastFailed = null, refused = !1, retryAfter = 0;
@@ -4624,7 +5081,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 14;
+    const VERSION = 15;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const inherited = window.__mmBBD;
     if (inherited) {
@@ -5184,7 +5641,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     function syncRoute() {
         if (state.superseded || !calendarOn() || !bbdOn()) return;
         const cal = window.__mmCal;
-        const raw = cal && (cal.route || cal.routeKey);
+        const raw = cal && (cal.routeKey || cal.route);
         const route = raw && raw.split("@")[0].split("#")[0];
         route && route !== state.route && load(route);
     }
@@ -5243,7 +5700,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 129;
+    const VERSION = 130;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -5783,7 +6240,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const bbd = window.__mmBBD;
         bbd && bbd.error && bbdShown() && (body += '<div class="mmcal-errline">Best-by-day: ' + esc(bbd.error) + "</div>");
         state.pickNotice && (body += '<div class="mmcal-noteline">' + esc(state.pickNotice) + "</div>");
-        const legend = known && !order.some(c => cabinsPresent.has(c)) ? "<span>keine Verfügbarkeit im Zeitraum</span>" : "";
+        const legend = [ known && !order.some(c => cabinsPresent.has(c)) ? "<span>keine Verfügbarkeit im Zeitraum</span>" : "", travellerCount() > 1 ? "<span>Preise pro Erwachsener</span>" : "" ].join("");
         const wantAll = !!cal.allCabins;
         const route = boundLabel() + esc((cal.route || "").replace("-", " → "));
         state.root.innerHTML = '<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (isLoading && known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(loadingText) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (atStart ? " disabled" : "") + ' aria-label="7 Tage zurück">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">zum Suchdatum</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + ' aria-label="7 Tage weiter">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="Kalender einklappen" title="Kalender einklappen">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (isLoading ? " disabled" : "") + ' title="Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.">' + (wantAll ? "☑" : "☐") + " Alle Kabinen</button>" + '<button type="button" class="mmcal-linkbtn" data-clear="1"' + (isLoading ? " disabled" : "") + ">Cache leeren</button>" + "</div>";
@@ -6055,6 +6512,14 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }
         opt.click();
         return await until(() => shown() === label, 2e3);
+    }
+    function travellerCount() {
+        try {
+            const j = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+            return (j.entities[j.selectedAirBoundsSearchId].travelers || []).length || 1;
+        } catch (e) {
+            return 1;
+        }
     }
     async function selectDate(dateStr, cabin) {
         const returnStep = activeBoundIdx() > 0;
@@ -6540,7 +7005,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 55;
+    const VERSION = 60;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -6733,6 +7198,8 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         const n = (dictName || "").trim();
         return n ? n.replace(/\s*[-–].*$/, "").split(/\s+/).slice(0, 3).join(" ").replace(/[A-ZÄÖÜ][A-ZÄÖÜ]+/g, w => w[0] + w.slice(1).toLowerCase()) : code || "";
     };
+    const GROUND_EQUIPMENT = [ "BUS", "TRN", "TRS" ];
+    const PAX_ORDER = [ "ADT", "B15", "CHD", "INF" ];
     function dayDiff(a, b) {
         const pa = /^(\d{4})-(\d{2})-(\d{2})/.exec(a || "");
         const pb = /^(\d{4})-(\d{2})-(\d{2})/.exec(b || "");
@@ -6755,106 +7222,6 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         FLX: "Flex",
         BUZ: "Flex"
     };
-    function normaliseFares(group, dicts, legs) {
-        const fcDict = dicts.fareConditions || {};
-        const ffDict = dicts.fareFamilyWithServices || {};
-        const curDict = dicts.currency || {};
-        const amount = (value, code) => {
-            if (null == value) return null;
-            const dp = (curDict[code] || {}).decimalPlaces;
-            return value / Math.pow(10, null == dp ? 2 : dp);
-        };
-        return (group.airBounds || []).map(ab => {
-            const m = function(code) {
-                const s = String(code || "");
-                let fallback = null;
-                for (let i = 2; i <= 4 && i < s.length - 2; i++) {
-                    const cabin = FARE_CABIN[s[i]];
-                    if (!cabin) continue;
-                    const rawTier = s.slice(i + 1);
-                    if (FARE_TIER[rawTier]) return {
-                        cabin: cabin,
-                        tier: FARE_TIER[rawTier]
-                    };
-                    fallback = {
-                        cabin: cabin,
-                        tier: rawTier
-                    };
-                }
-                return fallback;
-            }(ab.fareFamilyCode);
-            const ff = ffDict[ab.fareFamilyCode] || {};
-            let cabin = m && m.cabin || ff.cabin || null;
-            let tier = m ? m.tier : null;
-            try {
-                const fn = window.__mmFareNames;
-                if (fn) {
-                    const t = fn.tierOf(ab.fareFamilyCode);
-                    t && (tier = t);
-                    const c = fn.cabinOf(ab.fareFamilyCode);
-                    c && (cabin = c);
-                }
-            } catch (e) {}
-            const prices = ab.prices || {};
-            const total = (prices.totalPrices || [])[0] || {};
-            const miles = prices.milesConversion && prices.milesConversion.convertedMiles ? prices.milesConversion.convertedMiles.total : null;
-            const details = ab.availabilityDetails || [];
-            const detailOf = new Map(details.filter(a => a.flightId).map(a => [ a.flightId, a ]));
-            const perLeg = legs.map((l, i) => ({
-                cabin: (detailOf.get(l.flightId) || details[i] || {}).cabin || null,
-                from: l.from || null,
-                to: l.to || null,
-                duration: null != l.duration ? l.duration : null,
-                operating: l.operating || null
-            }));
-            const cond = {};
-            (ab.fareConditionsCodes || []).forEach(c => {
-                const x = fcDict[c];
-                if (!x) return;
-                const det = (x.details || [])[0] || {};
-                const prev = cond[x.category];
-                prev && prev.allowed && !det.isAllowed || (cond[x.category] = {
-                    allowed: !1 !== det.isAllowed,
-                    fee: det.penalty && det.penalty.price ? amount(det.penalty.price.total, det.penalty.price.currencyCode) : null,
-                    currency: det.penalty && det.penalty.price ? det.penalty.price.currencyCode : null
-                });
-            });
-            const famTexts = (ff.services || []).map(s => function(code, dicts) {
-                const s = (dicts.service || {})[code];
-                if (!s) return null;
-                const long = (s.serviceDescriptions || []).find(x => "longText" === x.type);
-                if (long) return long.content;
-                const b = (s.baggagePolicyDescriptions || [])[0];
-                if (b) {
-                    const c = (b.baggageCharacteristics || [])[0];
-                    const kg = c && /(\d+)\s*KG/i.exec(c.description || "");
-                    return b.quantity + " × " + (kg ? kg[1] + " kg" : c ? c.description : "Stück");
-                }
-                return null;
-            }(s.serviceCode, dicts)).filter(Boolean);
-            const pick = re => famTexts.find(t => re.test(t)) || null;
-            const checkedBag = pick(/CHECKED BAG/i) || pick(/×/);
-            const quotas = (ab.availabilityDetails || []).map(a => a && a.quota).filter(q => "number" == typeof q);
-            return {
-                code: ab.fareFamilyCode,
-                cabin: cabin,
-                tier: tier,
-                seatsLeft: quotas.length ? Math.min(...quotas) : null,
-                airBoundId: ab.airBoundId || null,
-                miles: miles,
-                cash: amount(total.totalTaxes, total.currencyCode),
-                currency: total.currencyCode || null,
-                perLeg: perLeg,
-                mixed: perLeg.length > 1 && perLeg.some(l => l.cabin !== cabin),
-                baggage: checkedBag,
-                cabinBag: pick(/CABIN BAG/i),
-                personalItem: !!pick(/PERSONAL ITEM/i),
-                seatReservation: !!pick(/SEAT RESERVATION/i),
-                change: cond.change || null,
-                refund: cond.refund || null
-            };
-        }).filter(f => null != f.miles);
-    }
     const CALLS_KEY = "mm_bounds_calls";
     const BUDGET_WINDOW_MS = 61 * 60 * 1e3;
     const BUDGET_LIMIT = 40;
@@ -7023,6 +7390,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                             newBiz: isNewBizA380(f.operatingAirlineCode, f.aircraftConfigurationVersion),
                             premium: premiumCabin(f.operatingAirlineCode, acName, f.aircraftConfigurationVersion),
                             duration: f.duration,
+                            ground: GROUND_EQUIPMENT.includes(f.aircraftCode),
                             techStops: (f.stops || []).map(t => ({
                                 airport: t.locationCode,
                                 city: cityOf(t.locationCode) || t.locationCode,
@@ -7041,9 +7409,134 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                     }
                     if (!legs.length) return null;
                     const first = legs[0], last = legs[legs.length - 1];
-                    const stops = legs.length - 1 + legs.reduce((n, l) => n + (l.techStops || []).length, 0);
+                    const stops = legs.length - 1 + legs.reduce((n, l) => n + (l.ground ? 0 : (l.techStops || []).length), 0);
+                    const key = ((origin, dest, dep, arr, stops) => `${origin}|${dest}|${dep}|${arr}|${stops}`)(bd.originLocationCode, bd.destinationLocationCode, first.dep, last.arr, stops);
+                    const fares = function(group, dicts, legs) {
+                        const fcDict = dicts.fareConditions || {};
+                        const ffDict = dicts.fareFamilyWithServices || {};
+                        const curDict = dicts.currency || {};
+                        const amount = (value, code) => {
+                            if (null == value) return null;
+                            const dp = (curDict[code] || {}).decimalPlaces;
+                            return value / Math.pow(10, null == dp ? 2 : dp);
+                        };
+                        return (group.airBounds || []).map(ab => {
+                            const m = function(code) {
+                                const s = String(code || "");
+                                let fallback = null;
+                                for (let i = 2; i <= 4 && i < s.length - 2; i++) {
+                                    const cabin = FARE_CABIN[s[i]];
+                                    if (!cabin) continue;
+                                    const rawTier = s.slice(i + 1);
+                                    if (FARE_TIER[rawTier]) return {
+                                        cabin: cabin,
+                                        tier: FARE_TIER[rawTier]
+                                    };
+                                    fallback = {
+                                        cabin: cabin,
+                                        tier: rawTier
+                                    };
+                                }
+                                return fallback;
+                            }(ab.fareFamilyCode);
+                            const ff = ffDict[ab.fareFamilyCode] || {};
+                            let cabin = m && m.cabin || ff.cabin || null;
+                            let tier = m ? m.tier : null;
+                            try {
+                                const fn = window.__mmFareNames;
+                                if (fn) {
+                                    const t = fn.tierOf(ab.fareFamilyCode);
+                                    t && (tier = t);
+                                    const c = fn.cabinOf(ab.fareFamilyCode);
+                                    c && (cabin = c);
+                                }
+                            } catch (e) {}
+                            const prices = ab.prices || {};
+                            const total = (prices.totalPrices || [])[0] || {};
+                            const miles = prices.milesConversion && prices.milesConversion.convertedMiles ? prices.milesConversion.convertedMiles.total : null;
+                            const cpIds = new Set;
+                            (ab.fareInfos || []).forEach(fi => {
+                                (fi.pricedPassengerTypeCodes || []).includes("CP") && (fi.travelerIds || []).forEach(id => cpIds.add(id));
+                            });
+                            const units = (prices.unitPrices || []).map(u => {
+                                const p = (u.prices || [])[0] || {};
+                                const cm = u.milesConversion && u.milesConversion.convertedMiles;
+                                const ids = u.travelerIds || [];
+                                return {
+                                    type: String(ids[0] || "").replace(/-\d+$/, "") || null,
+                                    count: ids.length || 1,
+                                    companion: ids.some(id => cpIds.has(id)),
+                                    miles: cm ? cm.total : null,
+                                    cash: amount(p.totalTaxes, p.currencyCode)
+                                };
+                            });
+                            const rank = u => 2 * (PAX_ORDER.indexOf(u.type) + 1 || 9) + (u.companion ? 1 : 0);
+                            units.sort((a, b) => rank(a) - rank(b) || (b.miles || 0) - (a.miles || 0));
+                            const lead = units.reduce((n, u) => n + u.count, 0) > 1 ? units.find(u => "ADT" === u.type && !u.companion) || units.find(u => "ADT" === u.type) || units[0] : null;
+                            const details = ab.availabilityDetails || [];
+                            const detailOf = new Map(details.filter(a => a.flightId).map(a => [ a.flightId, a ]));
+                            const perLeg = legs.map((l, i) => ({
+                                cabin: (detailOf.get(l.flightId) || details[i] || {}).cabin || null,
+                                from: l.from || null,
+                                to: l.to || null,
+                                duration: null != l.duration ? l.duration : null,
+                                operating: l.operating || null
+                            }));
+                            const cond = {};
+                            (ab.fareConditionsCodes || []).forEach(c => {
+                                const x = fcDict[c];
+                                if (!x) return;
+                                const det = (x.details || [])[0] || {};
+                                const prev = cond[x.category];
+                                prev && prev.allowed && !det.isAllowed || (cond[x.category] = {
+                                    allowed: !1 !== det.isAllowed,
+                                    fee: det.penalty && det.penalty.price ? amount(det.penalty.price.total, det.penalty.price.currencyCode) : null,
+                                    currency: det.penalty && det.penalty.price ? det.penalty.price.currencyCode : null
+                                });
+                            });
+                            const famTexts = (ff.services || []).map(s => function(code, dicts) {
+                                const s = (dicts.service || {})[code];
+                                if (!s) return null;
+                                const long = (s.serviceDescriptions || []).find(x => "longText" === x.type);
+                                if (long) return long.content;
+                                const b = (s.baggagePolicyDescriptions || [])[0];
+                                if (b) {
+                                    const c = (b.baggageCharacteristics || [])[0];
+                                    const kg = c && /(\d+)\s*KG/i.exec(c.description || "");
+                                    return b.quantity + " × " + (kg ? kg[1] + " kg" : c ? c.description : "Stück");
+                                }
+                                return null;
+                            }(s.serviceCode, dicts)).filter(Boolean);
+                            const pick = re => famTexts.find(t => re.test(t)) || null;
+                            const checkedBag = pick(/CHECKED BAG/i) || pick(/×/);
+                            const quotas = (ab.availabilityDetails || []).map(a => a && a.quota).filter(q => "number" == typeof q);
+                            return {
+                                code: ab.fareFamilyCode,
+                                cabin: cabin,
+                                tier: tier,
+                                notOffered: ab.status && ab.status.value && "available" !== ab.status.value ? String(ab.status.value) : null,
+                                seatsLeft: quotas.length ? Math.min(...quotas) : null,
+                                airBoundId: ab.airBoundId || null,
+                                miles: lead ? lead.miles : miles,
+                                cash: lead ? lead.cash : amount(total.totalTaxes, total.currencyCode),
+                                totalMiles: miles,
+                                totalCash: amount(total.totalTaxes, total.currencyCode),
+                                pax: lead ? units : null,
+                                currency: total.currencyCode || null,
+                                perLeg: perLeg,
+                                mixed: perLeg.length > 1 && perLeg.some(l => l.cabin !== cabin),
+                                baggage: checkedBag,
+                                cabinBag: pick(/CABIN BAG/i),
+                                personalItem: !!pick(/PERSONAL ITEM/i),
+                                seatReservation: !!pick(/SEAT RESERVATION/i),
+                                change: cond.change || null,
+                                refund: cond.refund || null
+                            };
+                        }).filter(f => null != f.miles);
+                    }(group, dicts, legs);
+                    const notOffered = fares.length && fares.every(f => f.notOffered) ? fares[0].notOffered : null;
                     return {
-                        key: ((origin, dest, dep, arr, stops) => `${origin}|${dest}|${dep}|${arr}|${stops}`)(bd.originLocationCode, bd.destinationLocationCode, first.dep, last.arr, stops),
+                        key: key,
                         origin: bd.originLocationCode,
                         dest: bd.destinationLocationCode,
                         depTime: first.dep,
@@ -7054,10 +7547,12 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                         totalDuration: bd.duration,
                         legs: legs,
                         layovers: layovers,
-                        fares: normaliseFares(group, dicts, legs)
+                        fares: fares,
+                        notOffered: notOffered
                     };
                 }(g, state.dictionaries);
                 if (!it) return;
+                if (it.notOffered) return;
                 const n = (dup.get(it.key) || 0) + 1;
                 dup.set(it.key, n);
                 n > 1 && (it.key += "#" + n);
@@ -7691,7 +8186,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 187;
+    const VERSION = 197;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -7718,7 +8213,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             inherited.destroy && inherited.destroy();
         } catch (e) {}
     }
-    const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_warn = "#A54A4A", INK_good = "#4C6E48";
+    const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_warn = "#A54A4A";
     const CABIN = {
         eco: {
             name: "Economy",
@@ -7742,6 +8237,11 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         }
     };
     const ORDER = [ "eco", "ecoPremium", "business", "first" ];
+    const REASON = {
+        soldOut: "ausverkauft",
+        tooCloseToDeparture: "zu kurz vor Abflug",
+        unavailable: "nicht verfügbar"
+    };
     const CFF_CABIN = [ [ /^CFFPECO/i, "ecoPremium" ], [ /^CFFECO/i, "eco" ], [ /^CFFBUS/i, "business" ], [ /^CFFFIRS?/i, "first" ] ];
     const state = {
         version: VERSION,
@@ -7783,7 +8283,6 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         GBP: "£",
         JPY: "¥"
     };
-    const curSym = c => CUR_SYMBOL[c] || c || "";
     const MCT = {
         BER: 65,
         BKK: 80,
@@ -7833,7 +8332,8 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             const eur = c && c.toEUR ? c.toEUR(amount, currency) : null;
             if (null != eur) return money(eur) + " €";
         } catch (e) {}
-        return money(amount) + " " + curSym(currency);
+        return money(amount) + " " + (CUR_SYMBOL[c = currency] || c || "");
+        var c;
     };
     const properCase = s => String(null == s ? "" : s).replace(/[A-ZÄÖÜ][A-ZÄÖÜ'’-]+/g, w => w.charAt(0) + w.slice(1).toLowerCase());
     const fmtDur = sec => {
@@ -8453,27 +8953,48 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmrc-fback-cabin { font-size: 10px; font-weight: 700; text-transform: uppercase;
                     letter-spacing: .06em; opacity: .9; }
 .mmrc-fback-tier { font-size: 15px; font-weight: 700; margin-top: 1px; line-height: 1.2; }
-.mmrc-fback-price { font-size: 11.5px; font-weight: 600; margin-top: 3px; opacity: .95;
-                    font-variant-numeric: tabular-nums; }
-.mmrc-fback-price b { font-weight: 700; }
 .mmrc-fback-balance { font-size: 10.5px; margin-top: 3px; opacity: .85; }
 .mmrc-fback-balance.is-short { color: #ffd9d4; opacity: 1; font-weight: 600; }
+.mmrc-fback-big { font-size: 19px; font-weight: 800; margin-top: 5px; line-height: 1.15;
+                  font-variant-numeric: tabular-nums; }
+.mmrc-fback-bigc { font-size: 12px; font-weight: 600; opacity: .95; font-variant-numeric: tabular-nums; }
+.mmrc-fback-split { display: flex; justify-content: center; flex-wrap: wrap; margin: 6px auto 0; padding-top: 5px;
+                    width: 82%; border-top: 1px solid rgba(255,255,255,.28); font-size: 10.5px; opacity: .85;
+                    font-variant-numeric: tabular-nums; }
+.mmrc-fback-split span + span::before { content: '·'; margin: 0 6px; opacity: .7; }
 .mmrc-fback-note { margin: 6px 9px 0; padding: 6px 8px; font-size: 11px; line-height: 1.35;
   color: #5a1a12; background: #fdecea; border: 1px solid #f3c4bd; border-radius: 4px; }
-.mmrc-fback-rows { margin: 0; padding: 5px 9px 0; flex: 1; }
-.mmrc-fback-rows > div { display: flex; flex-wrap: nowrap; align-items: baseline;
-                         justify-content: space-between; gap: 0 6px; padding: 1.5px 0;
-                         line-height: 1.28; }
-.mmrc-fback-rows dt { font-size: 11px; color: ${INK_secondary};
-                      min-width: 0; hyphens: auto; overflow-wrap: break-word; }
-.mmrc-fback-rows dd { margin: 0; flex: 0 0 auto; white-space: nowrap;
-                     font-size: 12.5px; font-weight: 700; color: ${INK_primary};
-                     font-variant-numeric: tabular-nums; }
-.mmrc-fback-rows dd.is-no { color: ${INK_warn}; }
-.mmrc-fback-rows dd.is-yes { color: ${INK_good}; }
-.mmrc-fback-rows > div.is-sub { padding-top: 0; margin-top: -2px; }
-.mmrc-fback-rows dt.is-sub { font-size: 9.5px; color: ${INK_muted}; }
-.mmrc-fback-sep { height: 1px; background: ${INK_hairline}; margin: 5px 0 2px; }
+.mmrc-blk { padding: 7px 12px 8px; }
+.mmrc-blk + .mmrc-blk { border-top: 1px solid #eceae4; }
+.mmrc-colface-back .mmrc-blk { padding: 7px 7px 8px; }
+.mmrc-colface-back .mmrc-svc li { font-size: 10.5px; gap: 0 3px; grid-template-columns: 13px minmax(0, 1fr) auto; }
+.mmrc-colface-back .mmrc-ic { width: 13px; height: 13px; font-size: 8px; }
+.mmrc-cap { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700;
+            letter-spacing: .07em; text-transform: uppercase; color: ${INK_muted}; margin-bottom: 4px; }
+.mmrc-cap i { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.mmrc-ptab { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 11px; }
+.mmrc-ptab td { padding: 2px 0; white-space: nowrap; }
+.mmrc-ptab td.mmrc-pw { color: ${INK_secondary}; }
+.mmrc-ptab td.mmrc-pw small { color: ${INK_muted}; font-size: 10px; }
+.mmrc-ptab td.mmrc-pm { text-align: right; font-weight: 600; color: #3d3c39; }
+.mmrc-ptab td.mmrc-pe { text-align: right; padding-left: 10px; color: ${INK_secondary}; }
+.mmrc-ptab tr.is-sum td { border-top: 1px solid ${INK_hairline}; padding-top: 4px;
+                          color: var(--mmc); font-weight: 600; }
+.mmrc-ptab tr.is-shown td.mmrc-pw::after { content: '◂'; color: var(--mmc); margin-left: 4px; font-size: 9px; }
+.mmrc-svc { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.mmrc-svc li { display: grid; grid-template-columns: 15px minmax(0, 1fr) auto; align-items: center;
+               gap: 0 5px; font-size: 11px; line-height: 1.25; }
+.mmrc-ic { width: 14px; height: 14px; border-radius: 999px; display: grid; place-items: center;
+           font-size: 8.5px; font-weight: 800; line-height: 1; }
+.mmrc-ic.is-y { background: #e4ede2; color: #3e5e3a; }
+.mmrc-ic.is-n { background: #f3e3e1; color: #9a3f37; }
+.mmrc-ic.is-p { background: #ecebe6; color: ${INK_secondary}; }
+.mmrc-sk { color: ${INK_secondary}; hyphens: auto; overflow-wrap: break-word; }
+.mmrc-sv { text-align: right; font-variant-numeric: tabular-nums; color: ${INK_secondary}; white-space: nowrap; }
+.mmrc-svc li.is-up .mmrc-sv { color: var(--mmc); font-weight: 600; }
+.mmrc-svc li.is-up .mmrc-sv::before { content: '▲'; font-size: 7px; color: var(--mmc); margin-right: 4px; vertical-align: 1px; }
+.mmrc-ssub { grid-column: 2 / -1; font-size: 9.5px; line-height: 1.2; color: ${INK_muted}; margin-bottom: 1px; }
+.mmrc-colface-back .mmrc-fchoose { margin-top: auto; }
 .mmrc-fchoose { display: block; width: calc(100% - 18px); margin: 8px 9px 9px; cursor: pointer;
                border: 0; border-radius: 6px; background: ${INK_primary}; color: #fff;
                font: inherit; font-size: 12.5px; font-weight: 700; padding: 9px 12px;
@@ -8484,20 +9005,17 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmrc-note { padding: 4px 6px 5px; border-top: none; font-size: 9.5px;
              line-height: 1.35; text-align: center; color: ${INK_muted}; }
 .mmrc-note:empty { padding: 0; }
-.mmrc-pop { position: absolute; left: 50%; transform: translateX(-50%); top: calc(100% + 5px); z-index: 2147482000;
-            width: 214px; background: #fff; border: 1px solid ${INK_hairline}; border-radius: 7px;
-            box-shadow: 0 12px 30px rgba(5,22,77,.22); padding: 8px 10px; display: none; text-align: left;
-            cursor: default; }
+.mmrc-pop { position: absolute; left: 50%; transform: translateX(-50%); top: calc(100% + 6px); z-index: 2147482000;
+            width: 236px; background: #fff; border: 1px solid ${INK_hairline}; border-radius: 8px;
+            box-shadow: 0 14px 34px rgba(5,22,77,.2); display: none; text-align: left;
+            cursor: default; overflow: hidden; }
 .mmrc-f:hover .mmrc-pop { display: block; }
 .mmrc-f:hover { z-index: 2147482001; }
 .mmrc-col.is-open .mmrc-pop { display: none !important; }
-.mmrc-pop h4 { margin: 0 0 6px; font-size: 11px; color: var(--mmc); letter-spacing: .02em; font-weight: 700; }
-.mmrc-pop dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 10.5px; }
-.mmrc-pop dt { color: ${INK_secondary}; }
-.mmrc-pop dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: ${INK_primary}; }
-.mmrc-pop dd.is-no { color: ${INK_warn}; } .mmrc-pop dd.is-yes { color: ${INK_good}; }
-.mmrc-pop dt.is-sub { font-size: 9.5px; color: ${INK_muted}; margin-top: -2px; }
-.mmrc-sep { height: 1px; background: ${INK_hairline}; margin: 6px 0; }
+.mmrc-pop-h { padding: 8px 12px 7px; border-bottom: 1px solid #eceae4; display: flex;
+              justify-content: space-between; align-items: baseline; gap: 8px; }
+.mmrc-pop-h b { font-size: 12px; color: var(--mmc); }
+.mmrc-pop-h span { font-size: 10px; color: ${INK_muted}; white-space: nowrap; }
 `;
     let styleEl = null;
     function injectStyles() {
@@ -9391,34 +9909,77 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         });
         return `<div class="mmrc-tl">${rows.join("")}</div>`;
     }
-    function detailRows(f) {
-        const rows = [];
-        if (null != f.cash) {
-            let z = cashLabel(f.cash, f.currency);
-            f.currency && "EUR" !== f.currency && !z.endsWith(curSym(f.currency)) && (z += " (" + money(f.cash) + " " + curSym(f.currency) + ")");
-            rows.push([ "Zuzahlung", z, "" ]);
+    const PM_KEY = "mmrc_priceMode";
+    let priceMode = (() => {
+        try {
+            return "total" === localStorage.getItem(PM_KEY) ? "total" : "adult";
+        } catch (e) {
+            return "adult";
         }
-        rows.push([ "Freie Plätze", null != f.seatsLeft ? f.seatsLeft >= 9 ? "9 oder mehr" : String(f.seatsLeft) : "7 oder mehr", null != f.seatsLeft && f.seatsLeft <= 3 ? "is-no" : "" ]);
-        f.baggage && rows.push([ "Aufgabegepäck", bagText(f.baggage), "" ]);
-        f.cabinBag && rows.push([ "Handgepäck", bagText(f.cabinBag), "" ]);
-        rows.push([ "Pers. Gegenstand", f.personalItem ? "1 Stück" : "–", "" ]);
-        rows.push([ "Sitzplatz", f.seatReservation ? "inklusive" : "nicht inkl.", f.seatReservation ? "is-yes" : "is-no" ]);
-        const flex = [];
-        if (f.change) {
-            const free = f.change.allowed && !f.change.fee;
-            flex.push([ "Umbuchung", f.change.allowed ? free ? "kostenlos" : cashLabel(f.change.fee, f.change.currency) : "nicht möglich", f.change.allowed ? free ? "is-yes" : "" : "is-no" ]);
-            f.change.allowed && flex.push([ "__sub", "zzgl. Tarifdifferenz", "" ]);
+    })();
+    const asTotal = f => "total" === priceMode && !!f.pax;
+    const shownCash = f => asTotal(f) ? f.totalCash : f.cash;
+    const paxHeads = f => f.pax.reduce((n, u) => n + u.count, 0);
+    const PAX_LABEL = {
+        ADT: "Erwachsener",
+        B15: "Junger Erw.",
+        CHD: "Kind",
+        INF: "Kleinkind"
+    };
+    const PAX_SHORT = {
+        ADT: "Erw.",
+        B15: "Junger Erw.",
+        CHD: "Kind",
+        INF: "Kleinkind"
+    };
+    const PAX_AGE = {
+        CHD: "2–11",
+        INF: "unter 2"
+    };
+    function paxGroups(f) {
+        const out = [];
+        for (const u of f.pax) {
+            const same = !u.companion && out.find(g => !g.companion && g.miles === u.miles && g.cash === u.cash);
+            same ? same.count += u.count : out.push(Object.assign({}, u));
         }
-        if (f.refund) {
-            const free = f.refund.allowed && !f.refund.fee;
-            flex.push([ "Erstattung", f.refund.allowed ? free ? "kostenlos" : cashLabel(f.refund.fee, f.refund.currency) : "nicht möglich", f.refund.allowed ? free ? "is-yes" : "" : "is-no" ]);
-        }
+        return out;
+    }
+    const paxLeadGroup = groups => groups.find(g => "ADT" === g.type && !g.companion) || groups[0];
+    function services(f, withItem) {
+        const size = s => {
+            const m = /(\d+)\s*×\s*(\d+)/.exec(s || "");
+            return m ? 1e3 * +m[1] + +m[2] : 0;
+        };
+        const fee = x => x ? x.allowed ? x.fee ? [ cashLabel(x.fee, x.currency), "p", 1e6 - x.fee ] : [ "kostenlos", "y", 1e9 ] : [ "nicht möglich", "n", 0 ] : null;
+        const hand = f.cabinBag ? bagText(f.cabinBag) : null;
+        const bag = f.baggage ? bagText(f.baggage) : null;
+        const out = [];
+        hand && out.push([ "hand", "Handgepäck", hand, "y", size(hand) ]);
+        out.push([ "bag", "Aufgabegepäck", bag || "nicht inkl.", bag ? "y" : "n", size(bag) ]);
+        withItem && out.push([ "item", "Pers. Gegenstand", f.personalItem ? "1 Stück" : "nicht inkl.", f.personalItem ? "y" : "n", f.personalItem ? 1 : 0 ]);
+        out.push([ "seat", "Sitzplatzwahl", f.seatReservation ? "inklusive" : "gegen Gebühr", f.seatReservation ? "y" : "n", f.seatReservation ? 1 : 0 ]);
+        const c = fee(f.change), r = fee(f.refund);
+        c && out.push([ "chg", "Umbuchung", ...c ]);
+        r && out.push([ "ref", "Erstattung", ...r ]);
+        return out;
+    }
+    function servicesHtml(f, base, withItem) {
+        const ref = base && base !== f ? new Map(services(base, withItem).map(s => [ s[0], s[4] ])) : null;
+        const IC = {
+            y: "✓",
+            n: "✕",
+            p: "€"
+        };
+        let ups = 0;
         return {
-            rows: rows,
-            flex: flex
+            html: '<ul class="mmrc-svc" lang="de">' + services(f, withItem).map(([key, k, v, ic, rank]) => {
+                const up = !!ref && ref.has(key) && rank > ref.get(key);
+                up && ups++;
+                return `<li${up ? ' class="is-up"' : ""}><span class="mmrc-ic is-${ic}" aria-hidden="true">${IC[ic]}</span>` + `<span class="mmrc-sk">${esc(k)}</span><span class="mmrc-sv">${esc(v)}</span>` + ("chg" === key && "p" === ic ? '<span class="mmrc-ssub">zzgl. Tarifdifferenz</span>' : "") + "</li>";
+            }).join("") + "</ul>",
+            ups: ups
         };
     }
-    const dlOf = list => "<dl>" + list.map(([k, v, c]) => "__sub" === k ? `<dt class="is-sub">${esc(v)}</dt><dd></dd>` : `<dt>${esc(k)}</dt><dd class="${c}">${esc(v)}</dd>`).join("") + "</dl>";
     function bagText(s) {
         const m = /(\d+)\s+(?:CHECKED BAGS?|CABIN BAGS?)[^0-9]*(\d+)\s*KG/i.exec(s || "");
         return m ? m[1] + " × " + m[2] + " kg" : properCase(s || "");
@@ -9472,9 +10033,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     }
     function balanceHtml(f) {
         const have = milesBalance();
-        if (null == have || null == f.miles) return "";
-        const short = have < f.miles;
-        return `<div class="mmrc-fback-balance${short ? " is-short" : ""}">Meilenstand ${esc(num(have))}` + (short ? ` · es fehlen ${esc(num(f.miles - have))}` : "") + `</div>`;
+        const need = null != f.totalMiles ? f.totalMiles : f.miles;
+        if (null == have || null == need) return "";
+        const short = have < need;
+        return `<div class="mmrc-fback-balance${short ? " is-short" : ""}">Meilenstand ${esc(num(have))}` + (short ? ` · es fehlen ${esc(num(need - have))}` : "") + `</div>`;
     }
     const messageNodes = () => [ ...document.querySelectorAll(".messages-list .message") ];
     const messageText = li => (li.textContent || "").replace(/\s+/g, " ").trim();
@@ -9697,12 +10259,14 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const col = document.createElement("div");
         col.className = "mmrc-col" + (fares.length ? "" : " is-empty") + (searched && cabin === searched ? " is-searched" : "");
         col.style.setProperty("--mmc", meta.color);
-        const cashes = fares.map(f => f.cash).filter(v => null != v);
+        const cashes = fares.map(shownCash).filter(v => null != v);
         const cash = cashes.length ? Math.min(...cashes) : null;
         const cur = fares.length ? fares[0].currency : null;
-        const uniform = fares.every(f => null == f.cash || f.cash === cash);
+        const uniform = fares.every(f => null == shownCash(f) || shownCash(f) === cash);
+        const cashWord = fares.some(asTotal) ? "Zuzahlung gesamt" : "Zuzahlung";
+        const base = fares.slice().sort((a, b) => (a.miles ?? 1 / 0) - (b.miles ?? 1 / 0))[0] || null;
         const seatMin = fares.reduce((m, f) => null != f.seatsLeft && (null == m || f.seatsLeft < m) ? f.seatsLeft : m, null);
-        let html = `<div class="mmrc-h"><div class="mmrc-nm">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}${seatMin >= 9 ? " is-many" : ""}">` + (1 === seatMin ? "nur noch 1 Platz" : seatMin >= 9 ? "9+ Plätze" : seatMin + " Plätze übrig") + `</span>` : fares.length ? `<span class="mmrc-seats is-many" title="Miles &amp; More nennt die genaue ` + `Platzzahl erst bei 6 oder weniger.">7+ Plätze</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${uniform ? "Zuzahlung" : "Zuzahlung ab"}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
+        let html = `<div class="mmrc-h"><div class="mmrc-nm">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}${seatMin >= 9 ? " is-many" : ""}">` + (1 === seatMin ? "nur noch 1 Platz" : seatMin >= 9 ? "9+ Plätze" : seatMin + " Plätze übrig") + `</span>` : fares.length ? `<span class="mmrc-seats is-many" title="Miles &amp; More nennt die genaue ` + `Platzzahl erst bei 6 oder weniger.">7+ Plätze</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${uniform ? cashWord : cashWord + " ab"}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
         const mixed = fares.find(f => f.mixed);
         if (mixed) {
             const segs = mixed.perLeg.map(l => {
@@ -9722,7 +10286,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         } else html += `<div class="mmrc-segs"></div>`;
         html += fares.length ? `<div class="mmrc-body"><div class="mmrc-flist">` + (axis && axis.length ? axis : fares.map(f => f.tier || "")).map(tier => {
             const f = fares.filter(x => (x.tier || "") === tier).sort((a, b) => a.miles - b.miles)[0];
-            return f ? `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num(f.miles)}</span>` + `</div>` : `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
+            return f ? `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num((f => asTotal(f) ? f.totalMiles : f.miles)(f))}</span>` + `</div>` : `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
         }).join("") + `</div></div>` : `<div class="mmrc-none">kein Angebot</div>`;
         let note = "";
         searched && cabin !== searched && (note = fares.length ? `Alle ${esc(meta.name)}-Tarife erscheinen erst bei einer ${esc(meta.name)}-Suche.` : `Eine eigene ${esc(meta.name)}-Suche kann weitere Tarife finden.`);
@@ -9764,15 +10328,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const fp = document.createElement("div");
                 fp.className = "mmrc-colface mmrc-colface-back";
                 fp.dataset.code = f.code;
-                fp.innerHTML = function(f, cabinMeta) {
-                    const {rows: rows, flex: flex} = detailRows(f);
-                    const dl = list => '<dl class="mmrc-fback-rows" lang="de">' + list.map(([k, v, c]) => "__sub" === k ? `<div class="is-sub"><dt class="is-sub">${esc(v)}</dt><dd></dd></div>` : `<div><dt>${esc(k)}</dt><dd class="${c}">${esc(v)}</dd></div>`).join("") + "</dl>";
-                    const bodyRows = rows.filter(([k]) => "Zuzahlung" !== k);
-                    const price = [];
-                    null != f.miles && price.push(`<b>${esc(num(f.miles))}</b> Meilen`);
-                    null != f.cash && price.push(`+ <b>${esc(cashLabel(f.cash, f.currency))}</b>`);
-                    return `<button type="button" class="mmrc-fclose" title="Schließen" aria-label="Schließen">✕</button>` + `<div class="mmrc-fback-head">` + `<div class="mmrc-fback-cabin">${esc(cabinMeta.name)}</div>` + `<div class="mmrc-fback-tier">${esc(f.tier || "")}</div>` + `<div class="mmrc-fback-price">${price.join(" ")}</div>` + balanceHtml(f) + `</div>` + dl(bodyRows) + (flex.length ? `<div class="mmrc-fback-sep"></div>` + dl(flex) : "") + `<button type="button" class="mmrc-fchoose">Wählen</button>`;
-                }(f, meta);
+                fp.innerHTML = function(f, cabinMeta, base) {
+                    let price;
+                    if (f.pax) {
+                        const groups = paxGroups(f);
+                        const lead = paxLeadGroup(groups);
+                        const parts = groups.map(g => (g.companion ? "Companion" : PAX_SHORT[g.type] || g.type) + " " + (null != g.miles ? num(g.miles) : "–") + (null != g.cash && g.cash !== lead.cash ? " + " + cashLabel(g.cash, f.currency) : ""));
+                        price = `<div class="mmrc-fback-big">${null != f.totalMiles ? esc(num(f.totalMiles)) + " Meilen" : ""}</div>` + `<div class="mmrc-fback-bigc">${null != f.totalCash ? "+ " + esc(cashLabel(f.totalCash, f.currency)) + " " : ""}` + `für ${paxHeads(f)} Reisende</div>` + `<div class="mmrc-fback-split">${parts.map(p => `<span>${esc(p)}</span>`).join("")}</div>`;
+                    } else price = (null != f.miles ? `<div class="mmrc-fback-big">${esc(num(f.miles))} Meilen</div>` : "") + (null != f.cash ? `<div class="mmrc-fback-bigc">+ ${esc(cashLabel(f.cash, f.currency))}</div>` : "");
+                    return `<button type="button" class="mmrc-fclose" title="Schließen" aria-label="Schließen">✕</button>` + `<div class="mmrc-fback-head">` + `<div class="mmrc-fback-cabin">${esc(cabinMeta.name)}</div>` + `<div class="mmrc-fback-tier">${esc(f.tier || "")}</div>` + price + balanceHtml(f) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">Leistungen</div>${servicesHtml(f, base, !0).html}</div>` + `<button type="button" class="mmrc-fchoose">Wählen</button>`;
+                }(f, meta, base);
                 flip.appendChild(fp);
                 openFareCol = col;
                 col.classList.add("is-3d");
@@ -9786,10 +10351,14 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             if (!tile || tile.contains(pop)) return;
             const f = byCode.get(tile.dataset.code);
             if (f) {
-                pop.innerHTML = function(f, cabinMeta) {
-                    const {rows: rows, flex: flex} = detailRows(f);
-                    return `<h4>${esc(cabinMeta.name)} ${esc(f.tier || "")}</h4>` + dlOf(rows) + (flex.length ? `<div class="mmrc-sep"></div>` + dlOf(flex) : "");
-                }(f, CABIN[cabin]);
+                pop.innerHTML = function(f, cabinMeta, base) {
+                    const svc = servicesHtml(f, base, !1);
+                    return `<div class="mmrc-pop-h"><b>${esc(cabinMeta.name)} ${esc(f.tier || "")}</b>` + (svc.ups ? `<span>▲ mehr als ${esc(base.tier || "")}</span>` : "") + `</div>` + (f.pax ? `<div class="mmrc-blk"><div class="mmrc-cap">Preis <i>je Person</i></div>${function(f) {
+                        const groups = paxGroups(f);
+                        const lead = paxLeadGroup(groups);
+                        return `<table class="mmrc-ptab">${groups.map(g => `<tr${asTotal(f) || g !== lead ? "" : ' class="is-shown"'}>` + `<td class="mmrc-pw">${g.count} × ${esc(g.companion ? "Companion" : PAX_LABEL[g.type] || g.type || "Reisender")}` + (!g.companion && PAX_AGE[g.type] ? ` <small>${PAX_AGE[g.type]}</small>` : "") + `</td>` + `<td class="mmrc-pm">${null != g.miles ? esc(num(g.miles)) : "–"}</td>` + `<td class="mmrc-pe">${null != g.cash ? esc(cashLabel(g.cash, f.currency)) : ""}</td></tr>`).join("")}` + `<tr class="is-sum${asTotal(f) ? " is-shown" : ""}"><td class="mmrc-pw">Gesamt</td>` + `<td class="mmrc-pm">${null != f.totalMiles ? esc(num(f.totalMiles)) : "–"}</td>` + `<td class="mmrc-pe">${null != f.totalCash ? esc(cashLabel(f.totalCash, f.currency)) : ""}</td></tr></table>`;
+                    }(f)}</div>` : "") + `<div class="mmrc-blk"><div class="mmrc-cap">Leistungen</div>${svc.html}</div>`;
+                }(f, CABIN[cabin], base);
                 tile.appendChild(pop);
             }
         });
@@ -9885,6 +10454,21 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const bd = boundsData();
         const map = bd.bounds;
         return map && Array.isArray(bd.current) ? bd.current.map(k => map.get(k)).filter(Boolean) : [];
+    };
+    state.priceMode = () => priceMode;
+    state.setPriceMode = m => {
+        priceMode = "total" === m ? "total" : "adult";
+        try {
+            localStorage.setItem(PM_KEY, priceMode);
+        } catch (e) {}
+        render();
+    };
+    state.paxHeads = () => {
+        for (const it of state.items()) {
+            const f = (it.fares || []).find(x => x.pax);
+            if (f) return paxHeads(f);
+        }
+        return 1;
     };
     const renderHooks = [];
     state.onRender = fn => {
@@ -10163,11 +10747,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             note && list.appendChild(note);
             const un = boundsData().unavailable;
             if (un && un.total) {
-                const NAME = {
-                    soldOut: "ausverkauft",
-                    tooCloseToDeparture: "zu kurz vor Abflug",
-                    unavailable: "nicht verfügbar"
-                };
+                const NAME = REASON;
                 const reasons = Object.keys(un.reasons);
                 const li = document.createElement("li");
                 li.className = "mmrc-msg mmrc-unavailable";
@@ -10559,7 +11139,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 30;
+    const VERSION = 33;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     if (window.__mmSort) try {
         window.__mmSort.superseded = !0;
@@ -10593,6 +11173,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     const boundsData = () => window.__mmBounds || {};
     const cards = () => window.__mmCards || null;
     const CFF_CABIN = [ [ /^CFFPECO/i, "ecoPremium" ], [ /^CFFECO/i, "eco" ], [ /^CFFBUS/i, "business" ], [ /^CFFFIRS?/i, "first" ] ];
+    function shown(f, feld) {
+        const c = cards();
+        return f.pax && c && c.priceMode && "total" === c.priceMode() ? "miles" === feld ? f.totalMiles : "cash" === feld ? f.totalCash : f[feld] : f[feld];
+    }
     const minutes = hhmm => {
         const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ""));
         return m ? 60 * +m[1] + +m[2] : null;
@@ -10605,7 +11189,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             let best = null;
             for (const f of item && item.fares || []) {
                 if (cabin && f.cabin !== cabin) continue;
-                const v = f[feld];
+                const v = shown(f, feld);
                 null != v && (null == best || v < best) && (best = v);
             }
             return best;
@@ -10618,12 +11202,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             let best = null;
             for (const f of item && item.fares || []) {
                 if (cabin && f.cabin !== cabin) continue;
-                if (null == f.cash) continue;
-                let v = f.cash;
+                const raw = shown(f, "cash");
+                if (null == raw) continue;
+                let v = raw;
                 try {
                     const fx = window.__mmCurrency;
                     if (fx && fx.toEUR && f.currency) {
-                        const eur = fx.toEUR(f.cash, f.currency);
+                        const eur = fx.toEUR(raw, f.currency);
                         null != eur && (v = eur);
                     }
                 } catch (e) {}
@@ -10869,6 +11454,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 return '<button type="button" role="menuitemradio" aria-checked="' + an + '"' + ' class="mmsort-opt' + (an ? " is-on" : "") + '" data-order="' + o.id + '">' + esc(o.label) + hint + "</button>";
             }).join("");
             return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(aktiv.label) + (aktiv.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
+                const c = cards();
+                const heads = c && c.paxHeads ? c.paxHeads() : 1;
+                if (!(heads > 1 && c.priceMode)) return "";
+                const m = c.priceMode();
+                const b = (id, t) => '<button type="button" class="mmsort-pm-opt" data-pm="' + id + '" aria-pressed="' + (m === id) + '">' + esc(t) + "</button>";
+                return '<div class="mmsort-pm"><span class="mmsort-label">Preise</span><span class="mmsort-pm-sw">' + b("adult", "pro Erwachsener") + b("total", "gesamt · " + heads + " Reisende") + "</span></div>";
+            }() + function() {
                 try {
                     const bd = boundsData();
                     if (!bd || "function" != typeof bd.budget) return "";
@@ -10938,6 +11530,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmsort { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
           padding: 2px 0 16px; position: relative; }
 .mmsort-label { font-size: 13px; color: ${INK_muted}; letter-spacing: .01em; }
+.mmsort-pm { display: inline-flex; align-items: center; gap: 8px; }
+.mmsort-pm-sw { display: inline-flex; padding: 3px; border-radius: 999px; background: #e9e8e3; }
+.mmsort-pm-opt { border: 0; background: none; font: inherit; font-size: 13px; color: ${INK_secondary};
+                 padding: 5px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.mmsort-pm-opt[aria-pressed="true"] { background: #fff; color: ${INK_primary}; font-weight: 700;
+                                      box-shadow: 0 1px 3px rgba(5,22,77,.18); }
+.mmsort-pm-opt:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 1px; }
 .mmsort-budget { margin-left: auto; font-size: 12px; color: ${INK_muted}; white-space: nowrap;
                  cursor: default; }
 .mmsort-budget.is-low { color: #b45309; font-weight: 600; }
@@ -11047,6 +11646,14 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                                 const bd = boundsData();
                                 bd && bd.resetBudget && bd.resetBudget();
                                 refreshBar();
+                                return;
+                            }
+                            const pm = e.target.closest && e.target.closest(".mmsort-pm-opt");
+                            if (pm) {
+                                const c = cards();
+                                c && c.setPriceMode && c.setPriceMode(pm.dataset.pm);
+                                refreshBar();
+                                apply();
                                 return;
                             }
                             if (e.target.closest && e.target.closest(".mmsort-trigger")) {
@@ -11233,7 +11840,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 50;
+    const VERSION = 51;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const inherited = window.__mmRecovery;
     if (inherited) {
@@ -11323,6 +11930,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             input.name = "search";
             input.value = JSON.stringify(search);
             form.appendChild(input);
+            try {
+                const facts = window.__mmSponsor && window.__mmSponsor.postField();
+                if (facts) {
+                    const el = document.createElement("input");
+                    el.type = "hidden";
+                    el.name = "portalFacts";
+                    el.value = facts;
+                    form.appendChild(el);
+                }
+            } catch (e) {}
             document.body.appendChild(form);
             form.submit();
         }(search) : location.href = SHOP_SEARCH;
@@ -12156,7 +12773,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.6.4", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.7.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;

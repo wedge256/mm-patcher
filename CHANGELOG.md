@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.7.0 — 2026-09-23
+
+### Neu
+
+- **„Ich fliege nicht selbst" jetzt auch im Shop wählbar**, nicht mehr nur
+  auf der Hauptseite
+- **Ergebnisansicht leicht überarbeitet**
+- **Übersichtlichere Preise bei mehreren Reisenden**: pro Erwachsener oder
+  gesamt (Idee aus [#6](https://github.com/wedge256/mm-patcher/pull/6), danke
+  [@simonguenther](https://github.com/simonguenther))
+
+### Behoben
+
+- **Kalender zeigte teils das Ziel des ersten Tages statt des gesuchten**
+- **Verbindungen mit Zuganschluss ließen sich nicht wählen**
+- **Kalender zeigte bei mehreren Reisenden teils den Kleinkindpreis**
+
 ## 1.6.4 — 2026-09-19
 
 ### Neu
