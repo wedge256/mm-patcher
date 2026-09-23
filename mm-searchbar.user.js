@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.7.0
+// @version      1.7.1
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -195,7 +195,7 @@
 
 (() => {
     "use strict";
-    const VERSION = "1.14.6";
+    const VERSION = "1.14.7";
     const vnum = s => String(s || "0").split(".").reduce((a, n) => 1e3 * a + (parseInt(n, 10) || 0), 0);
     if (window.mmSearchUnlock && vnum(window.mmSearchUnlock.version) >= vnum(VERSION)) return;
     const FLAGS = [ "enableOriginDestinationModification", "showModifyExpansionButton", "showModifyCancelButton" ];
@@ -213,21 +213,36 @@
         reads: 0,
         lastUrl: null
     };
+    const HIDDEN_CODES = [ "38809" ];
+    const HIDE_LIST_RE = /"dapiCodesToHide"\s*:\s*\[([^\]]*)\]/g;
     window.__mmsuHooks = {
         isConfigUrl: u => CONFIG_URL_RE.test(String(u || "")),
         isBoundsUrl: u => BOUNDS_RE.test(String(u || "")),
         flip: function(text) {
-            if ("string" != typeof text || text.length < 20) return null;
-            if (-1 === text.indexOf("ModifySearch") && -1 === text.indexOf("showModifyExpansionButton")) return null;
-            let changed = !1;
-            for (const p of PATTERNS) {
-                p.re.lastIndex = 0;
-                if (p.re.test(text)) {
-                    text = text.replace(p.re, p.fix);
-                    changed = !0;
+            const flipped = function(text) {
+                if ("string" != typeof text || text.length < 20) return null;
+                if (-1 === text.indexOf("ModifySearch") && -1 === text.indexOf("showModifyExpansionButton")) return null;
+                let changed = !1;
+                for (const p of PATTERNS) {
+                    p.re.lastIndex = 0;
+                    if (p.re.test(text)) {
+                        text = text.replace(p.re, p.fix);
+                        changed = !0;
+                    }
                 }
-            }
-            return changed ? text : null;
+                return changed ? text : null;
+            }(text);
+            return function(text) {
+                if ("string" != typeof text || -1 === text.indexOf("dapiCodesToHide")) return null;
+                let changed = !1;
+                const out = text.replace(HIDE_LIST_RE, (all, items) => {
+                    const add = HIDDEN_CODES.filter(c => -1 === items.indexOf('"' + c + '"')).map(c => '{"code":"' + c + '","flowType":"all"}');
+                    if (!add.length) return all;
+                    changed = !0;
+                    return all.slice(0, -1) + (items.trim() ? "," : "") + add.join(",") + "]";
+                });
+                return changed ? out : null;
+            }(flipped || text) || flipped;
         },
         align: function(bodyText) {
             if (!window.__mmsuTouched) return null;
@@ -297,14 +312,14 @@
             return JSON.stringify(body);
         },
         codes: function() {
-            const raus = [];
+            const codes = [];
             storedLegs().forEach(l => {
                 [ l.originLocationCode, l.destinationLocationCode ].forEach(c => {
                     const up = String(c || "").toUpperCase();
-                    /^[A-Z]{3}$/.test(up) && raus.indexOf(up) < 0 && raus.push(up);
+                    /^[A-Z]{3}$/.test(up) && codes.indexOf(up) < 0 && codes.push(up);
                 });
             });
-            return raus;
+            return codes;
         },
         mute: muteValidation,
         takeover: function() {
@@ -367,16 +382,16 @@
                 const form = document.createElement("form");
                 form.method = "POST";
                 form.action = function() {
-                    let lang = null, land = null;
+                    let lang = null, country = null;
                     try {
                         const a = JSON.parse(sessionStorage.getItem("analytics") || "null");
                         const t = a && a.touchpointInfo;
-                        t && "string" == typeof t.market && /^[a-z]{2}$/i.test(t.market) && (land = t.market.toLowerCase());
+                        t && "string" == typeof t.market && /^[a-z]{2}$/i.test(t.market) && (country = t.market.toLowerCase());
                         t && "string" == typeof t.language && /^[a-z]{2}$/i.test(t.language) && (lang = t.language.toLowerCase());
                     } catch (e) {}
                     const doc = String(document.documentElement.lang || "");
-                    const full = /^[a-z]{2}-[A-Z]{2}$/.test(doc) ? doc : lang && land ? lang + "-" + land.toUpperCase() : "de-DE";
-                    return "https://shop.miles-and-more.com/reward/reward/availability" + "?lang=" + encodeURIComponent(full) + "&portalCountry=" + encodeURIComponent(land || full.slice(3).toLowerCase());
+                    const full = /^[a-z]{2}-[A-Z]{2}$/.test(doc) ? doc : lang && country ? lang + "-" + country.toUpperCase() : "de-DE";
+                    return "https://shop.miles-and-more.com/reward/reward/availability" + "?lang=" + encodeURIComponent(full) + "&portalCountry=" + encodeURIComponent(country || full.slice(3).toLowerCase());
                 }();
                 form.style.display = "none";
                 const input = document.createElement("input");
@@ -1063,7 +1078,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 77;
+    const VERSION = 79;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -1142,7 +1157,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }, {
             key: "waiting",
             label: "⚠️ Bessere Fehlerseiten",
-            tip: "Fehlerseite nennt die echte Ursache, mit Relogin-Knopf."
+            tip: "Fehlerseite und Warenkorb-Hinweise nennen die echte " + "Ursache, mit Relogin-Knopf."
         } ]
     } ];
     const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab";
@@ -1251,7 +1266,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 <select class="mmset-office-sel" data-office>
                     <option value="auto">Automatisch (Abflugland)</option>
                     <option value="">Webseite (Standard)</option>
-                    ${OFFICES.map(([land, id]) => `<option value="${id}">${land}</option>`).join("")}
+                    ${OFFICES.map(([label, id]) => `<option value="${id}">${label}</option>`).join("")}
                     <option value="__custom">Andere Kennung …</option>
                 </select>
             </div>
@@ -1547,9 +1562,9 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const office = String(prefs.office || "");
         let ctx;
         if (isAuto(office)) {
-            const land = originCountry();
-            ctx = land ? {
-                country: land
+            const country = originCountry();
+            ctx = country ? {
+                country: country
             } : {};
         } else ctx = office ? {
             officeId: office
@@ -1604,20 +1619,20 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 live = window.__mmAuth && window.__mmAuth.activeOffice && window.__mmAuth.activeOffice();
             } catch (e) {}
             const want = String(prefs.office || "");
-            const landOf = id => {
+            const countryNameOf = id => {
                 const hit = OFFICES.find(([, x]) => x === id);
                 return hit ? hit[0].replace(/\s*\([A-Z]{3}\)$/, "") : null;
             };
             let off = !(!want || isAuto(want) || !live || want === live);
             if (isAuto(want)) {
-                const soll = originCountry();
-                let ist = null;
+                const wanted = originCountry();
+                let actual = null;
                 try {
-                    ist = window.__mmAuth && window.__mmAuth.activeCountry ? window.__mmAuth.activeCountry() : null;
+                    actual = window.__mmAuth && window.__mmAuth.activeCountry ? window.__mmAuth.activeCountry() : null;
                 } catch (err) {}
-                off = !(!soll || !ist || soll === ist);
+                off = !(!wanted || !actual || wanted === actual);
             }
-            act.textContent = live ? live + (landOf(live) ? " · " + landOf(live) : "") : "unbekannt (noch kein Token)";
+            act.textContent = live ? live + (countryNameOf(live) ? " · " + countryNameOf(live) : "") : "unbekannt (noch kein Token)";
             act.classList.toggle("is-off", off);
         }
         const eff = (p, k) => !!p[k];
@@ -2076,7 +2091,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 57;
+    const VERSION = 58;
     if (window.__mmIata && window.__mmIata.version >= VERSION) return;
     const inherited = window.__mmIata;
     if (inherited) {
@@ -2154,13 +2169,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             };
             (((j || {}).language || {}).countries || []).forEach(c => (c.cities || []).forEach(ct => {
                 const cityCode = String(ct.code || "").toUpperCase();
-                const land = String(c.code || "").toUpperCase();
+                const countryCode = String(c.code || "").toUpperCase();
                 ct.code && c.name && (cc[cityCode] = c.name);
-                ct.code && land && (iso[cityCode] = land);
+                ct.code && countryCode && (iso[cityCode] = countryCode);
                 (ct.airports || []).forEach(a => {
                     const code = String(a.code || "").toUpperCase();
                     c.name && !cc[code] && (cc[code] = c.name);
-                    land && !iso[code] && (iso[code] = land);
+                    countryCode && !iso[code] && (iso[code] = countryCode);
                     const t = String(a.locationType || "");
                     if ("Off-Line Point" === t || "Harbour" === t) {
                         dropped.push([ code, normPlace(a.name), c.name || "" ]);
@@ -2168,8 +2183,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                     }
                     add(code);
                     "Rail Station" === t ? kind[code] = "R" : "Bus Station" === t && (kind[code] = "B");
-                    const zeigName = a.shortName || a.name;
-                    zeigName && !names[code] && (names[code] = zeigName);
+                    const displayName = a.shortName || a.name;
+                    displayName && !names[code] && (names[code] = displayName);
                     a.name && !rawAll[code] && (rawAll[code] = a.name);
                 });
                 if (!(ct.airports || []).length) {
@@ -2187,8 +2202,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 k.length > 1 && !place[k] && (place[k] = c);
             });
             const alias = {};
-            dropped.forEach(([code, key, land]) => {
-                const hit = place[key + "|" + land];
+            dropped.forEach(([code, key, country]) => {
+                const hit = place[key + "|" + country];
                 hit && hit !== code && (alias[code] = hit);
             });
             const store = {
@@ -2359,20 +2374,20 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             if (!/^[A-Z]{3}$/.test(code) || placeWanted.has(code)) return;
             const s = placeStore();
             if (void 0 !== s.names[code]) return;
-            if (s.aufgegeben) return;
+            if (s.gaveUp) return;
             placeWanted.add(code);
             const loc = placeLocale();
-            placeQueue = placeQueue.then(() => placeStore().aufgegeben ? null : originalFetch.call(window, `${PLACE_URL}&site=${loc.site}&lang=${loc.lang}&query=${code}`).then(r => r && r.ok ? r.json() : null).then(j => {
-                if (null === j && placeStore().aufgegeben) return;
+            placeQueue = placeQueue.then(() => placeStore().gaveUp ? null : originalFetch.call(window, `${PLACE_URL}&site=${loc.site}&lang=${loc.lang}&query=${code}`).then(r => r && r.ok ? r.json() : null).then(j => {
+                if (null === j && placeStore().gaveUp) return;
                 const hit = ((j || {}).items || []).find(i => String(i.code || "").toUpperCase() === code);
                 s.names[code] = hit ? String(hit.airport || "") : "";
                 hit && hit.country && (s.countries[code] = String(hit.country));
                 if (hit) {
-                    s.leer = 0;
-                    s.treffer = (s.treffer || 0) + 1;
-                } else if (!s.treffer) {
-                    s.leer = (s.leer || 0) + 1;
-                    s.leer >= LEERLAUF_GRENZE && (s.aufgegeben = !0);
+                    s.misses = 0;
+                    s.hits = (s.hits || 0) + 1;
+                } else if (!s.hits) {
+                    s.misses = (s.misses || 0) + 1;
+                    s.misses >= MISS_LIMIT && (s.gaveUp = !0);
                 }
                 try {
                     localStorage.setItem(PLACE_STORE, JSON.stringify(s));
@@ -2439,9 +2454,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             lang: key,
             names: {},
             countries: {},
-            leer: 0,
-            treffer: 0,
-            aufgegeben: !1
+            misses: 0,
+            hits: 0,
+            gaveUp: !1
         });
         placeCache.names || (placeCache.names = {});
         placeCache.countries || (placeCache.countries = {});
@@ -2449,7 +2464,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     }
     const placeName = code => placeStore().names[code] || null;
     const placeCountry = code => placeStore().countries[code] || null;
-    const LEERLAUF_GRENZE = 8;
+    const MISS_LIMIT = 8;
     function aliasOf(code) {
         return code && atlasStore().alias[String(code).toUpperCase()] || null;
     }
@@ -2457,12 +2472,12 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     function countryOf(code) {
         if (!code) return null;
         const up = String(code).toUpperCase();
-        const vonSeite = function(code) {
+        const fromPage = function(code) {
             if (!countryNames) return null;
             const iso = isoOf(code);
             return iso && countryNames[iso] || null;
         }(up);
-        if (vonSeite) return vonSeite;
+        if (fromPage) return fromPage;
         isoOfCode || function() {
             if (isoOfCode) return Promise.resolve(isoOfCode);
             if (countryMapFailed) return Promise.resolve(null);
@@ -2556,19 +2571,19 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 window.dispatchEvent(new Event("mmiata:list"));
             } catch (e) {}
             if (window.__mmSuggest && suggestOwnOn()) {
-                const liste = state.baseCodes.slice();
-                const drin = new Set(liste);
-                let laufend = [];
+                const list = state.baseCodes.slice();
+                const seen = new Set(list);
+                let running = [];
                 try {
-                    laufend = window.__mmsuHooks && window.__mmsuHooks.codes && window.__mmsuHooks.codes() || [];
+                    running = window.__mmsuHooks && window.__mmsuHooks.codes && window.__mmsuHooks.codes() || [];
                 } catch (e) {}
-                laufend.forEach(c => {
-                    if (c && !drin.has(c)) {
-                        liste.push(c);
-                        drin.add(c);
+                running.forEach(c => {
+                    if (c && !seen.has(c)) {
+                        list.push(c);
+                        seen.add(c);
                     }
                 });
-                data.defaultAirportList = liste;
+                data.defaultAirportList = list;
             }
             state.handedToApp = data.defaultAirportList.length;
             state.appCodes = new Set(data.defaultAirportList);
@@ -2581,24 +2596,24 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         locale: async function(response) {
             const data = await response.clone().json();
             let changed = 0;
-            let benannt = 0;
+            let named = 0;
             try {
                 await atlasData();
                 const atl = atlasStore().names;
-                const roh = atlasStore().raw;
+                const raw = atlasStore().raw;
                 const pl = placeStore().names;
-                Object.keys(atl).concat(Object.keys(roh)).forEach(code => {
+                Object.keys(atl).concat(Object.keys(raw)).forEach(code => {
                     const aKey = "global.airports." + code;
                     const cKey = "global.cities." + code;
                     if (data[aKey] || data[cKey]) return;
-                    const voll = pl[code] || atl[code] || roh[code];
-                    data[aKey] = voll;
-                    data[cKey] = cityOfPlace(voll);
+                    const full = pl[code] || atl[code] || raw[code];
+                    data[aKey] = full;
+                    data[cKey] = cityOfPlace(full);
                     atl[code] || selfNamed.add(code);
-                    benannt++;
+                    named++;
                 });
             } catch (e) {}
-            state.selfNamed = benannt;
+            state.selfNamed = named;
             for (const [code, name, metro] of RAIL_METRO.concat(EXTRA_AIRPORTS)) {
                 const aKey = "global.airports." + code;
                 const cKey = "global.cities." + code;
@@ -2618,15 +2633,15 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 }
             }
             state.railNamed = changed;
-            let entstrichelt = 0;
+            let dehyphenated = 0;
             Object.keys(data).forEach(k => {
                 const v = data[k];
                 if (!("string" != typeof v || v.indexOf("} - - {") < 0)) {
                     data[k] = v.split("} - - {").join("} - {");
-                    entstrichelt++;
+                    dehyphenated++;
                 }
             });
-            state.dashFixed = entstrichelt;
+            state.dashFixed = dehyphenated;
             try {
                 window.dispatchEvent(new Event("mmiata:names"));
             } catch (e) {}
@@ -2884,7 +2899,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 36;
+    const VERSION = 37;
     if (window.__mmSuggest && window.__mmSuggest.version >= VERSION) return;
     if (window.__mmSuggest) try {
         window.__mmSuggest.superseded = !0;
@@ -2911,7 +2926,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     const listOn = () => !window.__mmSettings || !1 !== window.__mmSettings.get("smartsearch");
     const iata = () => window.__mmIata || null;
     const ready = () => !!(index && index.length || buildIndex());
-    const aktiv = () => listOn() && ready();
+    const isActive = () => listOn() && ready();
     const EXTRA = {
         "ß": "ss",
         "ø": "o",
@@ -2938,10 +2953,10 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         "å": "aa",
         "ø": "oe"
     };
-    function heu(s) {
+    function haystack(s) {
         return " " + fold(s) + " ";
     }
-    function heuDe(s) {
+    function haystackDe(s) {
         const a = fold(s), b = function(s) {
             return fold(String(null == s ? "" : s).toLowerCase().replace(/[äöüåø]/g, c => UMLAUT[c] || c));
         }(s);
@@ -2952,7 +2967,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     function buildIndex() {
         const I = iata();
         if (!I || !Array.isArray(I.codeList) || !I.codeList.length) return !1;
-        const heimat = function() {
+        const home = function() {
             const I = iata();
             const m = /^[a-z]{2}-([A-Z]{2})$/.exec(String(document.documentElement.lang || ""));
             return m && I && I.countryNameOf && I.countryNameOf(m[1]) || null;
@@ -2969,13 +2984,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 city: city,
                 place: place,
                 country: country,
-                hc: heu(city),
-                hcDe: heuDe(city),
-                hp: heu(place),
-                hpDe: heuDe(place),
-                hk: heu(country),
+                hc: haystack(city),
+                hcDe: haystackDe(city),
+                hp: haystack(place),
+                hpDe: haystackDe(place),
+                hk: haystack(country),
                 kind: I.kindOf ? I.kindOf(code) : "A",
-                rel: (basis.has(code) ? 0 : 1) + (heimat && country === heimat ? 0 : 1),
+                rel: (basis.has(code) ? 0 : 1) + (home && country === home ? 0 : 1),
                 pos: pos
             };
             list.push(e);
@@ -3000,13 +3015,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         const I = iata();
         const alias = 3 === q.length && I && I.aliasOf ? I.aliasOf(q.toUpperCase()) : null;
         const qc = q.toUpperCase();
-        const ganz = 3 === q.length;
+        const fullCode = 3 === q.length;
         const sp = " " + q;
         const hits = [];
         for (let i = 0; i < index.length; i++) {
             const e = index[i];
             let tier;
-            if (ganz && e.code === qc || alias && e.code === alias) tier = 0; else if (0 === e.hc.indexOf(sp) || e.hcDe && 0 === e.hcDe.indexOf(sp)) tier = 1; else if (0 === e.hp.indexOf(sp) || e.hpDe && 0 === e.hpDe.indexOf(sp)) tier = 2; else if (0 === e.code.indexOf(qc)) tier = 3; else if (e.hc.indexOf(sp) > 0 || e.hp.indexOf(sp) > 0 || e.hcDe && e.hcDe.indexOf(sp) > 0 || e.hpDe && e.hpDe.indexOf(sp) > 0) tier = 4; else if (e.hk.indexOf(sp) >= 0) tier = 5; else {
+            if (fullCode && e.code === qc || alias && e.code === alias) tier = 0; else if (0 === e.hc.indexOf(sp) || e.hcDe && 0 === e.hcDe.indexOf(sp)) tier = 1; else if (0 === e.hp.indexOf(sp) || e.hpDe && 0 === e.hpDe.indexOf(sp)) tier = 2; else if (0 === e.code.indexOf(qc)) tier = 3; else if (e.hc.indexOf(sp) > 0 || e.hp.indexOf(sp) > 0 || e.hcDe && e.hcDe.indexOf(sp) > 0 || e.hpDe && e.hpDe.indexOf(sp) > 0) tier = 4; else if (e.hk.indexOf(sp) >= 0) tier = 5; else {
                 if (!(e.hc.indexOf(q) >= 0 || e.hp.indexOf(q) >= 0 || e.hcDe && e.hcDe.indexOf(q) >= 0 || e.hpDe && e.hpDe.indexOf(q) >= 0)) continue;
                 tier = 6;
             }
@@ -3043,14 +3058,14 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         main.appendChild(tag);
         const sub = document.createElement("span");
         sub.className = "mmsg-sub";
-        const land = markable();
-        sub.appendChild(land);
+        const countryEl = markable();
+        sub.appendChild(countryEl);
         row.appendChild(main);
         row.appendChild(sub);
         row._name = name;
         row._code = code;
         row._tag = tag;
-        row._land = land;
+        row._country = countryEl;
         return row;
     }
     function markable() {
@@ -3117,18 +3132,18 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             row.style.display = "";
             row.style.top = i * ROW_H + "px";
             row.dataset.i = i;
-            const an = i === active;
-            if (row._active !== an) {
-                row._active = an;
-                row.classList.toggle("mmsg-active", an);
-                row.setAttribute("aria-selected", an ? "true" : "false");
+            const selected = i === active;
+            if (row._active !== selected) {
+                row._active = selected;
+                row.classList.toggle("mmsg-active", selected);
+                row.setAttribute("aria-selected", selected ? "true" : "false");
             }
-            const zeigeStadt = e.city && e.place && fold(e.place).indexOf(fold(e.city)) < 0;
-            setMarked(row._name, (zeigeStadt ? e.city + ", " : "") + (e.place || e.city), lastQuery);
+            const showCity = e.city && e.place && fold(e.place).indexOf(fold(e.city)) < 0;
+            setMarked(row._name, (showCity ? e.city + ", " : "") + (e.place || e.city), lastQuery);
             row._code.textContent = e.code;
             const tag = KIND_TAG[e.kind] && !SAYS_STATION.test(e.place || "") ? KIND_TAG[e.kind] : "";
             row._tag.textContent !== tag && (row._tag.textContent = tag);
-            setMarked(row._land, e.country, lastQuery);
+            setMarked(row._country, e.country, lastQuery);
         }
         state.drawn = n;
     }
@@ -3137,9 +3152,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     function measure() {
         const r = field.getBoundingClientRect();
         const rb = (field.closest(".mat-mdc-form-field") || field).getBoundingClientRect();
-        const unten = Math.round(r.bottom + 6);
-        const platz = window.innerHeight - unten - 8;
-        if (platz < 120 && r.top > platz) {
+        const bottom = Math.round(r.bottom + 6);
+        const space = window.innerHeight - bottom - 8;
+        if (space < 120 && r.top > space) {
             const h = Math.min(PANEL_H, Math.round(r.top - 14));
             geom = {
                 left: Math.round(rb.left),
@@ -3150,8 +3165,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         } else geom = {
             left: Math.round(rb.left),
             width: Math.round(rb.width),
-            top: unten,
-            height: Math.min(PANEL_H, Math.max(88, platz))
+            top: bottom,
+            height: Math.min(PANEL_H, Math.max(88, space))
         };
     }
     function fitViewport() {
@@ -3218,9 +3233,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 }
             });
         }();
-        const neuesFeld = field !== input;
+        const newField = field !== input;
         field = input;
-        !neuesFeld && geom || measure();
+        !newField && geom || measure();
         lastQuery = fold(query).trim();
         current = search(query, 0);
         active = current.length ? 0 : -1;
@@ -3259,13 +3274,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         committing = !0;
         suppressed.delete(input);
         let tries = 0;
-        const fertig = () => {
+        const finish = () => {
             commitCode = null;
             commitField = null;
             committing = !1;
             typed.delete(input);
         };
-        const selbstSchreiben = () => {
+        const writeSelf = () => {
             const I = iata();
             const label = I && I.optionLabel && I.optionLabel(e.code) || e.code;
             commitCode = null;
@@ -3275,19 +3290,19 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 bubbles: !0
             }));
             !function(input) {
-                freigeben(input);
+                release(input);
                 try {
                     const h = window.__mmsuHooks;
-                    h && h.mute && stumm.set(input, h.mute([ input ]));
+                    h && h.mute && muted.set(input, h.mute([ input ]));
                 } catch (e) {}
             }(input);
             state.picked = e.code;
-            state.pickedOhneOption = (state.pickedOhneOption || 0) + 1;
-            setTimeout(fertig, 60);
+            state.pickedWithoutOption = (state.pickedWithoutOption || 0) + 1;
+            setTimeout(finish, 60);
         };
-        const warten = () => {
+        const waitForOption = () => {
             if (state.superseded) {
-                fertig();
+                finish();
                 return;
             }
             const opts = document.querySelectorAll(".mat-mdc-autocomplete-panel mat-option");
@@ -3295,9 +3310,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             if (hit) {
                 hit.click();
                 state.picked = e.code;
-                freigeben(input);
-                setTimeout(fertig, 60);
-            } else ++tries < 12 ? setTimeout(warten, 25) : selbstSchreiben();
+                release(input);
+                setTimeout(finish, 60);
+            } else ++tries < 12 ? setTimeout(waitForOption, 25) : writeSelf();
         };
         if ((code => {
             try {
@@ -3313,16 +3328,16 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             input.dispatchEvent(new Event("input", {
                 bubbles: !0
             }));
-            setTimeout(warten, 0);
-        } else selbstSchreiben();
+            setTimeout(waitForOption, 0);
+        } else writeSelf();
     }
-    const stumm = new Map;
-    function freigeben(input) {
-        const auf = stumm.get(input);
-        if (auf) {
-            stumm.delete(input);
+    const muted = new Map;
+    function release(input) {
+        const undo = muted.get(input);
+        if (undo) {
+            muted.delete(input);
             try {
-                auf();
+                undo();
             } catch (e) {}
         }
     }
@@ -3336,7 +3351,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         if (own && own.get && own.get[MARK]) return;
         const under = own && own.get ? own : nativeValue;
         const get = function() {
-            return commitCode && this === commitField ? "(" + commitCode + ")" : suppressed.has(this) && aktiv() && document.activeElement === this ? SENTINEL : under.get.call(this);
+            return commitCode && this === commitField ? "(" + commitCode + ")" : suppressed.has(this) && isActive() && document.activeElement === this ? SENTINEL : under.get.call(this);
         };
         get[MARK] = !0;
         try {
@@ -3354,14 +3369,14 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     }
     const FIELD_SEL = 'input[id$="origin"], input[id$="destination"]';
     const hooked = new WeakSet;
-    function unser(el) {
+    function isOwn(el) {
         if (!el || !el.matches || !el.matches(FIELD_SEL)) return !1;
         hooked.has(el) || hook(el);
         return !0;
     }
     function onInputCapture(ev) {
         const input = ev.target;
-        if (!committing && unser(input) && aktiv()) {
+        if (!committing && isOwn(input) && isActive()) {
             wrapValue(input);
             if (typed.has(input)) {
                 typed.delete(input);
@@ -3369,13 +3384,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 !function(ev) {
                     const input = ev.target;
                     if (committing) return;
-                    if (!aktiv()) {
+                    if (!isActive()) {
                         suppressed.delete(input);
                         hide();
                         return;
                     }
                     suppressed.add(input);
-                    freigeben(input);
+                    release(input);
                     const raw = nativeValue.get.call(input);
                     raw ? show(input, raw) : hide();
                 }(ev);
@@ -3384,9 +3399,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     }
     function onFieldFocus(ev) {
         const input = ev.target;
-        if (!unser(input)) return;
+        if (!isOwn(input)) return;
         geom = null;
-        if (!aktiv()) {
+        if (!isActive()) {
             suppressed.delete(input);
             return;
         }
@@ -3397,14 +3412,14 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         raw ? show(input, raw) : hide();
     }
     function onFieldClick(ev) {
-        unser(ev.target) && aktiv() && ev.stopPropagation();
+        isOwn(ev.target) && isActive() && ev.stopPropagation();
     }
     function onTyping(ev) {
         const input = ev.target;
-        !committing && unser(input) && aktiv() && ("keydown" !== ev.type || "Shift" !== ev.key && "Control" !== ev.key && "Alt" !== ev.key && "Meta" !== ev.key) && typed.add(input);
+        !committing && isOwn(input) && isActive() && ("keydown" !== ev.type || "Shift" !== ev.key && "Control" !== ev.key && "Alt" !== ev.key && "Meta" !== ev.key) && typed.add(input);
     }
     function onKey(ev) {
-        if (!committing && unser(ev.target) && aktiv() && visible()) if ("ArrowDown" === ev.key) {
+        if (!committing && isOwn(ev.target) && isActive() && visible()) if ("ArrowDown" === ev.key) {
             ev.preventDefault();
             ev.stopPropagation();
             move(1);
@@ -3440,7 +3455,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             wrapValue(input);
             input.addEventListener("blur", onBlur);
             listeners.push(input);
-            document.activeElement === input && aktiv() && suppressed.add(input);
+            document.activeElement === input && isActive() && suppressed.add(input);
         }
     }
     const scan = () => {
@@ -3486,17 +3501,17 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 .mmsg-sub { font-size: 11px; color: ${INK_muted}; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; }`;
     let obs = null;
-    const neuBauen = () => {
+    const rebuild = () => {
         state.rebuilds = (state.rebuilds || 0) + 1;
         index = null;
         byCode = null;
-        const bauen = () => {
+        const build = () => {
             state.buildRuns = (state.buildRuns || 0) + 1;
             state.superseded || (state.buildOk = buildIndex());
         };
-        window.requestIdleCallback ? window.requestIdleCallback(bauen, {
+        window.requestIdleCallback ? window.requestIdleCallback(build, {
             timeout: 2e3
-        }) : setTimeout(bauen, 300);
+        }) : setTimeout(build, 300);
     };
     state.teardown = () => {
         state.superseded = !0;
@@ -3514,8 +3529,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             document.removeEventListener("keydown", onKey, !0);
             window.removeEventListener("resize", schedulePlace);
             window.removeEventListener("scroll", schedulePlace, !0);
-            window.removeEventListener("mmiata:list", neuBauen);
-            window.removeEventListener("mmiata:names", neuBauen);
+            window.removeEventListener("mmiata:list", rebuild);
+            window.removeEventListener("mmiata:names", rebuild);
         } catch (e) {}
         try {
             host && host.remove();
@@ -3529,11 +3544,11 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             } catch (e) {}
         });
         listeners.length = 0;
-        [ ...stumm.keys() ].forEach(freigeben);
+        [ ...muted.keys() ].forEach(release);
         restore.forEach((own, input) => {
             try {
-                const jetzt = Object.getOwnPropertyDescriptor(input, "value");
-                if (!jetzt || !jetzt.get || !jetzt.get[MARK]) return;
+                const currentDesc = Object.getOwnPropertyDescriptor(input, "value");
+                if (!currentDesc || !currentDesc.get || !currentDesc.get[MARK]) return;
                 own ? Object.defineProperty(input, "value", own) : delete input.value;
             } catch (e) {}
         });
@@ -3542,7 +3557,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     state.search = (q, n) => {
         const r = search(q, n || 20);
         return {
-            treffer: state.lastHits,
+            hits: state.lastHits,
             ms: state.lastMs,
             top: r.map(e => e.tier + " " + e.code + " " + (e.city || "") + " / " + (e.place || "") + " [" + e.kind + " rel" + e.rel + "]")
         };
@@ -3550,19 +3565,19 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
     state.probe = sel => {
         const el = document.querySelector(sel || "#origin");
         return el ? {
-            gehakt: hooked.has(el),
-            unterdrueckt: suppressed.has(el),
-            uebernimmt: committing,
-            listeAn: listOn(),
-            bereit: ready(),
-            indiziert: state.indexed,
-            aktivesFeld: field === el,
-            umhuellt: restore.has(el),
-            panelOffen: visible(),
-            treffer: state.lastHits,
+            hooked: hooked.has(el),
+            suppressed: suppressed.has(el),
+            committing: committing,
+            listOn: listOn(),
+            ready: ready(),
+            indexed: state.indexed,
+            activeField: field === el,
+            wrapped: restore.has(el),
+            panelOpen: visible(),
+            hits: state.lastHits,
             ms: state.lastMs
         } : {
-            feld: "nicht da"
+            field: "nicht da"
         };
     };
     state.summary = () => ({
@@ -3583,20 +3598,20 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         document.addEventListener("keydown", onKey, !0);
         scan();
         obs = new MutationObserver(onMutations);
-        const wurzel = document.documentElement || document.body;
-        wurzel && obs.observe(wurzel, {
+        const root = document.documentElement || document.body;
+        root && obs.observe(root, {
             childList: !0,
             subtree: !0
         });
-        state.observing = !!wurzel;
+        state.observing = !!root;
         "loading" === document.readyState && document.addEventListener("DOMContentLoaded", scan, {
             once: !0
         });
-        neuBauen();
+        rebuild();
         window.addEventListener("resize", schedulePlace);
         window.addEventListener("scroll", schedulePlace, !0);
-        window.addEventListener("mmiata:list", neuBauen);
-        window.addEventListener("mmiata:names", neuBauen);
+        window.addEventListener("mmiata:list", rebuild);
+        window.addEventListener("mmiata:names", rebuild);
     }();
 })();
 
@@ -3912,7 +3927,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 51;
+    const VERSION = 52;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const inheritedCal = window.__mmCal;
     const FLEXIBILITY = 15;
@@ -4542,12 +4557,12 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                     try {
                         c.searchSettled && c.searchSettled();
                     } catch (e) {}
-                    let sauber = null;
+                    let cleaned = null;
                     try {
-                        sauber = c.withoutStopWarning ? c.withoutStopWarning(hit) : null;
+                        cleaned = c.withoutStopWarning ? c.withoutStopWarning(hit) : null;
                     } catch (e) {}
-                    sauber && (c.state.stopWarningsStripped = (c.state.stopWarningsStripped || 0) + 1);
-                    return new Response(sauber || hit, {
+                    cleaned && (c.state.stopWarningsStripped = (c.state.stopWarningsStripped || 0) + 1);
+                    return new Response(cleaned || hit, {
                         status: 200,
                         headers: {
                             "content-type": "application/json"
@@ -4594,13 +4609,13 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                     try {
                         h().ingest(JSON.parse(text), (args[1] || {}).body);
                     } catch (e) {}
-                    let sauber = null;
+                    let cleaned = null;
                     try {
-                        sauber = h().withoutStopWarning ? h().withoutStopWarning(text) : null;
+                        cleaned = h().withoutStopWarning ? h().withoutStopWarning(text) : null;
                     } catch (e) {}
-                    if (sauber) {
+                    if (cleaned) {
                         c.state.stopWarningsStripped = (c.state.stopWarningsStripped || 0) + 1;
-                        return new Response(sauber, {
+                        return new Response(cleaned, {
                             status: res.status,
                             statusText: res.statusText,
                             headers: res.headers
@@ -4666,16 +4681,16 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 let counted = !1;
                 const cleanText = raw => {
                     if ("string" != typeof raw || 4 !== xhr.readyState) return raw;
-                    let sauber = null;
+                    let cleaned = null;
                     try {
-                        sauber = h().withoutStopWarning ? h().withoutStopWarning(raw) : null;
+                        cleaned = h().withoutStopWarning ? h().withoutStopWarning(raw) : null;
                     } catch (e) {}
-                    if (sauber && !counted) {
+                    if (cleaned && !counted) {
                         counted = !0;
                         const c2 = h();
                         c2.state.stopWarningsStripped = (c2.state.stopWarningsStripped || 0) + 1;
                     }
-                    return sauber || raw;
+                    return cleaned || raw;
                 };
                 try {
                     rawText && rawText.get && Object.defineProperty(this, "responseText", {
@@ -5700,7 +5715,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 130;
+    const VERSION = 131;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -5926,8 +5941,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         if (idx > 0) try {
             const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
             const its = o.entities[o.selectedAirBoundsSearchId].itineraries || [];
-            const vorher = its[Math.min(idx, its.length - 1) - 1];
-            const out = vorher && parseISO(String(vorher.departureDateTime).slice(0, 10));
+            const previous = its[Math.min(idx, its.length - 1) - 1];
+            const out = previous && parseISO(String(previous.departureDateTime).slice(0, 10));
             out && out > floor && (floor = out);
         } catch (e) {}
         return floor;
@@ -6055,11 +6070,11 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                 });
             } catch (e) {}
             monthPhase.set(key, cal.loading === key ? "loading" : done ? "done" : "pending");
-            let offen = null;
+            let pending = null;
             try {
-                offen = cal.poolsPendingFor ? cal.poolsPendingFor(y, mo - 1) : null;
+                pending = cal.poolsPendingFor ? cal.poolsPendingFor(y, mo - 1) : null;
             } catch (e) {}
-            monthPools.set(key, offen);
+            monthPools.set(key, pending);
         });
         const POOL_OF = {
             eco: "ECONOMY",
@@ -6070,8 +6085,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         const waiting = (dateStr, cab) => {
             const key = dateStr.slice(0, 7);
             if ("loading" !== monthPhase.get(key)) return !1;
-            const offen = monthPools.get(key);
-            return !(cab && POOL_OF[cab] && offen) || offen.indexOf(POOL_OF[cab]) >= 0;
+            const pending = monthPools.get(key);
+            return !(cab && POOL_OF[cab] && pending) || pending.indexOf(POOL_OF[cab]) >= 0;
         };
         const DOW = [ "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa" ];
         const longDate = dt => dt.toLocaleDateString("de-DE", {
@@ -6100,7 +6115,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             } catch (e) {}
             const mKey = d.getFullYear() + "-" + pad(d.getMonth() + 1);
             const inMonth = list => (list || []).some(x => x && String(x.date).slice(0, 7) === mKey);
-            const kal = inMonth(cal.days);
+            const inCal = inMonth(cal.days);
             const bbd = bbdShown() && (() => {
                 const b = window.__mmBBD;
                 return !(!b || b.superseded || !inMonth(b.days));
@@ -6108,9 +6123,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             const name = d.toLocaleDateString("de-DE", {
                 month: "long"
             });
-            const status = "Aktuelle Anzeige: " + (kal ? "Kalenderpreise unvollständig" : bbd ? "Nur BBD-Preise" : "Keine Preise");
+            const status = "Aktuelle Anzeige: " + (inCal ? "Kalenderpreise unvollständig" : bbd ? "Nur BBD-Preise" : "Keine Preise");
             return {
-                button: '<button type="button" class="mmcal-loadbtn' + (busy ? " is-busy" : "") + '"' + (busy ? " disabled" : ' data-loadmonth="' + d.getFullYear() + "-" + d.getMonth() + '"') + ' title="' + esc("Holt die Kalenderpreise für " + name + ". " + status + (bbd && !kal ? ". Können veraltet oder nicht mehr verfügbar sein." : ".")) + '">' + '<span class="mmcal-loaddot"></span>' + (queued ? cols >= 4 ? "Kalender wartet …" : "wartet …" : busy ? cols >= 4 ? "Kalender lädt …" : "lädt …" : cols >= 4 ? "Kalender laden" + (n ? " · " + n + (1 === n ? " Abfrage" : " Abfragen") : "") : "Laden") + "</button>",
+                button: '<button type="button" class="mmcal-loadbtn' + (busy ? " is-busy" : "") + '"' + (busy ? " disabled" : ' data-loadmonth="' + d.getFullYear() + "-" + d.getMonth() + '"') + ' title="' + esc("Holt die Kalenderpreise für " + name + ". " + status + (bbd && !inCal ? ". Können veraltet oder nicht mehr verfügbar sein." : ".")) + '">' + '<span class="mmcal-loaddot"></span>' + (queued ? cols >= 4 ? "Kalender wartet …" : "wartet …" : busy ? cols >= 4 ? "Kalender lädt …" : "lädt …" : cols >= 4 ? "Kalender laden" + (n ? " · " + n + (1 === n ? " Abfrage" : " Abfragen") : "") : "Laden") + "</button>",
                 status: status,
                 text: busy || cols < 7 ? "" : '<span class="mmcal-loadsub">' + esc(status) + "</span>"
             };
@@ -6308,7 +6323,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             b.addEventListener("click", () => selectDate(b.dataset.date, b.dataset.cabin));
         });
     }
-    function ankerMonat() {
+    function anchorMonth() {
         const a = state.selectedDate || currentSearchDate();
         if (!a) return [];
         const d = parseISO(a);
@@ -6363,11 +6378,11 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         autoRunning = !0;
         let staleSeen = !1;
         try {
-            for (const m of ankerMonat()) {
+            for (const m of anchorMonth()) {
                 const k = cal.route + "|" + m.k;
                 autoTried.has(k) || monthDone(cal, m) || autoPending.add(k);
             }
-            for (const m of ankerMonat()) {
+            for (const m of anchorMonth()) {
                 const key = cal.route + "|" + m.k;
                 if (autoTried.has(key) || monthDone(cal, m)) continue;
                 state.root && render();
@@ -7005,7 +7020,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 60;
+    const VERSION = 62;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -7615,7 +7630,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         timer: null,
         authzUrl: null
     };
-    const GATEWAY_RE = /api\.shop\.miles-and-more\.com\/one-booking\/v\d+\/search\/air-(bounds|calendars)/i;
+    const GATEWAY_RE = /api\.shop\.miles-and-more\.com\/one-booking\/v\d+\/(?!auth\/)/i;
     function swapBearer(value) {
         if (!/^Bearer\s+\S+/i.test(String(value || ""))) return null;
         const cur = storedToken();
@@ -7696,12 +7711,12 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             throw new Error("Netzfehler, kein HTTP-Status (" + (e && e.message || e) + ")");
         }
         if (!r.ok) {
-            let grund = "";
+            let reason = "";
             try {
                 const j = await r.json();
-                grund = j && (j.error_description || j.error || j.message) || "";
+                reason = j && (j.error_description || j.error || j.message) || "";
             } catch (e) {}
-            throw new Error("HTTP " + r.status + (grund ? ": " + String(grund).slice(0, 120) : ""));
+            throw new Error("HTTP " + r.status + (reason ? ": " + String(reason).slice(0, 120) : ""));
         }
         return r.json();
     }
@@ -8079,28 +8094,28 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                         safe(() => {
                             h().ingestText ? h().ingestText(text, status, callSig) : h().ingest && h().ingest(JSON.parse(text), status, callSig);
                         });
-                        let sauber = null;
+                        let cleaned = null;
                         safe(() => {
-                            sauber = h().withoutStopWarning && h().withoutStopWarning(text);
+                            cleaned = h().withoutStopWarning && h().withoutStopWarning(text);
                         });
-                        sauber && (state.stopWarningsStripped = (state.stopWarningsStripped || 0) + 1);
-                        let leer = null;
-                        sauber && safe(() => {
-                            leer = h().withoutPricelessGroups && h().withoutPricelessGroups(sauber);
+                        cleaned && (state.stopWarningsStripped = (state.stopWarningsStripped || 0) + 1);
+                        let emptied = null;
+                        cleaned && safe(() => {
+                            emptied = h().withoutPricelessGroups && h().withoutPricelessGroups(cleaned);
                         });
-                        if (leer) {
+                        if (emptied) {
                             state.pricelessGroupsEmptied = (state.pricelessGroupsEmptied || 0) + 1;
-                            sauber = leer;
+                            cleaned = emptied;
                         }
-                        let ohne = null;
+                        let stripped = null;
                         safe(() => {
-                            ohne = h().withoutPlaceholderGroups && h().withoutPlaceholderGroups(sauber || text);
+                            stripped = h().withoutPlaceholderGroups && h().withoutPlaceholderGroups(cleaned || text);
                         });
-                        if (ohne) {
+                        if (stripped) {
                             state.placeholderGroupsRemoved = (state.placeholderGroupsRemoved || 0) + 1;
-                            sauber = ohne;
+                            cleaned = stripped;
                         }
-                        if (sauber) return new Response(sauber, {
+                        if (cleaned) return new Response(cleaned, {
                             status: res.status,
                             statusText: res.statusText,
                             headers: res.headers
@@ -8186,7 +8201,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 197;
+    const VERSION = 198;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -9231,8 +9246,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 delete e.widths.__u__;
                 delete e.letterYByCabin.__u__;
                 ((e, rows) => {
-                    const breiteste = Math.max(0, ...Object.values(e.widths || {}).filter(v => null != v));
-                    Math.max(breiteste, ...Object.values(e.letterYByCabin || {}).map(m => Math.max(0, ...Object.values(m || {})) + 1)) < WIDE_LANES || Object.keys(e.letterYByCabin || {}).forEach(cab => {
+                    const widest = Math.max(0, ...Object.values(e.widths || {}).filter(v => null != v));
+                    Math.max(widest, ...Object.values(e.letterYByCabin || {}).map(m => Math.max(0, ...Object.values(m || {})) + 1)) < WIDE_LANES || Object.keys(e.letterYByCabin || {}).forEach(cab => {
                         const ownY = e.letterYByCabin[cab];
                         if (!ownY || !(ownY => {
                             const Ls = Object.keys(ownY).sort((a, b) => ownY[a] - ownY[b]);
@@ -9241,16 +9256,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                             return y[1] - y[0] === 1 && y[2] - y[1] === 2 && y[3] - y[2] === 1;
                         })(ownY)) return;
                         const Ls = Object.keys(ownY).sort((a, b) => ownY[a] - ownY[b]);
-                        const fest = {};
+                        const fixedY = {};
                         [ 0, 2, 3, 5 ].forEach((v, i) => {
-                            fest[Ls[i]] = v;
+                            fixedY[Ls[i]] = v;
                         });
-                        e.letterYByCabin[cab] = fest;
+                        e.letterYByCabin[cab] = fixedY;
                         e.widths && (e.widths[cab] = 6);
                         (rows || []).forEach(r => {
                             r.cabin === cab && Object.keys(r.seats || {}).forEach(L => {
                                 const s = r.seats[L];
-                                s && null != fest[L] && (s.y = fest[L]);
+                                s && null != fixedY[L] && (s.y = fixedY[L]);
                             });
                         });
                     });
@@ -9300,10 +9315,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         merged.decks.forEach(d => d.rows.forEach(r => {
             r.cabin && has.add(r.cabin);
         }));
-        const fehl = merged.failedCabins || [];
+        const failedCabins = merged.failedCabins || [];
         if (!has.has("first") || !has.has("eco")) return merged;
         if (has.has("business") || has.has("ecoPremium")) return merged;
-        if (fehl.indexOf("business") >= 0 || fehl.indexOf("ecoPremium") >= 0) return merged;
+        if (failedCabins.indexOf("business") >= 0 || failedCabins.indexOf("ecoPremium") >= 0) return merged;
         merged.decks.forEach(d => {
             d.rows.forEach(r => {
                 "first" === r.cabin && (r.cabin = "business");
@@ -9538,16 +9553,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         cols.forEach((r, i) => {
             const plan = (r => {
                 const sec = sectionOf.get(r);
-                const geteilt = (sectionsBy[r.cabin] || []).length > 1;
-                const key = geteilt ? sec.key : r.cabin + (r.slim ? "|slim" : "");
+                const isSplit = (sectionsBy[r.cabin] || []).length > 1;
+                const key = isSplit ? sec.key : r.cabin + (r.slim ? "|slim" : "");
                 if (plans[key]) return plans[key];
-                if (!geteilt && r.slim && refLetters.length) return plans[key] = {
+                if (!isSplit && r.slim && refLetters.length) return plans[key] = {
                     width: refWidth,
                     y: refY,
                     exact: !0
                 };
-                const rows = geteilt ? sec.rows : deck.rows.filter(x => x.cabin === r.cabin);
-                let own = geteilt ? sec.y : (deck.letterYByCabin || {})[r.cabin];
+                const rows = isSplit ? sec.rows : deck.rows.filter(x => x.cabin === r.cabin);
+                let own = isSplit ? sec.y : (deck.letterYByCabin || {})[r.cabin];
                 if (!own || !Object.keys(own).length) {
                     own = {};
                     [ ...new Set(rows.flatMap(x => Object.keys(x.seats))) ].sort().forEach((L, i) => {
@@ -9562,7 +9577,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 });
                 const across = rows.reduce((n, x) => Math.max(n, Object.keys(x.seats).length), 1);
                 const gaps = groups.length - 1;
-                const w = geteilt ? Math.max(letters.length + gaps, ...Object.values(own).map(v => v + 1)) : (c => {
+                const w = isSplit ? Math.max(letters.length + gaps, ...Object.values(own).map(v => v + 1)) : (c => {
                     const w = (deck.widths || {})[c];
                     return null != w && w >= 2 ? w : null;
                 })(r.cabin) || letters.length + gaps;
@@ -9863,14 +9878,14 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             rows.push(legRow(leg, i));
             const stops = leg.techStops || [];
             stops.length && (isRail(leg) || isBus(leg)) ? rows.push((stops => {
-                const orte = stops.map(techPlace).filter(Boolean);
+                const placeNames = stops.map(techPlace).filter(Boolean);
                 const n = stops.length;
-                const tip = orte.length ? orte.join(", ") : "Halt ohne Umstieg, Sie bleiben sitzen";
+                const tip = placeNames.length ? placeNames.join(", ") : "Halt ohne Umstieg, Sie bleiben sitzen";
                 return `<div class="mmrc-row is-lay is-tech">` + `<span class="mmrc-laymeta">` + `<span class="mmrc-lead is-plain" title="${esc(tip)}">` + `${n} Zwischenhalt${1 === n ? "" : "e"}</span>` + `</span></div>`;
             })(stops)) : stops.forEach(t => rows.push((t => {
-                const ort = techPlace(t);
-                const zeit = null != t.duration ? `<b>${esc(fmtDur(t.duration))}</b>` : "";
-                return `<div class="mmrc-row is-lay is-tech">` + `<span class="mmrc-laymeta">` + `<span class="mmrc-lead is-plain" title="Zwischenlandung ohne Umstieg, Sie bleiben an Bord">` + `Zwischenlandung${ort ? " in " + esc(ort) : ""}:</span> ${zeit}` + `</span></div>`;
+                const placeName = techPlace(t);
+                const durationHtml = null != t.duration ? `<b>${esc(fmtDur(t.duration))}</b>` : "";
+                return `<div class="mmrc-row is-lay is-tech">` + `<span class="mmrc-laymeta">` + `<span class="mmrc-lead is-plain" title="Zwischenlandung ohne Umstieg, Sie bleiben an Bord">` + `Zwischenlandung${placeName ? " in " + esc(placeName) : ""}:</span> ${durationHtml}` + `</span></div>`;
             })(t)));
             if (i === it.legs.length - 1) return;
             const layHtml = ((lo, leg, next) => {
@@ -11139,7 +11154,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 33;
+    const VERSION = 34;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     if (window.__mmSort) try {
         window.__mmSort.superseded = !0;
@@ -11173,9 +11188,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     const boundsData = () => window.__mmBounds || {};
     const cards = () => window.__mmCards || null;
     const CFF_CABIN = [ [ /^CFFPECO/i, "ecoPremium" ], [ /^CFFECO/i, "eco" ], [ /^CFFBUS/i, "business" ], [ /^CFFFIRS?/i, "first" ] ];
-    function shown(f, feld) {
+    function shown(f, field) {
         const c = cards();
-        return f.pax && c && c.priceMode && "total" === c.priceMode() ? "miles" === feld ? f.totalMiles : "cash" === feld ? f.totalCash : f[feld] : f[feld];
+        return f.pax && c && c.priceMode && "total" === c.priceMode() ? "miles" === field ? f.totalMiles : "cash" === field ? f.totalCash : f[field] : f[field];
     }
     const minutes = hhmm => {
         const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ""));
@@ -11367,18 +11382,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
     }
     const BAR_ID = "mmsort-bar";
-    function menuTeile() {
+    function menuParts() {
         const bar = document.getElementById(BAR_ID);
         return bar ? {
-            liste: bar.querySelector(".mmsort-list"),
-            knopf: bar.querySelector(".mmsort-trigger")
+            list: bar.querySelector(".mmsort-list"),
+            button: bar.querySelector(".mmsort-trigger")
         } : null;
     }
     function closeMenu() {
-        const t = menuTeile();
-        if (t && t.liste && !t.liste.hidden) {
-            t.liste.hidden = !0;
-            t.knopf && t.knopf.setAttribute("aria-expanded", "false");
+        const t = menuParts();
+        if (t && t.list && !t.list.hidden) {
+            t.list.hidden = !0;
+            t.button && t.button.setAttribute("aria-expanded", "false");
         }
     }
     const filterPopEl = () => document.querySelector(".mmflt-pop");
@@ -11447,13 +11462,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 business: "Business",
                 first: "First"
             }[effectiveCabin(listedItems())] || null;
-            const aktiv = orderById(state.sort);
+            const activeOrder = orderById(state.sort);
             const opts = ORDERS.map(o => {
-                const an = o.id === state.sort;
+                const isCurrent = o.id === state.sort;
                 const hint = o.hint && name ? ' <span class="mmsort-sub">' + esc(name) + "</span>" : "";
-                return '<button type="button" role="menuitemradio" aria-checked="' + an + '"' + ' class="mmsort-opt' + (an ? " is-on" : "") + '" data-order="' + o.id + '">' + esc(o.label) + hint + "</button>";
+                return '<button type="button" role="menuitemradio" aria-checked="' + isCurrent + '"' + ' class="mmsort-opt' + (isCurrent ? " is-on" : "") + '" data-order="' + o.id + '">' + esc(o.label) + hint + "</button>";
             }).join("");
-            return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(aktiv.label) + (aktiv.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
+            return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(activeOrder.label) + (activeOrder.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
                 const c = cards();
                 const heads = c && c.paxHeads ? c.paxHeads() : 1;
                 if (!(heads > 1 && c.priceMode)) return "";
@@ -11481,14 +11496,14 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             }();
         }();
         if (html === lastHtml) return;
-        const alteListe = bar.querySelector(".mmsort-list");
-        const offen = !(!alteListe || alteListe.hidden);
+        const oldList = bar.querySelector(".mmsort-list");
+        const wasOpen = !(!oldList || oldList.hidden);
         const pop = bar.querySelector(".mmflt-pop");
         pop && pop.remove();
         bar.innerHTML = html;
         lastHtml = html;
         pop && bar.appendChild(pop);
-        if (offen) {
+        if (wasOpen) {
             const l = bar.querySelector(".mmsort-list");
             const t = bar.querySelector(".mmsort-trigger");
             l && (l.hidden = !1);
@@ -11658,11 +11673,11 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                             }
                             if (e.target.closest && e.target.closest(".mmsort-trigger")) {
                                 !function() {
-                                    const t = menuTeile();
-                                    if (!t || !t.liste) return;
-                                    const auf = t.liste.hidden;
-                                    t.liste.hidden = !auf;
-                                    t.knopf && t.knopf.setAttribute("aria-expanded", String(auf));
+                                    const t = menuParts();
+                                    if (!t || !t.list) return;
+                                    const opening = t.list.hidden;
+                                    t.list.hidden = !opening;
+                                    t.button && t.button.setAttribute("aria-expanded", String(opening));
                                 }();
                                 return;
                             }
@@ -11840,7 +11855,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 51;
+    const VERSION = 57;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const inherited = window.__mmRecovery;
     if (inherited) {
@@ -11856,6 +11871,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         } catch (e) {}
     }
     const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab";
+    const WARN = "#A54A4A";
     const LOGIN_URL = "https://account.miles-and-more.com/web/de/de/login.html" + "?scope=AUTHENTICATED%20IDENTIFIED%20urn%3Amilesandmore%3Atech%3Abackground%3Av1%3Aactive" + "&response_type=code&reduced_state=NONE&principal_type=SERVICE_CARD_NUMBER" + "&client_id=agGBZmuTGwFXWzVDg8ckGKGBytemE1nS" + "&redirect_uri=https%3A%2F%2Fwww.miles-and-more.com" + "&state=NDkyMDIxODQzMTEwMTU5MjE1MTExNzY1Nzk2MTcwMjM5ODE2ODExOA" + "&prompt=login";
     const LOGOUT_URL = "https://api.miles-and-more.com/oauth2/logout" + "?redirect_uri=" + encodeURIComponent("https://www.miles-and-more.com/de/de.html");
     const LOGOUT_HOSTS = [ "api.miles-and-more.com", "api.travelid.lufthansa.com" ];
@@ -11980,7 +11996,159 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
     }
     const NO_FLIGHT_BANNER_RE = /Leider haben wir keinen Flug gefunden/;
+    function selectedCart() {
+        try {
+            const c = JSON.parse(sessionStorage.getItem("cart"));
+            return c && c.entities && c.entities[c.selectedCartId] || null;
+        } catch (e) {
+            return null;
+        }
+    }
+    const cartItems = cart => {
+        const out = [];
+        (cart && cart.airOffers || []).forEach(o => (o.offerItems || []).forEach(it => out.push(it)));
+        return out;
+    };
+    const messageLeaves = re => [ ...document.querySelectorAll(".messages-list .message-title *") ].filter(n => !n.childElementCount && !n.dataset.mmrecDone && re.test(n.textContent || ""));
+    const cell = (cls, text) => {
+        const el = document.createElement("span");
+        el.className = cls;
+        el.textContent = text;
+        return el;
+    };
+    function ownLine(n, block) {
+        n.textContent = "";
+        n.appendChild(block);
+        const panel = n.closest(".messages-panel");
+        if (panel) {
+            panel.classList.add("mmrec-own");
+            panel.classList.toggle("mmrec-own-only", 1 === panel.querySelectorAll(".messages-list .message").length);
+        }
+    }
+    const MIXED_CABIN_RE = /niedrigeren Klasse|in a lower class|classe inférieure|classe inferiore|clase inferior/;
+    const CABIN_RANK = {
+        first: 4,
+        business: 3,
+        ecoPremium: 2,
+        eco: 1
+    };
+    const CABIN_LABEL = {
+        first: "First",
+        business: "Business",
+        ecoPremium: "Premium Economy",
+        eco: "Economy"
+    };
+    function nameMixedCabins() {
+        const nodes = messageLeaves(MIXED_CABIN_RE);
+        if (!nodes.length) return;
+        const mixed = function() {
+            const cart = selectedCart();
+            if (!cart) return null;
+            const bounds = [];
+            cartItems(cart).forEach(it => (it.air && it.air.bounds || []).forEach(b => bounds.push(b)));
+            const out = [];
+            bounds.forEach((b, i) => {
+                const fl = b.flights || [];
+                if (!fl.some(f => f.cabin !== fl[0].cabin)) return;
+                const top = Math.max(...fl.map(f => CABIN_RANK[f.cabin] || 0));
+                out.push({
+                    label: 2 === bounds.length ? i ? "Rückflug" : "Hinflug" : bounds.length > 2 ? "Flug " + (i + 1) : "",
+                    flights: fl.map(f => {
+                        const x = f.flight || {};
+                        return {
+                            no: (x.marketingAirlineCode || "") + (x.marketingFlightNumber || ""),
+                            route: (x.departure && x.departure.locationCode || "?") + " → " + (x.arrival && x.arrival.locationCode || "?"),
+                            cabin: CABIN_LABEL[f.cabin] || f.cabin || "?",
+                            lower: (CABIN_RANK[f.cabin] || 0) < top
+                        };
+                    })
+                });
+            });
+            return out.length ? out : null;
+        }();
+        if (mixed) {
+            injectStyles();
+            nodes.forEach(n => {
+                const grid = document.createElement("div");
+                grid.className = "mmrec-cabins";
+                grid.appendChild(cell("mmrec-own-head mmrec-cabins-head", "Gemischte Kabinen"));
+                mixed.forEach(b => {
+                    b.label && grid.appendChild(cell("mmrec-cabins-bound", b.label));
+                    b.flights.forEach(f => {
+                        const low = f.lower ? " mmrec-cabins-lower" : "";
+                        grid.appendChild(cell("mmrec-cabins-no" + low, f.no));
+                        grid.appendChild(cell("mmrec-cabins-route" + low, f.route));
+                        grid.appendChild(cell("mmrec-cabins-cabin" + low, f.cabin));
+                    });
+                });
+                ownLine(n, grid);
+            });
+        }
+    }
+    state.nameMixedCabins = nameMixedCabins;
+    const PRICE_CHANGED_RE = /Die Flugpreise haben sich geändert|The flight prices changed|Les prix des vols ont changé|I prezzi dei voli sono cambiati|Los precios de los vuelos han cambiado/;
+    const fmtNum = v => Number(v).toLocaleString("de-DE", {
+        maximumFractionDigits: 2
+    });
+    function checkPriceChange() {
+        const nodes = messageLeaves(PRICE_CHANGED_RE);
+        if (!nodes.length) return;
+        const pc = function() {
+            const items = cartItems(selectedCart());
+            const B = window.__mmBounds;
+            if (1 !== items.length || !B || !B.bounds || "function" != typeof B.bounds.values) return null;
+            const it = items[0];
+            const bounds = it.air && it.air.bounds || [];
+            const last = bounds[bounds.length - 1];
+            if (!last || !(last.flights || []).length) return null;
+            const fx = f => f.flight || {};
+            const sig = last.flights.map(f => (fx(f).marketingAirlineCode || "") + (fx(f).marketingFlightNumber || "")).join(",");
+            const date = String((fx(last.flights[0]).departure || {}).dateTime || "").slice(0, 10);
+            let fare = null;
+            for (const b of B.bounds.values()) if (b && b.depDate === date && (b.legs || []).map(l => (l.mkt || "") + (l.mktNo || "")).join(",") === sig) {
+                fare = (b.fares || []).find(f => f.code === last.fareFamilyCode) || null;
+                if (fare) break;
+            }
+            if (!fare) return null;
+            const p = it.prices || {};
+            const total = (p.totalPrices || [])[0] || {};
+            const miles = p.milesConversion && p.milesConversion.convertedMiles ? p.milesConversion.convertedMiles.total : null;
+            const cash = null != total.total ? total.total / Math.pow(10, total.currency && null != total.currency.decimalPlaces ? total.currency.decimalPlaces : 2) : null;
+            const lines = [];
+            null != miles && null != fare.totalMiles && miles !== fare.totalMiles && lines.push([ "Meilen", fmtNum(fare.totalMiles), fmtNum(miles) ]);
+            null != cash && null != fare.totalCash && (Math.abs(cash - fare.totalCash) > .005 || fare.currency && total.currencyCode !== fare.currency) && lines.push([ "Zuzahlung", fmtNum(fare.totalCash) + " " + (fare.currency || ""), fmtNum(cash) + " " + (total.currencyCode || "") ]);
+            return {
+                same: !lines.length,
+                single: 1 === bounds.length,
+                lines: lines
+            };
+        }();
+        if (pc && (pc.same || pc.single)) {
+            injectStyles();
+            nodes.forEach(n => {
+                if (pc.same) {
+                    n.dataset.mmrecDone = "same";
+                    const li = n.closest(".message");
+                    const panel = n.closest("refx-messages-panel-pres") || n.closest(".messages-panel");
+                    (panel && 1 === panel.querySelectorAll(".messages-list .message").length ? panel : li || n).classList.add("mmrec-hidden");
+                    return;
+                }
+                const grid = document.createElement("div");
+                grid.className = "mmrec-price";
+                grid.appendChild(cell("mmrec-own-head", "Preis geändert"));
+                pc.lines.forEach(([label, before, now]) => {
+                    grid.appendChild(cell("mmrec-price-label", label));
+                    grid.appendChild(cell("mmrec-price-before", before));
+                    grid.appendChild(cell("mmrec-price-now", now));
+                });
+                ownLine(n, grid);
+            });
+        }
+    }
+    state.checkPriceChange = checkPriceChange;
     function rewriteBanners() {
+        nameMixedCabins();
+        checkPriceChange();
         const tc = transportCause();
         document.querySelectorAll("lhg-upsell-link-out .title-label, .no-flight-found .title-label").forEach(n => {
             if (n.childElementCount) return;
@@ -12111,6 +12279,23 @@ html.mmrec-own-back refx-recovery .action-button-container { display: none !impo
 .upsell-link-out.no-availability.mmrec-noanswer .content::before { content: none !important; }
 .upsell-link-out.no-availability.mmrec-noanswer .message { display: block !important; color: ${INK_secondary}; }
 .upsell-link-out.no-availability.mmrec-noanswer .footer { display: none !important; }
+
+.messages-panel.mmrec-own.mmrec-own-only .title { display: none; }
+.mmrec-own-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
+                  font-family: lufthansa-bold, sans-serif; line-height: 24px; color: #333; }
+.mmrec-cabins, .mmrec-price { display: grid; grid-template-columns: auto auto 1fr; column-gap: 18px; row-gap: 2px;
+                align-items: baseline; font-size: 14px; line-height: 20px; color: ${INK_secondary}; }
+.mmrec-cabins-head::before { content: '⇅'; font-size: 15px; }
+.mmrec-price-before { text-decoration: line-through; color: ${INK_muted}; }
+.mmrec-price-now { font-family: lufthansa-bold, sans-serif; color: ${WARN}; }
+.mmrec-price-now::before { content: '→ '; color: ${INK_secondary}; font-family: lufthansa-regular, sans-serif; }
+.mmrec-cabins-bound { grid-column: 1 / -1; margin-top: 4px; font-size: 11px; font-weight: 700;
+                      letter-spacing: .05em; text-transform: uppercase; color: ${INK_muted}; }
+.mmrec-cabins-no { font-family: lufthansa-bold, sans-serif; color: ${INK_primary}; }
+.mmrec-cabins-cabin { font-weight: 600; }
+.mmrec-cabins-lower { color: ${WARN}; }
+.mmrec-cabins-lower.mmrec-cabins-cabin { font-family: lufthansa-bold, sans-serif; }
+.mmrec-cabins-lower.mmrec-cabins-cabin::after { content: ' ↓'; }
 `;
         let el = document.getElementById("mmrec-styles");
         if (!el) {
@@ -12248,33 +12433,33 @@ html.mmrec-own-back refx-recovery .action-button-container { display: none !impo
                     });
                 } else manualLink();
             });
-            let zurueck = !1;
-            const beiRueckkehr = () => {
-                if (!zurueck && loginOpened && !document.hidden) {
-                    zurueck = !0;
+            let returned = !1;
+            const onReturn = () => {
+                if (!returned && loginOpened && !document.hidden) {
+                    returned = !0;
                     try {
                         retrySearch();
                     } catch (e) {}
                 }
             };
-            const beiFokus = () => {
-                Date.now() - loginOpenedAt > 5e3 && beiRueckkehr();
+            const onFocus = () => {
+                Date.now() - loginOpenedAt > 5e3 && onReturn();
             };
             try {
                 state._offResume && state._offResume();
             } catch (e) {}
             try {
-                onLoginClosed = beiRueckkehr;
-                document.addEventListener("visibilitychange", beiRueckkehr);
-                window.addEventListener("focus", beiFokus);
+                onLoginClosed = onReturn;
+                document.addEventListener("visibilitychange", onReturn);
+                window.addEventListener("focus", onFocus);
                 state._offResume = () => {
                     try {
-                        document.removeEventListener("visibilitychange", beiRueckkehr);
+                        document.removeEventListener("visibilitychange", onReturn);
                     } catch (e) {}
                     try {
-                        window.removeEventListener("focus", beiFokus);
+                        window.removeEventListener("focus", onFocus);
                     } catch (e) {}
-                    onLoginClosed === beiRueckkehr && (onLoginClosed = null);
+                    onLoginClosed === onReturn && (onLoginClosed = null);
                     if (loginPoll) {
                         clearInterval(loginPoll);
                         loginPoll = null;
@@ -12417,7 +12602,7 @@ jederzeit von Hand starten.</p>` : ""}
         }
     }
     const SEARCH_RE = /air-bounds|air-calendars/i;
-    const uhr = ms => new Date(ms).toLocaleTimeString("de-DE", {
+    const timeOfDay = ms => new Date(ms).toLocaleTimeString("de-DE", {
         hour: "2-digit",
         minute: "2-digit"
     });
@@ -12454,7 +12639,7 @@ jederzeit von Hand starten.</p>` : ""}
                 status: 0,
                 secs: 0,
                 login: !0,
-                head: "Das Zugangstoken dieses Tabs ist um " + uhr(t.at) + " Uhr abgelaufen.",
+                head: "Das Zugangstoken dieses Tabs ist um " + timeOfDay(t.at) + " Uhr abgelaufen.",
                 why: GAG_SESSION,
                 hint: "Neu anmelden, dann geht die Suche hier weiter."
             } : null;
@@ -12472,7 +12657,7 @@ jederzeit von Hand starten.</p>` : ""}
         const isAuth = "Authentifizierung" === f.name;
         const code = String(f.apiCode || "");
         if (code) {
-            const ab = function() {
+            const origin = function() {
                 const s = currentSearch();
                 const code = s && s.itineraries && s.itineraries[0] && s.itineraries[0].originLocationCode;
                 if (!code) return null;
@@ -12482,16 +12667,16 @@ jederzeit von Hand starten.</p>` : ""}
                 } catch (e) {}
                 return name ? `${name} (${code})` : code;
             }();
-            const abTxt = ab ? esc(ab) : null;
+            const originText = origin ? esc(origin) : null;
             d.login = !1;
             if ("40834" === code) {
-                d.head = abTxt ? `Ab ${abTxt} gibt es an diesem Datum keine Prämienflüge.` : "Für diese Strecke gibt es an diesem Datum keine Prämienflüge.";
+                d.head = originText ? `Ab ${originText} gibt es an diesem Datum keine Prämienflüge.` : "Für diese Strecke gibt es an diesem Datum keine Prämienflüge.";
                 d.why = "Auf vielfachen Kundenwunsch haben wir Ihnen ein leeres Ergebnis als " + "technischen Fehler verkauft.";
                 d.hint = "Die Anmeldung ist in Ordnung. Anderes Datum oder anderen Abflugort versuchen. " + "Manche Bahnhofs- und Off-Line-Codes verkaufen gar keine Prämienflüge.";
                 return d;
             }
             if ("2381" === code) {
-                d.head = abTxt ? `${abTxt} kennt die Prämienflugsuche nicht.` : "Diesen Abflugort kennt die Prämienflugsuche nicht.";
+                d.head = originText ? `${originText} kennt die Prämienflugsuche nicht.` : "Diesen Abflugort kennt die Prämienflugsuche nicht.";
                 d.why = "Auf vielfachen Kundenwunsch bieten wir Orte an, an denen wir nicht fliegen.";
                 d.hint = "Die Anmeldung ist in Ordnung. Nächstgelegenen Flughafen oder Bahnhof wählen.";
                 return d;
@@ -12773,7 +12958,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.7.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.7.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;

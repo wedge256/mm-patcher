@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.1 — 2026-09-24
+
+### Geändert
+
+- **Einige Hinweistexte überarbeitet**
+
+### Behoben
+
+- **Nach einem Wechsel des Buchungsbüros lief der Warenkorb im alten Büro**
+  (andere Währung als in der Trefferliste)
+
 ## 1.7.0 — 2026-09-23
 
 ### Neu
