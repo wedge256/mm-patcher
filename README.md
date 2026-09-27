@@ -24,6 +24,23 @@ Updates kommen automatisch, zusätzlich weist das Script auf eine neue Version h
 Alle Funktionen lassen sich einzeln abschalten: Knopf "M&M Patcher Settings" oben
 rechts auf der Ergebnisseite.
 
+### Safari (Mac)
+
+1. [Userscripts](https://apps.apple.com/de/app/userscripts/id1463298887) aus dem
+   App Store installieren (kostenlos) und einmal öffnen. Einen Ordner muss man
+   nicht festlegen.
+
+2. Safari -> Einstellungen -> Erweiterungen: Userscripts aktivieren.
+
+3. [**mm-searchbar.user.js**](https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js)
+   in Safari öffnen, dann das Userscripts-Symbol in der Symbolleiste anklicken
+   und die Installation bestätigen.
+
+4. Beim ersten Aufruf der Prämiensuche Userscripts den Zugriff auf
+   shop.miles-and-more.com dauerhaft erlauben.
+
+Getestet mit Safari 26.6 und Userscripts 4.8.6.
+
 ---
 
 ## Funktionen
