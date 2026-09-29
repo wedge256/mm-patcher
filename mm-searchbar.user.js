@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.7.1
+// @version      1.7.2
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -1078,7 +1078,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 79;
+    const VERSION = 80;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -1089,7 +1089,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }
     document.querySelectorAll(".mmset-fab, .mmset-panel, .mmset-tip").forEach(e => e.remove());
     const KEY = "mm_features";
-    const OFFICES = [ [ "Deutschland (FRA)", "FRALH08MP" ], [ "Österreich (VIE)", "VIELH08MP" ], [ "Schweiz (ZRH)", "ZRHLH08MP" ], [ "Niederlande (AMS)", "AMSLH08MP" ], [ "Belgien (BRU)", "BRULH08MP" ], [ "Luxemburg (LUX)", "LUXLH08MP" ], [ "Frankreich (PAR)", "PARLH08MP" ], [ "Italien (MIL)", "MILLH08MP" ], [ "Spanien (MAD)", "MADLH08MP" ], [ "Portugal (LIS)", "LISLH08MP" ], [ "Irland (DUB)", "DUBLH08MP" ], [ "Großbritannien (LON)", "LONLH08MP" ], [ "Finnland (HEL)", "HELLH08MP" ], [ "Schweden (STO)", "STOLH08MP" ], [ "Polen (WAW)", "WAWLH08MP" ], [ "Griechenland (ATH)", "ATHLH08MP" ], [ "Türkei (IST)", "ISTLH08MP" ], [ "USA (NYC)", "NYCLH08MP" ], [ "Kanada (YTO)", "YTOLH08MP" ], [ "Mexiko (MEX)", "MEXLH08MP" ], [ "Brasilien (SAO)", "SAOLH08MP" ], [ "Singapur (SIN)", "SINLH08MP" ], [ "Japan (TYO)", "TYOLH08MP" ], [ "China (BJS)", "BJSLH08MP" ], [ "Hongkong (HKG)", "HKGLH08MP" ], [ "Südkorea (SEL)", "SELLH08MP" ], [ "Thailand (BKK)", "BKKLH08MP" ], [ "Malaysia (KUL)", "KULLH08MP" ], [ "Indien (DEL)", "DELLH08MP" ], [ "VAE (DXB)", "DXBLH08MP" ], [ "Südafrika (JNB)", "JNBLH08MP" ], [ "Australien (SYD)", "SYDLH08MP" ], [ "Neuseeland (AKL)", "AKLLH08MP" ] ];
+    const OFFICES = [ [ "Deutschland (FRA)", "FRALH08MP" ], [ "Österreich (VIE)", "VIELH08MP" ], [ "Schweiz (ZRH)", "ZRHLH08MP" ], [ "Niederlande (AMS)", "AMSLH08MP" ], [ "Belgien (BRU)", "BRULH08MP" ], [ "Luxemburg (LUX)", "LUXLH08MP" ], [ "Frankreich (PAR)", "PARLH08MP" ], [ "Italien (MIL)", "MILLH08MP" ], [ "Spanien (MAD)", "MADLH08MP" ], [ "Portugal (LIS)", "LISLH08MP" ], [ "Irland (DUB)", "DUBLH08MP" ], [ "Großbritannien (LON)", "LONLH08MP" ], [ "Finnland (HEL)", "HELLH08MP" ], [ "Schweden (STO)", "STOLH08MP" ], [ "Polen (WAW)", "WAWLH08MP" ], [ "Griechenland (ATH)", "ATHLH08MP" ], [ "Türkei (IST)", "ISTLH08MP" ], [ "USA (NYC)", "NYCLH08MP" ], [ "Kanada (YTO)", "YTOLH08MP" ], [ "Mexiko (MEX)", "MEXLH08MP" ], [ "Brasilien (SAO)", "SAOLH08MP" ], [ "Singapur (SIN)", "SINLH08MP" ], [ "Japan (TYO)", "TYOLH08MP" ], [ "China (BJS)", "BJSLH08MP" ], [ "Hongkong (HKG)", "HKGLH08MP" ], [ "Taiwan (TPE)", "TPELH08MP" ], [ "Südkorea (SEL)", "SELLH08MP" ], [ "Thailand (BKK)", "BKKLH08MP" ], [ "Malaysia (KUL)", "KULLH08MP" ], [ "Indien (DEL)", "DELLH08MP" ], [ "VAE (DXB)", "DXBLH08MP" ], [ "Südafrika (JNB)", "JNBLH08MP" ], [ "Australien (SYD)", "SYDLH08MP" ], [ "Neuseeland (AKL)", "AKLLH08MP" ] ];
     const DEFAULTS = {
         smartsearch: !0,
         iataExt: !0,
@@ -1589,8 +1589,18 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }
     state._applyOffice = applyOffice;
     state.officeName = id => {
-        const hit = OFFICES.find(([, x]) => x === String(id || "").toUpperCase());
-        return hit ? hit[0].replace(/\s*\([A-Z]{3}\)$/, "") : null;
+        const up = String(id || "").toUpperCase();
+        const hit = OFFICES.find(([, x]) => x === up);
+        if (hit) return hit[0].replace(/\s*\([A-Z]{3}\)$/, "");
+        try {
+            const I = window.__mmIata;
+            const iso = I && I.isoOf ? I.isoOf(up.slice(0, 3)) : null;
+            return iso && (I.countryNameOf && I.countryNameOf(iso) || new Intl.DisplayNames([ "de" ], {
+                type: "region"
+            }).of(iso)) || null;
+        } catch (e) {
+            return null;
+        }
     };
     function syncUI() {
         if (!panel) return;
@@ -1619,10 +1629,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 live = window.__mmAuth && window.__mmAuth.activeOffice && window.__mmAuth.activeOffice();
             } catch (e) {}
             const want = String(prefs.office || "");
-            const countryNameOf = id => {
-                const hit = OFFICES.find(([, x]) => x === id);
-                return hit ? hit[0].replace(/\s*\([A-Z]{3}\)$/, "") : null;
-            };
+            const countryNameOf = state.officeName;
             let off = !(!want || isAuto(want) || !live || want === live);
             if (isAuto(want)) {
                 const wanted = originCountry();
@@ -8201,7 +8208,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 198;
+    const VERSION = 202;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -8541,6 +8548,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     } catch (e) {}
     const LOGO_EMBED = {
         AV: "data:image/png;base64,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",
+        CX: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAE4UlEQVR42s2XXWid9R3HP9/f/zk5SVtUGrEtZG/1Zaww03TV2pvR7m5uoCIBB4XQNDmyeCUF8UI4BDYEL3QMRE3iWKRj6BlzrBMKboOjF4rzDcWI7Xylk24Q+0bMyznP7+fFOWY5Sdq0Xdrsufv/z/9/nu/zfXv+Dyy8hoY2MDS0gTW8rGU0O/sNpqa6miOtPSAopGK2rclSrAWoVkDr06lwXcXMTOf/h2SnZ88QoZTSNkqlQpOlNQRULAZmCriJublvrz1Ded6OIsO9I7Wl7Rw4sPFKG7wVUEpnEWdDsSGCrpRxM3197VfS4K2ARkam3XUKsZ5QR3hsJc+3rGXsg5RO4Eqh2Iysk3VtNzbZibUABO4nMPsSdF2ENltwc2FgoHttJAM4efI/kn9KsFHh3wv0zdzih+zff22Dw9CVA1QuG5VKbmETwBmka4BN4Wy1lPZy332dSJdVutQyqlYDwHftOiP32yS6ha7CNAV0WV6zuP6Go0xM5JdLwrTMnHj99Wnr6fkO0o+J2CTURkQbWFu2rnDa33j7s8vVT9mSmQiQcOkF87gLsZeIbYKOMIp5blkaHNyYT0//jUOHplY7gUtNLQXlsjE29gnG3zETIKStQruRdkXEfjqK+zh4cD3QWL9KbKVlZ/fsEdVqxM7vf65It5NSJ+4BJBHXAl2CW5mb2UjPjk947LHJZvrsax+uLqBqtfHUj/76C/1gew66fd4zUkJqR7pa6DZJP4od3ce5486jVKtBb29iYmKVAf03cYqdt7yn8G6ywndxzxfIHEAipU2CO21Hz+bo2X2MQ+OT8+DLZaNavShA59e9XDaGh5177+228L8gdZHnjmQLQhCYiZSgXv8INOZmz/DUU/+aX9Pb23jw555zJM4XgpWN2NubqFRy6++/h2S/RSriHkhqeQdGBFkyEOT5P138HvPnmTz7HpXKXMs9y+XG3okJUan4QoAXloxAiLDBA/dj6RHcM8CXpDTCkYSZMIN6/QuCl1z+IspeI6UPeeKJk5cu2ZKKiLDBgQdBv0AyIvJz+DCaUhpZBnkO7pPAceAziX+7M4WRIvQMo6P/OHcxno8nFD7KwzbY/yVhD5NSB3m+HCghCfegVmswadaJ1Al0B6BiAWZmPg3p0IWl7NyMKt5869XY2fO+glvIsk7cz7FajW6KCMBxBzNRq9dUrz3raIDR0XfO39QrstRs5pGn/+i5/5R6/vyi32lJIOSYGSklJJH7i066Oz/2YR9jY0cX2+bS676ZPgArHdhH6FdInU0QAI6UyDKo1aZBL8n96bxeP8z4+ExLrfzPgBb+0cDATVLcL7QPWNf0C82UTYo4Av67XIW/MjJSW7A/lusjXbSHymUxPOyUe9vsxNV95PEghWwr0fwwcQf3Yy4qpMIfePLJt+dvvAwjlw6olZXtgock7qZQaICo108jXiVU8VrtBcbHTyyS1y/kmLIyoAjN132ptA5qP7dID9Defh2zs0C8G3kciVyH+fjYK1Sr9UVsxsWcl3TBrPT37zXTLykUdlOvn4qII2HpTxTqL/P4bz5ftCcu9dC2MkMDA12KOCjTz4DjyJ51OMzIyAct3ljmvbRagBpzfX3FVMz2eHAHEXNh2Z/ZsuVlhofnWtgAVjLq6lyl0vWUSj9hqP9bS2S8jB+NXwFJqCJ5lxS9VgAAAABJRU5ErkJggg==",
         LA: "data:image/png;base64,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",
         ZH: "data:image/png;base64,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"
     };
@@ -8550,7 +8558,10 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         "4C": "LA",
         LP: "LA",
         XL: "LA",
-        PZ: "LA"
+        PZ: "LA",
+        OA: "A3",
+        LR: "AV",
+        "2K": "AV"
     };
     const iconCode = code => LOGO_ALIAS[code] || code;
     const logoUrl = code => logoBase && /^[A-Z0-9]{2}$/.test(code || "") ? logoBase + "icon-" + code + ".svg" : null;
@@ -10273,6 +10284,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const meta = CABIN[cabin];
         const col = document.createElement("div");
         col.className = "mmrc-col" + (fares.length ? "" : " is-empty") + (searched && cabin === searched ? " is-searched" : "");
+        col.dataset.cabin = cabin;
         col.style.setProperty("--mmc", meta.color);
         const cashes = fares.map(shownCash).filter(v => null != v);
         const cash = cashes.length ? Math.min(...cashes) : null;
@@ -10418,6 +10430,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const pk = document.querySelector(".mmrc-seatpeek");
         pk && pk.remove();
     }
+    const pickedCabin = new Map;
     function openSeatmap(it, idx) {
         const leg = (it.legs || [])[idx];
         if (!leg) return;
@@ -10639,7 +10652,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     return null;
                 }
             })(o.office);
-            return city + (name ? " (" + name + ")" : o.country ? "/" + o.country : "");
+            return city + (name ? " (" + name + ")" : "");
         };
         const head = "Buchungsbüro " + esc(labelOf(off));
         const pr = pricedOffice();
@@ -10873,21 +10886,23 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                     axis.length && (cols.style.gridTemplateRows = `auto auto repeat(${axis.length}, auto) 1fr auto`);
                     cabins.forEach(c => cols.appendChild(renderColumn(c, byCabin[c] || [], dicts, searched, it.key, axis)));
                     cols.style.setProperty("--mm-n", cabins.length);
-                    !function(cols) {
+                    !function(cols, pickKey, searched) {
                         const all = [ ...cols.querySelectorAll(".mmrc-col") ];
-                        if (all.length < 2) return;
+                        if (!all.length) return;
                         const milesOf = c => {
                             const n = [ ...c.querySelectorAll(".mmrc-mi") ].map(e => Number(e.textContent.replace(/\./g, ""))).filter(v => v > 0);
                             return n.length ? Math.min(...n) : 1 / 0;
                         };
                         const filled = all.filter(c => !c.classList.contains("is-empty"));
-                        let active = filled.find(c => c.classList.contains("is-searched"));
+                        let active = all.find(c => c.dataset.cabin === pickedCabin.get(pickKey));
+                        active || (active = filled.find(c => c.classList.contains("is-searched")));
                         if (!active) {
-                            active = filled.slice().sort((a, b) => milesOf(a) - milesOf(b))[0];
-                            active && active.classList.add("is-fallback");
+                            active = filled.slice().sort((a, b) => milesOf(a) - milesOf(b))[0] || all[0];
+                            const filteredOut = !(!view.cabins || !searched || view.cabins.has(searched));
+                            filled.length && !filteredOut && active.classList.add("is-fallback");
                         }
-                        if (!active) return;
                         active.classList.add("is-current");
+                        if (all.length < 2) return;
                         const bar = document.createElement("div");
                         bar.className = "mmrc-cabpick";
                         const chip = c => {
@@ -10899,8 +10914,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                             b.style.setProperty("--mmc", c.style.getPropertyValue("--mmc"));
                             b.innerHTML = "<i>" + esc(nm ? nm.childNodes[0].textContent.trim() : "?") + "</i>" + "<b>" + (m === 1 / 0 ? "–" : m.toLocaleString("de-DE")) + "</b>";
                             b.addEventListener("click", () => {
-                                all.forEach(x => x.classList.remove("is-current"));
+                                all.forEach(x => x.classList.remove("is-current", "is-fallback"));
                                 c.classList.add("is-current");
+                                pickedCabin.set(pickKey, c.dataset.cabin);
                                 draw();
                             });
                             return b;
@@ -10911,7 +10927,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                         };
                         draw();
                         cols.appendChild(bar);
-                    }(cols);
+                    }(cols, it.key + "|" + (it.depDate || ""), searched);
                     li.appendChild(left);
                     li.appendChild(cols);
                     !function(li, it) {
@@ -11154,7 +11170,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 
 (() => {
     "use strict";
-    const VERSION = 34;
+    const VERSION = 46;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     if (window.__mmSort) try {
         window.__mmSort.superseded = !0;
@@ -11192,6 +11208,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const c = cards();
         return f.pax && c && c.priceMode && "total" === c.priceMode() ? "miles" === field ? f.totalMiles : "cash" === field ? f.totalCash : f[field] : f[field];
     }
+    const inCabin = (f, cabin) => !cabin || (cabin instanceof Set ? cabin.has(f.cabin) : f.cabin === cabin);
     const minutes = hhmm => {
         const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ""));
         return m ? 60 * +m[1] + +m[2] : null;
@@ -11203,7 +11220,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         value: (it, cabin) => function(item, feld, cabin) {
             let best = null;
             for (const f of item && item.fares || []) {
-                if (cabin && f.cabin !== cabin) continue;
+                if (!inCabin(f, cabin)) continue;
                 const v = shown(f, feld);
                 null != v && (null == best || v < best) && (best = v);
             }
@@ -11216,7 +11233,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         value: (it, cabin) => function(item, cabin) {
             let best = null;
             for (const f of item && item.fares || []) {
-                if (cabin && f.cabin !== cabin) continue;
+                if (!inCabin(f, cabin)) continue;
                 const raw = shown(f, "cash");
                 if (null == raw) continue;
                 let v = raw;
@@ -11247,7 +11264,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     } ];
     const orderById = id => ORDERS.find(o => o.id === id) || ORDERS[0];
     function effectiveCabin(items) {
-        const want = function() {
+        const picked = has(filter.cabins) ? filter.cabins : null;
+        let want = function() {
             try {
                 const j = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
                 const e = j.entities[j.selectedAirBoundsSearchId];
@@ -11258,6 +11276,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             } catch (e) {}
             return null;
         }();
+        if (picked && (!want || !picked.has(want))) {
+            if (1 !== picked.size) return new Set(picked);
+            want = [ ...picked ][0];
+        }
         if (!want) return null;
         if (!items || !items.length) return want;
         for (const it of items) if (it && (it.fares || []).some(f => f.cabin === want)) return want;
@@ -11269,26 +11291,54 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     }
     const STORE_KEY = "mmsort_order";
     const WINDOWS = [ {
-        label: "Früh",
-        title: "00:00 – 05:59",
+        label: "Nacht",
+        time: "0–5",
+        title: "00:00 – 04:59",
         from: 0,
-        to: 360
+        to: 300
+    }, {
+        label: "Früh",
+        time: "5–9",
+        title: "05:00 – 08:59",
+        from: 300,
+        to: 540
     }, {
         label: "Vormittag",
-        title: "06:00 – 11:59",
-        from: 360,
+        time: "9–12",
+        title: "09:00 – 11:59",
+        from: 540,
         to: 720
     }, {
         label: "Nachmittag",
+        time: "12–18",
         title: "12:00 – 17:59",
         from: 720,
         to: 1080
     }, {
         label: "Abend",
+        time: "18–24",
         title: "18:00 – 23:59",
         from: 1080,
         to: 1440
     } ];
+    const LONG_HAUL_S = 6 * 3600;
+    const isLongLeg = l => !!l && !l.ground && (l.duration || 0) >= LONG_HAUL_S;
+    const longLegs = it => (it && it.legs || []).filter(isLongLeg);
+    const acLeg = (l, anyLong) => !!l && !l.ground && (!anyLong || isLongLeg(l));
+    function acFamily(name) {
+        const s = String(name || "").toUpperCase();
+        let m = /\bA\s?(\d{3})/.exec(s);
+        if (m) return "A" + m[1];
+        m = /\b(7\d7)\b/.exec(s);
+        if (m) return m[1];
+        m = /EMBRAER\s*(?:ERJ\s*-?\s*)?E?(\d{3})(\s*-?\s*E2)?/.exec(s);
+        if (m) return "E" + m[1] + (m[2] ? "-E2" : "");
+        m = /(?:CRJ|REGIONAL\s+JET)\s*-?\s*(\d{3,4})/.exec(s);
+        if (m) return "CRJ" + m[1];
+        m = /\bATR\s*-?\s*(\d{2})/.exec(s);
+        return m ? "ATR " + m[1] : /DHC\s*-?\s*8|DASH\s*8|\bQ400\b/.test(s) ? "Dash 8" : acVariant(name) || null;
+    }
+    const acVariant = name => String(name || "").replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+ALL\s+SERIES.*$/i, "").replace(/^(AIRBUS(\s+INDUSTRIE)?|BOEING)\s+/i, "").replace(/\s+/g, " ").trim();
     const STOPS = [ {
         label: "Direkt",
         max: 0
@@ -11309,36 +11359,95 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         key: "first",
         label: "First"
     } ];
+    const SETS = {
+        cab: "cabins",
+        air: "airlines",
+        lha: "longAirlines",
+        ac: "aircraft"
+    };
     const filter = {
         cabins: null,
         stops: null,
         dep: null,
         arr: null,
-        airlines: null
+        airlines: null,
+        longAirlines: null,
+        aircraft: null
     };
     let filterRoute = null;
-    const filterActive = () => filter.cabins && filter.cabins.size || null != filter.stops || null != filter.dep || null != filter.arr || filter.airlines && filter.airlines.size;
+    const has = set => !(!set || !set.size);
+    const filterActive = () => null != filter.stops || null != filter.dep || null != filter.arr || Object.values(SETS).some(k => has(filter[k]));
     function resetFilter() {
-        filter.cabins = null;
         filter.stops = null;
         filter.dep = null;
         filter.arr = null;
-        filter.airlines = null;
+        for (const k of Object.values(SETS)) filter[k] = null;
     }
-    function listedAirlines(items) {
-        const seen = new Set;
-        for (const it of items) for (const l of it && it.legs || []) l.operatingName && seen.add(l.operatingName);
-        return [ ...seen ].sort((a, b) => a.localeCompare(b, "de"));
+    let formSearchAt = 0;
+    let lastSearch = null;
+    function noteFormSearch(e) {
+        if (!e.isTrusted) return;
+        const t = e.target;
+        ("click" === e.type ? t && t.closest && t.closest("#modify-button") : "Enter" === e.key && t && t.closest && t.closest("form.modify-search-form")) && (formSearchAt = Date.now());
+    }
+    document.addEventListener("click", noteFormSearch, !0);
+    document.addEventListener("keydown", noteFormSearch, !0);
+    state._noteFormSearch = () => {
+        formSearchAt = Date.now();
+    };
+    function listedLegs(items) {
+        const long = new Set, short = new Set, ac = new Map;
+        const anyLong = items.some(it => longLegs(it).length > 0);
+        for (const it of items) for (const l of it && it.legs || []) {
+            const isLong = isLongLeg(l);
+            l.operatingName && (isLong ? long : short).add(l.operatingName);
+            if (!acLeg(l, anyLong)) continue;
+            const fam = acFamily(l.aircraftName);
+            if (fam) {
+                ac.has(fam) || ac.set(fam, new Set);
+                ac.get(fam).add(acVariant(l.aircraftName));
+            }
+        }
+        const sorted = s => [ ...s ].sort((a, b) => a.localeCompare(b, "de"));
+        const absent = new Set;
+        const keep = (list, picked) => {
+            for (const v of picked || []) if (!list.includes(v)) {
+                list.push(v);
+                absent.add(v);
+            }
+            return list;
+        };
+        const aircraft = sorted(ac.keys()).map(k => ({
+            key: k,
+            variants: sorted(ac.get(k))
+        }));
+        for (const k of filter.aircraft || []) if (!ac.has(k)) {
+            aircraft.push({
+                key: k,
+                variants: []
+            });
+            absent.add(k);
+        }
+        return {
+            long: keep(sorted(long), filter.longAirlines),
+            short: keep(sorted(short), filter.airlines),
+            aircraft: aircraft,
+            absent: absent
+        };
     }
     function buildPred() {
         if (!filterActive()) return null;
+        const copy = s => has(s) ? new Set(s) : null;
         const f = {
-            cabins: filter.cabins && filter.cabins.size ? new Set(filter.cabins) : null,
+            cabins: copy(filter.cabins),
             stops: filter.stops,
             dep: filter.dep,
             arr: filter.arr,
-            airlines: filter.airlines && filter.airlines.size ? new Set(filter.airlines) : null
+            airlines: copy(filter.airlines),
+            longAirlines: copy(filter.longAirlines),
+            aircraft: copy(filter.aircraft)
         };
+        const anyLong = listedItems().some(it => longLegs(it).length > 0);
         return it => {
             if (!it) return !1;
             if (f.cabins && !(it.fares || []).some(fa => f.cabins.has(fa.cabin))) return !1;
@@ -11351,7 +11460,13 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 const m = minutes(it.arrTime);
                 if (null == m || m < f.arr.from || m >= f.arr.to) return !1;
             }
-            return !(f.airlines && !(it.legs || []).some(l => f.airlines.has(l.operatingName)));
+            return !(f.airlines && !(it.legs || []).some(l => !isLongLeg(l) && f.airlines.has(l.operatingName)) || f.longAirlines && !(it => {
+                const ls = longLegs(it);
+                return ls.length > 0 && ls.every(l => f.longAirlines.has(l.operatingName));
+            })(it) || f.aircraft && !(it => {
+                const ls = (it && it.legs || []).filter(l => acLeg(l, anyLong));
+                return ls.length > 0 && ls.every(l => f.aircraft.has(acFamily(l.aircraftName)));
+            })(it));
         };
     }
     function buildCmp() {
@@ -11373,6 +11488,29 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 route && filterRoute && route !== filterRoute && filterActive() && resetFilter();
                 route && (filterRoute = route);
             }(c.items ? c.items() : []);
+            !function() {
+                const s = function() {
+                    try {
+                        const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+                        const e = o.entities[o.selectedAirBoundsSearchId];
+                        const its = e.itineraries || [];
+                        return {
+                            rest: JSON.stringify([ its.map(i => i.originLocationCode + "-" + i.destinationLocationCode), e.commercialFareFamilies || [], (e.travelers || []).map(t => t.passengerTypeCode) ]),
+                            date: its.map(i => String(i.departureDateTime || "").slice(0, 10)).join()
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                }();
+                if (s) {
+                    if (lastSearch && (s.rest !== lastSearch.rest || s.date !== lastSearch.date)) {
+                        const fromMask = formSearchAt && Date.now() - formSearchAt < 3e4;
+                        (s.rest !== lastSearch.rest || fromMask) && resetFilter();
+                        formSearchAt = 0;
+                    }
+                    lastSearch = s;
+                }
+            }();
             c.setView({
                 cmp: buildCmp(),
                 pred: buildPred(),
@@ -11382,6 +11520,128 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
     }
     const BAR_ID = "mmsort-bar";
+    const container = () => document.querySelector(".upsell-premium-pres-container");
+    const WIDE_MIN = 620;
+    const wideMode = () => {
+        if (state._mode) return "wide" === state._mode;
+        const host = container();
+        return (host ? host.clientWidth : window.innerWidth) >= WIDE_MIN;
+    };
+    let shownWide = null;
+    let openChip = null;
+    let feederOpen = !1;
+    function onResize() {
+        if (state.superseded || wideMode() === shownWide) return;
+        const pop = filterPopEl();
+        pop && pop.remove();
+        openChip = null;
+        refreshBar();
+    }
+    window.addEventListener("resize", onResize);
+    function facts(items) {
+        const legs = listedLegs(items);
+        const cabinsAvail = function(items) {
+            const seen = new Set;
+            for (const it of items) for (const f of it && it.fares || []) f.cabin && seen.add(f.cabin);
+            return seen;
+        }(items);
+        const inSet = (set, v) => has(set) && set.has(v);
+        const gone = v => legs.absent.has(v) ? {
+            dim: !0,
+            hint: "nicht im Angebot",
+            title: "An diesem Tag nicht im Angebot"
+        } : {};
+        const rows = [];
+        rows.push({
+            fact: "cab",
+            label: "Klasse",
+            multi: !0,
+            opts: CABINS.map((c, i) => ({
+                i: i,
+                label: c.label,
+                on: inSet(filter.cabins, c.key),
+                dim: !cabinsAvail.has(c.key),
+                hint: cabinsAvail.has(c.key) ? "" : "keine Tarife",
+                title: cabinsAvail.has(c.key) ? null : "Zu dieser Suche gibt es keine Tarife in dieser Klasse."
+            }))
+        });
+        rows.push({
+            fact: "stop",
+            label: "Stopps",
+            opts: STOPS.map((s, i) => ({
+                i: i,
+                label: s.label,
+                on: filter.stops === s.max
+            }))
+        });
+        const win = fact => WINDOWS.map((w, i) => ({
+            i: i,
+            label: w.label,
+            time: w.time,
+            hint: w.time + " Uhr",
+            title: w.title,
+            on: !!filter[fact] && filter[fact].from === w.from
+        }));
+        rows.push({
+            fact: "dep",
+            label: "Abflug",
+            time: !0,
+            opts: win("dep")
+        });
+        rows.push({
+            fact: "arr",
+            label: "Ankunft",
+            time: !0,
+            opts: win("arr")
+        });
+        legs.long.length > 1 && rows.push({
+            fact: "lha",
+            label: "Airline",
+            multi: !0,
+            opts: legs.long.map((a, i) => ({
+                i: i,
+                label: a,
+                on: inSet(filter.longAirlines, a),
+                ...gone(a)
+            }))
+        });
+        legs.aircraft.length > 1 && rows.push({
+            fact: "ac",
+            label: "Flugzeug",
+            multi: !0,
+            opts: legs.aircraft.map((a, i) => ({
+                i: i,
+                label: a.key,
+                hint: a.variants.filter(v => v !== a.key && /^(A\d|7\d7)/.test(v)).join(", "),
+                title: a.variants.join(", "),
+                on: inSet(filter.aircraft, a.key),
+                ...gone(a.key)
+            }))
+        });
+        let feeder = null;
+        if (legs.short.length > 1) {
+            feeder = {
+                fact: "air",
+                label: legs.long.length ? "Zubringer" : "Airline",
+                multi: !0,
+                opts: legs.short.map((a, i) => ({
+                    i: i,
+                    label: a,
+                    on: inSet(filter.airlines, a),
+                    ...gone(a)
+                }))
+            };
+            if (!legs.long.length) {
+                const at = rows.findIndex(r => "ac" === r.fact);
+                rows.splice(at < 0 ? rows.length : at, 0, feeder);
+                feeder = null;
+            }
+        }
+        return {
+            rows: rows,
+            feeder: feeder
+        };
+    }
     function menuParts() {
         const bar = document.getElementById(BAR_ID);
         return bar ? {
@@ -11413,21 +11673,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
             pop.setAttribute("aria-label", "Filter");
             bar.appendChild(pop);
         }
-        const pill = (fact, i, label, on, title, dim) => `<button type="button" class="mmflt-pill${on ? " is-on" : ""}${dim ? " is-na" : ""}" data-fact="${fact}"` + ` data-i="${i}"${title ? ` title="${esc(title)}"` : ""}>${esc(label)}</button>`;
-        const grp = (lbl, inner) => `<div class="mmflt-grp"><span class="mmflt-lbl">${lbl}</span><div class="mmflt-pills">${inner}</div></div>`;
         const items = listedItems();
-        const airlines = listedAirlines(items);
-        let html = "";
-        const cabinsAvail = function(items) {
-            const seen = new Set;
-            for (const it of items) for (const f of it && it.fares || []) f.cabin && seen.add(f.cabin);
-            return seen;
-        }(items);
-        html += grp("Klasse", pill("cab", -1, "Alle", !filter.cabins || !filter.cabins.size) + CABINS.map((c, i) => pill("cab", i, c.label, !!filter.cabins && filter.cabins.has(c.key), cabinsAvail.has(c.key) ? null : "Zu dieser Suche gibt es keine Tarife in dieser Klasse.", !cabinsAvail.has(c.key))).join(""));
-        html += grp("Stopps", pill("stop", -1, "Alle", null == filter.stops) + STOPS.map((s, i) => pill("stop", i, s.label, filter.stops === s.max)).join(""));
-        html += grp("Abflug", pill("dep", -1, "Alle", null == filter.dep) + WINDOWS.map((w, i) => pill("dep", i, w.label, !!filter.dep && filter.dep.from === w.from, w.title)).join(""));
-        html += grp("Ankunft", pill("arr", -1, "Alle", null == filter.arr) + WINDOWS.map((w, i) => pill("arr", i, w.label, !!filter.arr && filter.arr.from === w.from, w.title)).join(""));
-        airlines.length > 1 && (html += grp("Airlines", pill("air", -1, "Alle", !filter.airlines || !filter.airlines.size) + airlines.map((a, i) => pill("air", i, a, !!filter.airlines && filter.airlines.has(a))).join("")));
+        const {rows: rows, feeder: feeder} = facts(items);
+        const pills = r => r.opts.map(o => {
+            return label = o.label, time = o.time, `<button type="button" class="mmflt-pill${(on = o.on) ? " is-on" : ""}${o.dim ? " is-na" : ""}" data-fact="${r.fact}"` + ` data-i="${o.i}" aria-pressed="${!!on}"${(title = o.title) ? ` title="${esc(title)}"` : ""}>${esc(label)}` + `${time ? ` <span class="mmflt-time">${esc(time)}</span>` : ""}</button>`;
+            var label, on, title, time;
+        }).join("");
+        let html = rows.map(r => `<div class="mmflt-grp"><span class="mmflt-lbl">${r.label}</span><div class="mmflt-pills">${pills(r)}</div></div>`).join("");
+        if (feeder) {
+            const picked = feeder.opts.filter(o => o.on).length;
+            const open = feederOpen || picked > 0;
+            html += `<div class="mmflt-feeder"><button type="button" class="mmflt-more" aria-expanded="${open}">` + `<span class="mmflt-tri" aria-hidden="true">${open ? "▾" : "▸"}</span>Zubringer-Airlines` + `<span class="mmflt-cnt">${feeder.opts.length}${picked ? " · " + picked + " gewählt" : ""}</span></button>` + (open ? `<div class="mmflt-pills">${pills(feeder)}</div>` : "") + "</div>";
+        }
         const c = cards();
         const counts = c && c.counts ? c.counts : {
             shown: items.length,
@@ -11436,18 +11693,48 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         html += `<div class="mmflt-foot"><span class="mmflt-sum">${counts.shown} von ${counts.total} Flügen entsprechen diesen Kriterien</span>` + `<button type="button" class="mmflt-reset">Zurücksetzen</button>` + `<button type="button" class="mmflt-apply">Fertig</button></div>`;
         pop.innerHTML = html;
     }
+    function handleFilterPill(pillBtn) {
+        const fact = pillBtn.dataset.fact;
+        const i = +pillBtn.dataset.i;
+        const again = pillBtn.classList.contains("is-on");
+        if ("stop" === fact) filter.stops = again ? null : STOPS[i].max; else if ("dep" === fact || "arr" === fact) filter[fact] = again ? null : {
+            from: WINDOWS[i].from,
+            to: WINDOWS[i].to
+        }; else if (SETS[fact]) {
+            const field = SETS[fact];
+            if (i < 0) filter[field] = null; else {
+                const legs = "cab" === fact ? null : listedLegs(listedItems());
+                const value = "cab" === fact ? CABINS[i] && CABINS[i].key : "lha" === fact ? legs.long[i] : "ac" === fact ? legs.aircraft[i] && legs.aircraft[i].key : legs.short[i];
+                if (!value) return;
+                const set = filter[field] || new Set;
+                set.has(value) ? set.delete(value) : set.add(value);
+                filter[field] = set.size ? set : null;
+            }
+        }
+        apply();
+        filterPopEl() && renderFilterPop();
+        refreshBar();
+    }
     function onDocClick(e) {
         if (state.superseded) return;
         const bar = document.getElementById(BAR_ID);
         if (!bar || !bar.contains(e.target)) {
             closeMenu();
             filterPopEl() && closeFilterPop();
+            if (openChip) {
+                openChip = null;
+                refreshBar();
+            }
         }
     }
     function onDocKey(e) {
         if (!state.superseded && "Escape" === e.key) {
             closeMenu();
             filterPopEl() && closeFilterPop();
+            if (openChip) {
+                openChip = null;
+                refreshBar();
+            }
         }
     }
     document.addEventListener("click", onDocClick);
@@ -11456,19 +11743,45 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     function render(bar) {
         if (!(bar = bar || document.getElementById(BAR_ID))) return;
         const html = function() {
-            const name = {
+            const cabin = effectiveCabin(listedItems());
+            const NAMES = {
                 eco: "Economy",
                 ecoPremium: "Premium Economy",
                 business: "Business",
                 first: "First"
-            }[effectiveCabin(listedItems())] || null;
+            };
+            const name = cabin instanceof Set ? CABINS.filter(c => cabin.has(c.key)).map(c => NAMES[c.key]).join(" + ") || null : NAMES[cabin] || null;
             const activeOrder = orderById(state.sort);
             const opts = ORDERS.map(o => {
                 const isCurrent = o.id === state.sort;
                 const hint = o.hint && name ? ' <span class="mmsort-sub">' + esc(name) + "</span>" : "";
                 return '<button type="button" role="menuitemradio" aria-checked="' + isCurrent + '"' + ' class="mmsort-opt' + (isCurrent ? " is-on" : "") + '" data-order="' + o.id + '">' + esc(o.label) + hint + "</button>";
             }).join("");
-            return '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>" + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(activeOrder.label) + (activeOrder.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
+            shownWide = wideMode();
+            return (shownWide ? function() {
+                const {rows: rows, feeder: feeder} = facts(listedItems());
+                const chips = rows.map(r => {
+                    const extra = "lha" === r.fact && feeder ? feeder : null;
+                    const onOpts = r.opts.filter(o => o.on).concat(extra ? extra.opts.filter(o => o.on) : []);
+                    const on = onOpts.length > 0;
+                    let text = r.label;
+                    if (on) {
+                        const names = onOpts.map(o => o.label);
+                        text = r.time ? r.label + " " + onOpts[0].time : names.length <= 2 && names.join(", ").length <= 24 ? names.join(", ") : r.label + " · " + names.length;
+                    }
+                    const open = openChip === r.fact;
+                    const opt = (row, o) => `<button type="button" class="mmchip-opt${o.on ? " is-on" : ""}${o.dim ? " is-na" : ""}"` + ` role="${row.multi ? "menuitemcheckbox" : "menuitemradio"}" aria-checked="${!!o.on}"` + ` data-fact="${row.fact}" data-i="${o.i}"${o.title ? ` title="${esc(o.title)}"` : ""}>` + `<span class="mmchip-box"></span>${esc(o.label)}` + `${o.hint ? `<span class="mmchip-hint">${esc(o.hint)}</span>` : ""}</button>`;
+                    const menu = open ? `<div class="mmchip-dd" role="menu">` + r.opts.map(o => opt(r, o)).join("") + (extra ? `<div class="mmchip-sep">Zubringer</div>` + extra.opts.map(o => opt(extra, o)).join("") : "") + `</div>` : "";
+                    return `<div class="mmchip-w"><button type="button" class="mmchip${on ? " is-on" : ""}"` + ` data-chip="${r.fact}" aria-haspopup="true" aria-expanded="${open}">${esc(text)}` + (on ? `<span class="mmchip-x" data-chip="${r.fact}" role="button" aria-label="${esc(r.label)}-Filter entfernen">×</span>` : `<span class="mmchip-car" aria-hidden="true"></span>`) + `</button>${menu}</div>`;
+                }).join("");
+                let end = "";
+                if (filterActive()) {
+                    const c = cards();
+                    const n = c && c.counts ? c.counts : null;
+                    end = `<span class="mmchips-end">` + (n ? `<span class="mmchip-sum">${n.shown} von ${n.total} Flügen</span>` : "") + `<button type="button" class="mmchip-reset">Zurücksetzen</button></span>`;
+                }
+                return `<div class="mmchips" role="group" aria-label="Filter">${chips}${end}</div>`;
+            }() : '<button type="button" class="mmsort-filter' + (filterActive() ? " is-on" : "") + '">' + "Filter" + (filterActive() ? '<span class="mmsort-dot" aria-hidden="true"></span>' : "") + "</button>") + '<div class="mmsort-menu">' + '<span class="mmsort-label">Sortieren nach</span>' + '<button type="button" class="mmsort-trigger" aria-haspopup="true" aria-expanded="false">' + '<span class="mmsort-current">' + esc(activeOrder.label) + (activeOrder.hint && name ? " · " + esc(name) : "") + "</span>" + '<span class="mmsort-chevron" aria-hidden="true"></span></button>' + '<div class="mmsort-list" role="menu" hidden>' + opts + "</div>" + "</div>" + function() {
                 const c = cards();
                 const heads = c && c.paxHeads ? c.paxHeads() : 1;
                 if (!(heads > 1 && c.priceMode)) return "";
@@ -11501,6 +11814,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         const pop = bar.querySelector(".mmflt-pop");
         pop && pop.remove();
         bar.innerHTML = html;
+        bar.classList.toggle("is-wide", !!shownWide);
         lastHtml = html;
         pop && bar.appendChild(pop);
         if (wasOpen) {
@@ -11609,14 +11923,69 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmsort-filter:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 2px; }
 .mmsort-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
 
+.mmsort.is-wide { flex-wrap: nowrap; align-items: flex-start; }
+.mmsort.is-wide .mmsort-budget { line-height: 34px; }
+.mmsort.is-wide .mmchips { flex: 1 1 auto; min-width: 0; }
+.mmsort.is-wide .mmsort-menu, .mmsort.is-wide .mmsort-pm, .mmsort.is-wide .mmsort-budget { flex: 0 0 auto; white-space: nowrap; }
+.mmsort.is-wide .mmsort-budget { margin-left: 0; }
+.mmchips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mmchips-end { margin-left: auto; display: inline-flex; align-items: center; gap: 12px; }
+.mmchip-w { position: relative; }
+.mmchip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 14px;
+          border-radius: 999px; border: 1px solid ${INK_hairline}; background: #fff; cursor: pointer;
+          font: inherit; font-size: 13px; font-weight: 600; color: ${INK_primary}; line-height: 1.25;
+          white-space: nowrap; }
+.mmchip:hover { border-color: #b9c6e0; }
+.mmchip[aria-expanded="true"] { border-color: ${INK_primary}; }
+.mmchip.is-on { background: ${INK_primary}; border-color: ${INK_primary}; color: #fff; }
+.mmchip:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 2px; }
+.mmchip-car { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent;
+              border-top: 5px solid ${INK_secondary}; transition: transform .15s; }
+.mmchip[aria-expanded="true"] .mmchip-car { transform: rotate(180deg); }
+.mmchip-x { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
+            margin-right: -4px; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 13px; line-height: 1; }
+.mmchip-x:hover { background: rgba(255,255,255,.38); }
+.mmchip-dd { position: absolute; top: calc(100% + 6px); left: 0; z-index: 41; min-width: 230px;
+             max-height: 380px; overflow: auto; padding: 5px; border-radius: 12px; background: #fff;
+             border: 1px solid ${INK_hairline}; box-shadow: 0 10px 28px rgba(5,22,77,.13); }
+.mmchip-opt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0;
+              border-radius: 8px; background: transparent; font: inherit; font-size: 13.5px;
+              color: ${INK_secondary}; text-align: left; cursor: pointer; line-height: 1.3; white-space: nowrap; }
+.mmchip-opt:hover { background: #f3f6fc; color: ${INK_primary}; }
+.mmchip-opt:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: -2px; }
+.mmchip-opt.is-on { color: ${INK_primary}; font-weight: 600; }
+.mmchip-opt.is-na { color: ${INK_muted}; }
+.mmchip-box { position: relative; flex: 0 0 auto; width: 15px; height: 15px; border: 1.5px solid #b9c0cf;
+              border-radius: 4px; box-sizing: border-box; }
+.mmchip-opt[role="menuitemradio"] .mmchip-box { border-radius: 50%; }
+.mmchip-opt.is-on .mmchip-box { background: ${INK_primary}; border-color: ${INK_primary}; }
+.mmchip-opt[role="menuitemcheckbox"].is-on .mmchip-box::after { content: ''; position: absolute; left: 4px; top: 1px;
+              width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.mmchip-opt[role="menuitemradio"].is-on .mmchip-box::after { content: ''; position: absolute; inset: 3px;
+              border-radius: 50%; background: #fff; }
+.mmchip-hint { margin-left: auto; padding-left: 16px; font-size: 11.5px; font-weight: 400; color: ${INK_muted}; }
+.mmchip-sep { margin: 4px 6px 0; padding: 9px 4px 4px; border-top: 1px solid ${INK_hairline};
+              font-size: 10.5px; font-weight: 700; color: ${INK_muted}; text-transform: uppercase; letter-spacing: .05em; }
+.mmchip-sum { font-size: 12.5px; font-weight: 600; color: ${INK_primary}; white-space: nowrap; }
+.mmchip-reset { padding: 0; border: 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600;
+                color: ${INK_accent}; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
 .mmflt-pop { position: absolute; top: calc(100% - 8px); left: 0; z-index: 41;
              width: min(620px, 94vw); background: #fff;
              border: 1px solid ${INK_hairline}; border-radius: 12px;
              padding: 6px 16px 12px; box-shadow: 0 10px 28px rgba(5,22,77,.13); }
 .mmflt-grp { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; }
 .mmflt-grp + .mmflt-grp { border-top: 1px solid ${INK_hairline}; }
-.mmflt-lbl { flex: 0 0 62px; font-size: 10.5px; font-weight: 700; color: ${INK_muted};
+.mmflt-lbl { flex: 0 0 70px; font-size: 10.5px; font-weight: 700; color: ${INK_muted};
              text-transform: uppercase; letter-spacing: .05em; }
+.mmflt-feeder { padding: 8px 0 6px; border-top: 1px solid ${INK_hairline}; }
+.mmflt-feeder .mmflt-pills { margin-top: 8px; }
+.mmflt-more { display: inline-flex; align-items: baseline; gap: 6px; padding: 0; border: 0;
+              background: none; font: inherit; font-size: 10.5px; font-weight: 700; color: ${INK_muted};
+              text-transform: uppercase; letter-spacing: .05em; cursor: pointer; }
+.mmflt-more:hover { color: ${INK_primary}; }
+.mmflt-tri { width: 10px; letter-spacing: 0; }
+.mmflt-cnt { font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 11.5px; }
 .mmflt-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .mmflt-pill { border: 1px solid ${INK_hairline}; background: #fff; border-radius: 999px;
               padding: 4px 12px; font: inherit; font-size: 12.5px; font-weight: 600;
@@ -11625,6 +11994,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmflt-pill:hover { border-color: #b9c6e0; background: #f8fafd; }
 .mmflt-pill.is-na { color: ${INK_muted}; background: #f7f7f5; }
 .mmflt-pill.is-on { background: ${INK_primary}; border-color: ${INK_primary}; color: #fff; }
+.mmflt-time { font-size: 11px; font-weight: 500; color: ${INK_muted}; }
+.mmflt-pill.is-on .mmflt-time { color: rgba(255,255,255,.72); }
 .mmflt-pill:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 2px; }
 .mmflt-foot { display: flex; align-items: center; gap: 8px; padding-top: 10px;
               margin-top: 2px; border-top: 1px solid ${INK_hairline}; }
@@ -11646,7 +12017,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                 }();
                 !function() {
                     if (state.superseded || !sortOn()) return;
-                    const host = document.querySelector(".upsell-premium-pres-container");
+                    const host = container();
                     if (!host) return;
                     let bar = document.getElementById(BAR_ID);
                     if (bar) bar.parentElement !== host && host.insertBefore(bar, host.firstChild); else {
@@ -11671,7 +12042,44 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                                 apply();
                                 return;
                             }
+                            const cx = e.target.closest && e.target.closest(".mmchip-x");
+                            if (cx) {
+                                !function(fact) {
+                                    if ("stop" === fact) filter.stops = null; else if ("dep" === fact || "arr" === fact) filter[fact] = null; else if (SETS[fact]) {
+                                        filter[SETS[fact]] = null;
+                                        "lha" === fact && (filter.airlines = null);
+                                    }
+                                }(cx.dataset.chip);
+                                openChip = null;
+                                apply();
+                                refreshBar();
+                                return;
+                            }
+                            const copt = e.target.closest && e.target.closest(".mmchip-opt");
+                            if (copt) {
+                                handleFilterPill(copt);
+                                return;
+                            }
+                            const chip = e.target.closest && e.target.closest(".mmchip");
+                            if (chip) {
+                                openChip = openChip === chip.dataset.chip ? null : chip.dataset.chip;
+                                closeMenu();
+                                refreshBar();
+                                return;
+                            }
+                            if (e.target.closest && e.target.closest(".mmchip-reset")) {
+                                resetFilter();
+                                openChip = null;
+                                apply();
+                                refreshBar();
+                                return;
+                            }
+                            if (e.target.closest && e.target.closest(".mmchip-dd")) return;
                             if (e.target.closest && e.target.closest(".mmsort-trigger")) {
+                                if (openChip) {
+                                    openChip = null;
+                                    refreshBar();
+                                }
                                 !function() {
                                     const t = menuParts();
                                     if (!t || !t.list) return;
@@ -11692,29 +12100,12 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
                             }
                             const pill = e.target.closest && e.target.closest(".mmflt-pill");
                             if (pill) {
-                                !function(pillBtn) {
-                                    const fact = pillBtn.dataset.fact;
-                                    const i = +pillBtn.dataset.i;
-                                    if ("cab" === fact) if (i < 0) filter.cabins = null; else {
-                                        const key = CABINS[i] && CABINS[i].key;
-                                        if (!key) return;
-                                        filter.cabins || (filter.cabins = new Set);
-                                        filter.cabins.has(key) ? filter.cabins.delete(key) : filter.cabins.add(key);
-                                        filter.cabins.size || (filter.cabins = null);
-                                    } else if ("stop" === fact) filter.stops = i < 0 ? null : STOPS[i].max; else if ("dep" === fact || "arr" === fact) filter[fact] = i < 0 ? null : {
-                                        from: WINDOWS[i].from,
-                                        to: WINDOWS[i].to
-                                    }; else if ("air" === fact) if (i < 0) filter.airlines = null; else {
-                                        const name = listedAirlines(listedItems())[i];
-                                        if (!name) return;
-                                        filter.airlines || (filter.airlines = new Set);
-                                        filter.airlines.has(name) ? filter.airlines.delete(name) : filter.airlines.add(name);
-                                        filter.airlines.size || (filter.airlines = null);
-                                    }
-                                    apply();
-                                    renderFilterPop();
-                                    refreshBar();
-                                }(pill);
+                                handleFilterPill(pill);
+                                return;
+                            }
+                            if (e.target.closest && e.target.closest(".mmflt-more")) {
+                                feederOpen = !feederOpen;
+                                renderFilterPop();
                                 return;
                             }
                             if (e.target.closest && e.target.closest(".mmflt-reset")) {
@@ -11794,6 +12185,9 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         try {
             document.removeEventListener("click", onDocClick);
             document.removeEventListener("keydown", onDocKey);
+            document.removeEventListener("click", noteFormSearch, !0);
+            document.removeEventListener("keydown", noteFormSearch, !0);
+            window.removeEventListener("resize", onResize);
         } catch (e) {}
         try {
             state._offSettings && state._offSettings();
@@ -12958,7 +13352,7 @@ jederzeit von Hand starten.</p>` : ""}
     "use strict";
     const VERSION = 5;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.7.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.7.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;

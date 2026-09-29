@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.2 — 2026-09-29
+
+### Geändert
+
+- **Filter neu gestaltet und erweitert**
+
+### Behoben
+
+- **Alle Airlines zeigen jetzt richtiges Logo statt Platzhalter**
+- **Von Hand eingetragenes Buchungsbüro zeigte das falsche Land**
+- **In der Mobilansicht zeigte der Klassenfilter keine Tarife**
+
 ## 1.7.1 — 2026-09-24
 
 ### Geändert
