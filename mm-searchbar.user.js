@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.7.2
+// @version      1.7.3
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
 // @homepageURL  https://www.awardmap.net
@@ -5722,7 +5722,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 131;
+    const VERSION = 132;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -6200,7 +6200,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             });
         }
         const known = win.filter(w => Object.keys(w.cells).length).length;
-        const searching = !cal.loading && cal.searchingSince && Date.now() - cal.searchingSince < 45e3;
+        const searching = !cal.loading && cal.searchingSince && !windowLoaded(win) && Date.now() - cal.searchingSince < 45e3;
         if (state._searchTimer) {
             clearTimeout(state._searchTimer);
             state._searchTimer = null;
@@ -6242,22 +6242,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                     year: "numeric"
                 });
             }(win[0].d, win[win.length - 1].d);
-            body += cal.error ? '<div class="mmcal-msg mmcal-err">' + esc(cal.error) + blockNote + retryBtn("mmcal-btn is-wide") + "</div>" : function(win) {
-                const cal = window.__mmCal;
-                if (!cal || "function" != typeof cal.hasMonth) return !1;
-                const seen = new Set;
-                for (const w of win) {
-                    const key = w.d.getFullYear() + "-" + w.d.getMonth();
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        if (!monthDone(cal, {
-                            y: w.d.getFullYear(),
-                            m: w.d.getMonth()
-                        })) return !1;
-                    }
-                }
-                return !0;
-            }(win) ? '<div class="mmcal-msg">Keine Prämienflüge vom ' + span + ".</div>" : '<div class="mmcal-msg">Für ' + span + " sind noch keine Preise geladen. " + '<button type="button" class="mmcal-btn is-wide" data-load="1">Preise laden</button></div>';
+            body += cal.error ? '<div class="mmcal-msg mmcal-err">' + esc(cal.error) + blockNote + retryBtn("mmcal-btn is-wide") + "</div>" : windowLoaded(win) ? '<div class="mmcal-msg">Keine Prämienflüge vom ' + span + ".</div>" : '<div class="mmcal-msg">Für ' + span + " sind noch keine Preise geladen. " + '<button type="button" class="mmcal-btn is-wide" data-load="1">Preise laden</button></div>';
         }
         const bbd = window.__mmBBD;
         bbd && bbd.error && bbdShown() && (body += '<div class="mmcal-errline">Best-by-day: ' + esc(bbd.error) + "</div>");
@@ -6440,6 +6425,22 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         });
     }
     const pad = n => String(n).padStart(2, "0");
+    function windowLoaded(win) {
+        const cal = window.__mmCal;
+        if (!cal || "function" != typeof cal.hasMonth) return !1;
+        const seen = new Set;
+        for (const w of win) {
+            const key = w.d.getFullYear() + "-" + w.d.getMonth();
+            if (!seen.has(key)) {
+                seen.add(key);
+                if (!monthDone(cal, {
+                    y: w.d.getFullYear(),
+                    m: w.d.getMonth()
+                })) return !1;
+            }
+        }
+        return !0;
+    }
     const API_CABIN = {
         eco: "ECONOMY",
         ecoPremium: "PREMIUMECO",
@@ -13350,9 +13351,9 @@ jederzeit von Hand starten.</p>` : ""}
 
 (() => {
     "use strict";
-    const VERSION = 5;
+    const VERSION = 6;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.7.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js";
+    const DIST_version = "1.7.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
@@ -13364,6 +13365,8 @@ jederzeit von Hand starten.</p>` : ""}
     const KEY = "mm_update";
     const RETRY_AFTER = 10 * 60 * 1e3;
     const START_DELAY = 8e3;
+    const MAX_NOTES = 8;
+    const NOTES_TIMEOUT = 4e3;
     const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781";
     const readState = () => {
         try {
@@ -13408,13 +13411,13 @@ jederzeit von Hand starten.</p>` : ""}
             chip = null;
         }
     }
-    function show(latest) {
+    function show(latest, notes) {
         if (api.superseded || !document.body) return;
         if (chip && chip.isConnected) return;
         !function() {
             const css = `
 .mmupd-chip { position: fixed; right: 18px; bottom: 18px; z-index: 2147482900;
-              display: flex; align-items: center; gap: 10px;
+              display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
               max-width: min(360px, calc(100vw - 36px));
               background: #fff; color: ${INK_primary};
               border: 1px solid ${INK_hairline}; border-left: 3px solid ${INK_accent};
@@ -13422,7 +13425,7 @@ jederzeit von Hand starten.</p>` : ""}
               box-shadow: 0 6px 24px rgba(5,22,77,.18);
               font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
               font-size: 12.5px; line-height: 1.45; }
-.mmupd-txt { min-width: 0; }
+.mmupd-txt { flex: 1 1 auto; min-width: 0; }
 .mmupd-txt b { font-weight: 700; }
 .mmupd-sub { display: block; color: ${INK_muted}; font-size: 11px; margin-top: 1px; }
 .mmupd-go { flex: 0 0 auto; border: 0; border-radius: 6px; cursor: pointer;
@@ -13432,6 +13435,14 @@ jederzeit von Hand starten.</p>` : ""}
 .mmupd-x { flex: 0 0 auto; border: 0; background: none; cursor: pointer;
            color: ${INK_muted}; font-size: 15px; line-height: 1; padding: 2px 4px; }
 .mmupd-x:hover { color: ${INK_primary}; }
+.mmupd-notes { flex: 1 0 100%; min-width: 0; border-top: 1px solid ${INK_hairline}; padding-top: 7px;
+               max-height: 40vh; overflow: auto; }
+.mmupd-notes > :first-child { margin-top: 0; }
+.mmupd-ver { font-weight: 700; margin-top: 6px; }
+.mmupd-cat { color: ${INK_muted}; font-size: 11px; margin-top: 4px; }
+.mmupd-list { margin: 1px 0 0; padding-left: 16px; list-style: disc; }
+.mmupd-list li { margin: 1px 0; font-size: 12px; }
+.mmupd-more { display: inline-block; margin-top: 5px; color: ${INK_accent}; font-size: 11.5px; }
 `;
             let el = document.getElementById("mmupd-styles");
             if (!el) {
@@ -13464,6 +13475,42 @@ jederzeit von Hand starten.</p>` : ""}
         chip.appendChild(txt);
         chip.appendChild(go);
         chip.appendChild(x);
+        const box = notes ? function(notes) {
+            const box = document.createElement("div");
+            box.className = "mmupd-notes";
+            const add = (tag, cls, text) => {
+                const e = document.createElement(tag);
+                e.className = cls;
+                null != text && (e.textContent = text);
+                return e;
+            };
+            let shown = 0, rest = 0;
+            notes.forEach(v => {
+                let verHead = notes.length > 1;
+                v.groups.forEach(g => {
+                    const take = g.items.slice(0, Math.max(0, MAX_NOTES - shown));
+                    rest += g.items.length - take.length;
+                    if (!take.length) return;
+                    if (verHead) {
+                        box.appendChild(add("div", "mmupd-ver", v.version));
+                        verHead = !1;
+                    }
+                    g.title && box.appendChild(add("div", "mmupd-cat", g.title));
+                    const ul = box.appendChild(add("ul", "mmupd-list"));
+                    take.forEach(t => ul.appendChild(add("li", "", t)));
+                    shown += take.length;
+                });
+            });
+            if (!shown) return null;
+            if (rest && DIST_notesPage) {
+                const more = box.appendChild(add("a", "mmupd-more", `+ ${rest} weitere im Changelog`));
+                more.href = DIST_notesPage;
+                more.target = "_blank";
+                more.rel = "noopener";
+            }
+            return box;
+        }(notes) : null;
+        box && chip.appendChild(box);
         document.body.appendChild(chip);
         go.addEventListener("click", () => {
             try {
@@ -13509,7 +13556,59 @@ jederzeit von Hand starten.</p>` : ""}
                 seen: s.seen,
                 failed: !1
             });
-            cmp(latest, DIST_version) > 0 && s.seen !== latest && show(latest);
+            cmp(latest, DIST_version) > 0 && s.seen !== latest && show(latest, await async function(latest) {
+                if (!DIST_notes) return null;
+                const ctl = "function" == typeof AbortController ? new AbortController : null;
+                const timer = ctl ? setTimeout(() => ctl.abort(), NOTES_TIMEOUT) : 0;
+                try {
+                    const r = await fetch(DIST_notes, {
+                        method: "GET",
+                        credentials: "omit",
+                        signal: ctl ? ctl.signal : void 0
+                    });
+                    if (!r.ok) return null;
+                    const list = function(md) {
+                        const out = [];
+                        let ver = null, grp = null;
+                        const clean = s => s.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|`/g, "").replace(/\s+/g, " ").trim();
+                        String(md || "").split(/\r?\n/).forEach(line => {
+                            let m;
+                            if (m = /^##\s+\[?v?(\d[\w.-]*)/.exec(line)) {
+                                ver = {
+                                    version: m[1],
+                                    groups: []
+                                };
+                                out.push(ver);
+                                grp = null;
+                            } else if (ver) if (m = /^###\s+(.+)/.exec(line)) {
+                                grp = {
+                                    title: clean(m[1]),
+                                    items: []
+                                };
+                                ver.groups.push(grp);
+                            } else if (m = /^[-*]\s+(.+)/.exec(line)) {
+                                if (!grp) {
+                                    grp = {
+                                        title: "",
+                                        items: []
+                                    };
+                                    ver.groups.push(grp);
+                                }
+                                grp.items.push(m[1]);
+                            } else grp && grp.items.length && /^\s+\S/.test(line) && (grp.items[grp.items.length - 1] += " " + line);
+                        });
+                        out.forEach(v => v.groups.forEach(g => {
+                            g.items = g.items.map(clean).filter(Boolean);
+                        }));
+                        return out;
+                    }(await r.text()).filter(v => cmp(v.version, DIST_version) > 0 && cmp(v.version, latest) <= 0);
+                    return list.length ? list : null;
+                } catch (e) {
+                    return null;
+                } finally {
+                    clearTimeout(timer);
+                }
+            }(latest));
             return latest;
         } catch (e) {
             state.error = e && e.message || String(e);
