@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.3 — 2026-10-02
+
+### Neu
+
+- **Update-Hinweis zeigt, was sich geändert hat**
+
+### Behoben
+
+- **Kalender zeigte beim Tageswechsel eine Ladeanzeige, obwohl alles geladen war**
+
 ## 1.7.2 — 2026-09-29
 
 ### Geändert
