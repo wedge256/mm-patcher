@@ -1,12 +1,22 @@
-# M&M Patcher
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
+    <img src="assets/banner-light.png" alt="M&amp;M_Patcher" width="640">
+  </picture>
+</p>
 
-Die Prämienflugsuche von Miles & More zeigt sieben Tage im Kalender, eine gekürzte
-Flughafenliste und für jeden Fehler dieselbe Meldung.
+<p align="center">
+  <a href="https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js"><img src="https://img.shields.io/badge/Installieren-mm--searchbar.user.js-1c5cab?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Installieren"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/wedge256/mm-patcher/releases"><img src="https://img.shields.io/github/v/release/wedge256/mm-patcher?label=Version&color=05164D" alt="Version"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-lesen-05164D" alt="Changelog"></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/Lizenz-PolyForm%20Strict-6c757d" alt="Lizenz"></a>
+</p>
 
-Das Script ersetzt das durch einen größeren Kalender mit Preisen aller Kabinen,
-übersichtliche Ergebniskarten mit Sitzplan und freien Plätzen, eine vollständige
-Flughafenliste und eine Fehlerseite, die die tatsächliche Ursache nennt. Über das
-Buchungsbüro lassen sich außerdem Partnerawards finden, die M&M sonst nicht anzeigt.
+Userscript für die Prämienflugsuche auf miles-and-more.com. Es zeigt den Kalender für alle vier Kabinen,
+zu jedem Flug die Seatmap mit freien Plätzen, kennt 11.000 Flughäfen statt 1.500 und findet über das
+Buchungsbüro Partnerawards, die M&M sonst nicht anzeigt.
 
 ---
 
@@ -36,6 +46,8 @@ rechts auf der Ergebnisseite.
 - **Seatmaps für jeden Flug**
 
   Ein Klick auf den Flugzeugtyp öffnet den Sitzplan und zeigt, welche Plätze noch frei sind.
+
+  <img src="assets/sitzplan.png" alt="Sitzplan" width="700">
 
 ### Mehr Flüge finden
 
@@ -78,6 +90,8 @@ rechts auf der Ergebnisseite.
   15 Tage statt 7, zum Blättern, auf Wunsch für alle vier Kabinen. Ein Klick auf
   einen Tag sucht direkt in dieser Kabine. Dazu die Bestpreise des ganzen Jahres von
   der M&M-Hauptseite (nicht für jede Route verfügbar und oft veraltet).
+
+  <img src="assets/kalender.png" alt="Kalender" width="700">
 
 ### Ergebnisse
 
@@ -123,3 +137,11 @@ rechts auf der Ergebnisseite.
 ## Hinweise
 
 Kein offizielles Angebot der Lufthansa Group / Miles & More.
+
+## Unterstützen
+
+Gefällt dir M&M Patcher? [🍺 Bier spendieren](https://buymeacoffee.com/wedge_mm)
+
+## Lizenz
+
+[PolyForm Strict 1.0.0](LICENSE.md): private, nichtkommerzielle Nutzung erlaubt. Weitergeben und Verändern nicht erlaubt, auch nicht unter anderem Namen.

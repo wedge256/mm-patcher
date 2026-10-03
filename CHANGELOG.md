@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.4 — 2026-10-03
+
+### Neu
+
+- **Schalter „Buchungsbüro-Zeile" in den Einstellungen**
+
+### Geändert
+
+- **Nach „Installieren" lädt die Seite einmal neu, damit die neue Version läuft**
+
+### Behoben
+
+- **Kalender: Klick auf einen Tag in einem anderen Monat scheiterte manchmal**
+- **Kalender: Ladeanzeige drehte weiter, obwohl der Suchmonat fertig war**
+- **Kalender: nach „Cache leeren" luden Monate nicht mehr von selbst**
+
 ## 1.7.3 — 2026-10-02
 
 ### Neu

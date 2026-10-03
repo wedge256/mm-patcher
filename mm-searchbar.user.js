@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.7.3
+// @version      1.7.4
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
+// @license      PolyForm Strict 1.0.0 (https://polyformproject.org/licenses/strict/1.0.0)
 // @homepageURL  https://www.awardmap.net
 // @supportURL   https://github.com/wedge256/mm-patcher/issues
 // @icon         https://www.awardmap.net/favicon.svg
@@ -1078,7 +1079,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 
 (() => {
     "use strict";
-    const VERSION = 80;
+    const VERSION = 81;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const inherited = window.__mmSettings;
     if (inherited) {
@@ -1098,6 +1099,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         bbd: !0,
         results: !0,
         seatmap: !0,
+        officeNote: !0,
         office: "auto",
         officeAutoMigrated: 0,
         keepalive: !0,
@@ -1142,6 +1144,10 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             key: "seatmap",
             label: "💺 Sitzplan",
             tip: "Sitzplan bei Hover oder Klick auf den Flugzeugtyp. Wirkt nur " + "mit Ergebniskarten."
+        }, {
+            key: "officeNote",
+            label: "🏢 Buchungsbüro-Zeile",
+            tip: "Zeile über den Ergebniskarten: Buchungsbüro und Währung der " + "Zuzahlungen. Wirkt nur mit Ergebniskarten."
         } ]
     }, {
         header: "🧰 Sonstiges",
@@ -1162,6 +1168,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     } ];
     const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab";
     const PANEL_W = 284;
+    const DONATE_URL = "https://buymeacoffee.com/wedge_mm";
+    const MUG = `<svg class="mmset-don-mug" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
+        <path d="M23 13.5h2.2a3.3 3.3 0 0 1 3.3 3.3v2.9a3.3 3.3 0 0 1-3.3 3.3H23" fill="none" stroke="#B87A06" stroke-width="2.4" stroke-linecap="round"/>
+        <rect x="6" y="10.5" width="17" height="18" rx="3" fill="#F6B51E" stroke="#B87A06" stroke-width="1.6"/>
+        <path d="M10.5 15.5v8.5M14.5 15.5v8.5M18.5 15.5v8.5" stroke="#FFD866" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M5 12.5C4.6 9.6 6.6 7.6 9.3 8.1 9.9 5.6 12.2 4 14.8 4.5c1.7-1.4 4.6-.9 5.6 1.4 2.6-.4 4.6 1.6 4.2 4.1.6.7.6 1.8.1 2.5H5z" fill="#fff" stroke="#E6D7AE" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
     const normText = v => {
         const s = String(null == v ? "" : v).trim();
         return /^auto$/i.test(s) ? "auto" : s.toUpperCase();
@@ -1340,6 +1352,13 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmset-panel.is-open { display: block; }
 .mmset-title { font-size: 14px; font-weight: 700; color: ${INK_primary}; margin: 0 0 2px; }
 .mmset-sub { font-size: 11px; color: ${INK_muted}; margin: 0 0 8px; }
+.mmset-don { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 9px;
+             margin: 4px 0 2px; padding: 4px 0 8px; border-bottom: 1px solid ${INK_hairline};
+             text-decoration: none !important; cursor: pointer; }
+.mmset-don-mug { grid-row: 1 / span 2; display: block; }
+.mmset-don-q { font-size: 12px; color: ${INK_secondary}; line-height: 1.35; }
+.mmset-don-cta { grid-column: 2; font-size: 12px; font-weight: 600; color: #8A5A00; line-height: 1.35; }
+.mmset-don:hover .mmset-don-cta { text-decoration: underline; }
 .mmset-grp { padding: 3px 0 5px; }
 .mmset-grp + .mmset-grp { border-top: 1px solid ${INK_hairline}; }
 .mmset-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
@@ -1404,6 +1423,9 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         panel.className = "mmset-panel";
         panel.innerHTML = `
             <p class="mmset-title">M&amp;M Patcher</p>
+            <a class="mmset-don" href="${DONATE_URL}" target="_blank" rel="noopener">${MUG}
+                <span class="mmset-don-q">Gefällt dir M&amp;M Patcher?</span>
+                <span class="mmset-don-cta">Bier spendieren</span></a>
             ${GROUPS.map(groupHtml).join("")}
             <p class="mmset-foot">Einstellung bleibt gespeichert.</p>
             <p class="mmset-foot mmset-verline"><span class="mmset-ver"></span> ·
@@ -1455,6 +1477,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                         a.target = "_blank";
                         a.rel = "noopener";
                         a.textContent = "v" + s.latest + " verfügbar";
+                        a.addEventListener("click", () => {
+                            try {
+                                u.armReload && u.armReload();
+                            } catch (e3) {}
+                        });
                         updRes.appendChild(a);
                     } else updRes.textContent = "✓ aktuell";
                 } catch (e2) {
@@ -5722,7 +5749,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
 
 (() => {
     "use strict";
-    const VERSION = 132;
+    const VERSION = 134;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -6200,7 +6227,9 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
             });
         }
         const known = win.filter(w => Object.keys(w.cells).length).length;
-        const searching = !cal.loading && cal.searchingSince && !windowLoaded(win) && Date.now() - cal.searchingSince < 45e3;
+        const anchor = anchorMonth();
+        const anchorDone = anchor.length > 0 && anchor.every(m => monthDone(cal, m) || autoTried.has(cal.route + "|" + m.k));
+        const searching = !cal.loading && cal.searchingSince && !anchorDone && Date.now() - cal.searchingSince < 45e3;
         if (state._searchTimer) {
             clearTimeout(state._searchTimer);
             state._searchTimer = null;
@@ -6242,7 +6271,22 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                     year: "numeric"
                 });
             }(win[0].d, win[win.length - 1].d);
-            body += cal.error ? '<div class="mmcal-msg mmcal-err">' + esc(cal.error) + blockNote + retryBtn("mmcal-btn is-wide") + "</div>" : windowLoaded(win) ? '<div class="mmcal-msg">Keine Prämienflüge vom ' + span + ".</div>" : '<div class="mmcal-msg">Für ' + span + " sind noch keine Preise geladen. " + '<button type="button" class="mmcal-btn is-wide" data-load="1">Preise laden</button></div>';
+            body += cal.error ? '<div class="mmcal-msg mmcal-err">' + esc(cal.error) + blockNote + retryBtn("mmcal-btn is-wide") + "</div>" : function(win) {
+                const cal = window.__mmCal;
+                if (!cal || "function" != typeof cal.hasMonth) return !1;
+                const seen = new Set;
+                for (const w of win) {
+                    const key = w.d.getFullYear() + "-" + w.d.getMonth();
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        if (!monthDone(cal, {
+                            y: w.d.getFullYear(),
+                            m: w.d.getMonth()
+                        })) return !1;
+                    }
+                }
+                return !0;
+            }(win) ? '<div class="mmcal-msg">Keine Prämienflüge vom ' + span + ".</div>" : '<div class="mmcal-msg">Für ' + span + " sind noch keine Preise geladen. " + '<button type="button" class="mmcal-btn is-wide" data-load="1">Preise laden</button></div>';
         }
         const bbd = window.__mmBBD;
         bbd && bbd.error && bbdShown() && (body += '<div class="mmcal-errline">Best-by-day: ' + esc(bbd.error) + "</div>");
@@ -6301,6 +6345,8 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         const clearBtn = state.root.querySelector("[data-clear]");
         clearBtn && clearBtn.addEventListener("click", () => {
             cal.clearCache();
+            autoTried.clear();
+            autoFails.clear();
             ensureMonthLoaded();
         });
         wireFoldBtn();
@@ -6425,22 +6471,6 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
         });
     }
     const pad = n => String(n).padStart(2, "0");
-    function windowLoaded(win) {
-        const cal = window.__mmCal;
-        if (!cal || "function" != typeof cal.hasMonth) return !1;
-        const seen = new Set;
-        for (const w of win) {
-            const key = w.d.getFullYear() + "-" + w.d.getMonth();
-            if (!seen.has(key)) {
-                seen.add(key);
-                if (!monthDone(cal, {
-                    y: w.d.getFullYear(),
-                    m: w.d.getMonth()
-                })) return !1;
-            }
-        }
-        return !0;
-    }
     const API_CABIN = {
         eco: "ECONOMY",
         ecoPremium: "PREMIUMECO",
@@ -6579,7 +6609,7 @@ ${HOST} .container:has(.mmsp-hidden) .mmsp-adult .passenger-desc::after { conten
                         if (!await until(() => {
                             const now = grab().map(stripBtnDate).filter(Boolean);
                             return now.length && now[0] + "|" + now[now.length - 1] !== before;
-                        }, 3e3)) return !1;
+                        }, 12e3)) return !1;
                     }
                     return !1;
                 }(dateStr);
@@ -8209,7 +8239,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 
 (() => {
     "use strict";
-    const VERSION = 202;
+    const VERSION = 203;
     if (window.__mmCards && window.__mmCards.version >= VERSION) return;
     const inherited = window.__mmCards;
     if (inherited) {
@@ -10613,6 +10643,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }
     }
     function officeNoteEl(all) {
+        if (window.__mmSettings && !1 === window.__mmSettings.get("officeNote")) return null;
         let foreign = null, priced = !1;
         outer: for (const it of all) for (const f of it.fares || []) {
             f.currency && (priced = !0);
@@ -11130,7 +11161,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         document.querySelectorAll(".mmrc-list, .mmrc-seatoverlay, .mmrc-seatpeek").forEach(e => e.remove());
     };
     window.__mmSettings && (state._offSettings = window.__mmSettings.onChange(k => {
-        state.superseded || "results" !== k || (cardsOn() ? render() : state.destroy());
+        state.superseded || "results" !== k && "officeNote" !== k || (cardsOn() ? render() : state.destroy());
     }));
     state.render = render;
     function boot() {
@@ -13351,9 +13382,9 @@ jederzeit von Hand starten.</p>` : ""}
 
 (() => {
     "use strict";
-    const VERSION = 6;
+    const VERSION = 7;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
-    const DIST_version = "1.7.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md";
+    const DIST_version = "1.7.4", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md";
     const prev = window.__mmUpdate;
     if (prev) {
         prev.superseded = !0;
@@ -13367,7 +13398,13 @@ jederzeit von Hand starten.</p>` : ""}
     const START_DELAY = 8e3;
     const MAX_NOTES = 8;
     const NOTES_TIMEOUT = 4e3;
-    const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781";
+    const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781", INK_secondary = "#52514e";
+    const DONATE_URL = "https://buymeacoffee.com/wedge_mm";
+    const MUG = `<svg class="mmupd-don-mug" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+        <path d="M23 13.5h2.2a3.3 3.3 0 0 1 3.3 3.3v2.9a3.3 3.3 0 0 1-3.3 3.3H23" fill="none" stroke="#B87A06" stroke-width="2.4" stroke-linecap="round"/>
+        <rect x="6" y="10.5" width="17" height="18" rx="3" fill="#F6B51E" stroke="#B87A06" stroke-width="1.6"/>
+        <path d="M10.5 15.5v8.5M14.5 15.5v8.5M18.5 15.5v8.5" stroke="#FFD866" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M5 12.5C4.6 9.6 6.6 7.6 9.3 8.1 9.9 5.6 12.2 4 14.8 4.5c1.7-1.4 4.6-.9 5.6 1.4 2.6-.4 4.6 1.6 4.2 4.1.6.7.6 1.8.1 2.5H5z" fill="#fff" stroke="#E6D7AE" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
     const readState = () => {
         try {
             return JSON.parse(localStorage.getItem(KEY) || "{}") || {};
@@ -13405,6 +13442,23 @@ jederzeit von Hand starten.</p>` : ""}
         checkedAt: null
     };
     let chip = null;
+    let reloadArmed = !1;
+    function armReload() {
+        if (reloadArmed) return;
+        reloadArmed = !0;
+        let left = "hidden" === document.visibilityState;
+        const onVis = () => {
+            if ("hidden" !== document.visibilityState) {
+                if (left) {
+                    document.removeEventListener("visibilitychange", onVis);
+                    try {
+                        location.reload();
+                    } catch (e) {}
+                }
+            } else left = !0;
+        };
+        document.addEventListener("visibilitychange", onVis);
+    }
     function hide() {
         if (chip) {
             chip.remove();
@@ -13443,6 +13497,12 @@ jederzeit von Hand starten.</p>` : ""}
 .mmupd-list { margin: 1px 0 0; padding-left: 16px; list-style: disc; }
 .mmupd-list li { margin: 1px 0; font-size: 12px; }
 .mmupd-more { display: inline-block; margin-top: 5px; color: ${INK_accent}; font-size: 11.5px; }
+.mmupd-don { flex: 1 0 100%; display: flex; align-items: center; gap: 7px; min-width: 0;
+             border-top: 1px solid ${INK_hairline}; padding-top: 7px; text-decoration: none !important; }
+.mmupd-don-mug { flex: 0 0 auto; display: block; }
+.mmupd-don-q { flex: 1 1 auto; color: ${INK_secondary}; font-size: 12px; }
+.mmupd-don-cta { flex: 0 0 auto; color: #8A5A00; font-weight: 600; font-size: 12px; white-space: nowrap; }
+.mmupd-don:hover .mmupd-don-cta { text-decoration: underline; }
 `;
             let el = document.getElementById("mmupd-styles");
             if (!el) {
@@ -13511,11 +13571,19 @@ jederzeit von Hand starten.</p>` : ""}
             return box;
         }(notes) : null;
         box && chip.appendChild(box);
+        const don = document.createElement("a");
+        don.className = "mmupd-don";
+        don.href = DONATE_URL;
+        don.target = "_blank";
+        don.rel = "noopener";
+        don.innerHTML = MUG + '<span class="mmupd-don-q">Gefällt dir das Update?</span>' + '<span class="mmupd-don-cta">Bier spendieren</span>';
+        chip.appendChild(don);
         document.body.appendChild(chip);
         go.addEventListener("click", () => {
             try {
                 window.open(DIST_page, "_blank", "noopener");
             } catch (e) {}
+            armReload();
         });
         x.addEventListener("click", () => {
             const s = readState();
@@ -13636,7 +13704,8 @@ jederzeit von Hand starten.</p>` : ""}
             writeState({});
             hide();
         },
-        dismiss: hide
+        dismiss: hide,
+        armReload: armReload
     };
     try {
         Object.defineProperty(window, "__mmUpdate", {
