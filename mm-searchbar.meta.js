@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @namespace    https://www.awardmap.net
-// @version      1.7.3
+// @version      1.7.4
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @author       wedge
+// @license      PolyForm Strict 1.0.0 (https://polyformproject.org/licenses/strict/1.0.0)
 // @homepageURL  https://www.awardmap.net
 // @supportURL   https://github.com/wedge256/mm-patcher/issues
 // @icon         https://www.awardmap.net/favicon.svg
