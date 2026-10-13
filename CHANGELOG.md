@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.0 — 2026-10-14
+
+### Neu
+
+- **Hauptseite: Suche auch mit weniger als 1.500 Prämienmeilen**
+- **Hauptseite: „Letzte Suchanfragen“ bleiben auch nach dem Abmelden erhalten**
+
+### Geändert
+
+- **Ethiopian A350 heißt jetzt korrekt „A350-900“**
+
+### Behoben
+
+- **Sitzplan: erste Economy-Reihe der Ethiopian A350 war fehlerhaft**
+
 ## 1.7.4 — 2026-10-03
 
 ### Neu

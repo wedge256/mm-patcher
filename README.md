@@ -78,6 +78,12 @@ rechts auf der Ergebnisseite.
   Erweitert die kastrierte Prämienliste von ~1.500 auf 11.161 Orte, dazu Bahnhöfe und
   Städte ohne Flughafen wie z.B. AGY (Augsburg) und KNC (Konstanz Bahnhof).
 
+- **Suche ab der Hauptseite**
+
+  Die Suchmaske auf miles-and-more.com sucht auch mit weniger als 1.500 Prämienmeilen.
+  "Letzte Suchanfragen" bleiben nach dem Abmelden erhalten und erscheinen auch ohne
+  frische Anmeldung. Meldet sich ein anderes Konto an, wird die Liste geleert.
+
 - **Suchlimit im Blick**
 
   M&M erlaubt etwa 40 Suchen je IP-Adresse und Stunde, danach ist die Adresse eine
