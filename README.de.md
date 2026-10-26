@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="M&amp;M_Patcher" width="640">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark-de.png">
+    <img src="assets/banner-light-de.png" alt="M&amp;M_Patcher" width="640">
   </picture>
 </p>
 
@@ -71,6 +71,8 @@ der Ergebnisseite.
   Das Datumsfeld zeigt einen Monat mit den Meilenpreisen je Tag, Hin- und Rückflug als
   Zeitraum mit Anzahl der Nächte.
 
+  <img src="assets/datepicker-de.png" alt="Datumswähler" width="350">
+
 - **„Ich fliege nicht selbst“**
 
   Buchen für andere direkt im Shop, im Dialog „Reisende“, nicht nur auf der Hauptseite.
@@ -91,7 +93,7 @@ der Ergebnisseite.
   15 Tage statt 7, auf Wunsch für alle vier Kabinen. 
   Dazu die Bestpreise des ganzen Jahres von der M&M-Hauptseite ("Best-By-Day"-API; nicht für jede Route verfügbar und oft veraltet).
 
-  <img src="assets/kalender.png" alt="Kalender" width="700">
+  <img src="assets/calendar-de.png" alt="Kalender">
 
 ### Ergebnisse
 
@@ -101,11 +103,13 @@ der Ergebnisseite.
   Flugzeug samt Besonderheiten (Allegris, Retrofit-Business in der A380). Alle Tarife je
   Kabine nebeneinander, mit Anzeige der noch buchbaren Plätze.
 
+  <img src="assets/results-de.png" alt="Ergebniskarten">
+
 - **Sitzplan für jeden Flug**
 
   Ein Klick auf den Flugzeugtyp öffnet den Sitzplan und zeigt, welche Plätze noch frei sind.
 
-  <img src="assets/sitzplan.png" alt="Sitzplan" width="700">
+  <img src="assets/seatmap-de.png" alt="Sitzplan">
 
 ### Buchungsbüro & Währung
 
@@ -120,7 +124,7 @@ der Ergebnisseite.
 - **Zuzahlung in wählbarer Währung**
 
   Wer auch gerade keine Ahnung hat, wie viel 782.773,36 Argentinische Pesos heute in € wert sind: 
-  Beträge in Fremdwährung zeigen den umgerechneten Betrag an, in Euro oder einer anderen wählbaren Währung.
+  Beträge in Fremdwährung zeigen den umgerechneten Betrag an, standardmäßig in Euro, umstellbar in den Einstellungen.
 
 ### Sonstiges
 

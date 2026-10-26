@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
-    <img src="assets/banner-light.png" alt="M&amp;M_Patcher" width="640">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark-en.png">
+    <img src="assets/banner-light-en.png" alt="M&amp;M_Patcher" width="640">
   </picture>
 </p>
 
@@ -71,6 +71,8 @@ right of the results page.
   The date field shows one month with the mile price per day, outbound and return as one range
   with the number of nights.
 
+  <img src="assets/datepicker-en.png" alt="Date picker" width="350">
+
 - **“I am not travelling myself”**
 
   Book for others right in the shop, in the “Passengers” dialog, not only on the main site.
@@ -92,7 +94,7 @@ right of the results page.
   On top, the best prices of the whole year from the M&M main site (“Best-By-Day” API; not available
   for every route and often outdated).
 
-  <img src="assets/kalender.png" alt="Calendar" width="700">
+  <img src="assets/calendar-en.png" alt="Calendar">
 
 ### Results
 
@@ -102,11 +104,13 @@ right of the results page.
   (Allegris, retrofitted business in the A380). All fares of each cabin side by side, showing the
   seats still bookable.
 
+  <img src="assets/results-en.png" alt="Result cards">
+
 - **Seat map for every flight**
 
   A click on the aircraft type opens the seat map and shows which seats are still free.
 
-  <img src="assets/sitzplan.png" alt="Seat map" width="700">
+  <img src="assets/seatmap-en.png" alt="Seat map">
 
 ### Booking office & currency
 
@@ -121,7 +125,7 @@ right of the results page.
 - **Surcharge in a selectable currency**
 
   For anyone else who has no idea what 782,773.36 Argentine pesos are worth in € today: amounts in a
-  foreign currency show the converted amount, in euros or another selectable currency.
+  foreign currency show the converted amount, in euros by default, changeable in the settings.
 
 ### Other
 
