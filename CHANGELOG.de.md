@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md)
 
+## 1.9.1 — 2026-10-27
+
+### Behoben
+
+- **Kalender: nach einer Suche ohne Treffer blieb er beim Datum der vorigen Suche stehen**
+
 ## 1.9.0 — 2026-10-26
 
 ### Neu

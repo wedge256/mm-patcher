@@ -2,6 +2,12 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.9.1 — 2026-10-27
+
+### Fixed
+
+- **Calendar: after a search with no flights it stayed on the previous search's date**
+
 ## 1.9.0 — 2026-10-26
 
 ### Added

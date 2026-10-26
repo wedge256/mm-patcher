@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.9.0
+// @version      1.9.1
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -709,7 +709,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "sucht …": "searching …"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.1/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -3747,7 +3747,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.1/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -8909,7 +8909,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 69;
+    const VERSION = 70;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inherited = window.__mmBounds;
@@ -9182,9 +9182,13 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         detail: what,
         t: Date.now()
       };
-      state.current = [];
-      state.listSig = (void 0 !== sig ? sig : state._pendingSig) || null;
+      noList(void 0 !== sig ? sig : state._pendingSig);
       emit();
+    }
+    function noList(sig) {
+      state.current = [];
+      state.lastRaw = null;
+      state.listSig = sig || null;
     }
     const STOP_WARNING = "40834";
     function noteCause(code, detail, warning) {
@@ -9209,6 +9213,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
             t: Date.now()
           };
           noteCause(e.code, e.detail || e.title, !1);
+          noList(callSig);
           emit();
           return;
         }
@@ -9216,7 +9221,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
           "40834" === String(w && w.code) && noteCause(w.code, w.detail || w.title, !0);
         });
         if (Number(status) >= 400 && !(json && json.data && json.data.airBoundGroups)) {
-          failed(status, json && (json.message || json.error || json.title));
+          failed(status, json && (json.message || json.error || json.title), callSig);
           return;
         }
         state.lastError = null;
@@ -17719,10 +17724,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
   })();
   (() => {
     "use strict";
-    const VERSION = 12;
+    const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.9.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.9.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -17867,9 +17872,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
           null != text && (e.textContent = text);
           return e;
         };
-        let shown = 0, rest = 0;
+        let total = 0, rest = 0;
         notes.forEach(v => {
           let verHead = notes.length > 1;
+          let shown = 0;
           v.groups.forEach(g => {
             const take = g.items.slice(0, Math.max(0, MAX_NOTES - shown));
             rest += g.items.length - take.length;
@@ -17883,8 +17889,9 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
             take.forEach(t => ul.appendChild(add("li", "", t)));
             shown += take.length;
           });
+          total += shown;
         });
-        if (!shown) return null;
+        if (!total) return null;
         if (rest && notesPageUrl()) {
           const more = box.appendChild(add("a", "mmupd-more", T("+ {n} weitere im Changelog", {
             n: rest
