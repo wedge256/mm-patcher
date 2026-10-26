@@ -1,239 +1,264 @@
 # Changelog
 
+[Deutsch](CHANGELOG.de.md)
+
+## 1.9.0 — 2026-10-26
+
+### Added
+
+- **Multi-language support**: 16 languages
+- **Surcharges converted into a currency of your choice** (not only €)
+
+### Changed
+
+- **Better seat maps**
+- **Date picker shows the mile price for each day**
+- **Calendar: slightly revised layout**
+
+### Fixed
+
+- **Fundamental performance optimisations**
+- **Calendar: some days showed “date bar not responding” and never loaded**
+- **Filters, sorting and the search counter appeared seconds after the results**
+- **Swap button: the first click often did nothing**
+- **Return calendar: after a day without offers, going back to the searched day
+  showed no results**
+- **Error page: “Back to search” did not work**
+- **Many smaller bugs under the hood**
+
 ## 1.8.0 — 2026-10-14
 
-### Neu
+### Added
 
-- **Hauptseite: Suche auch mit weniger als 1.500 Prämienmeilen**
-- **Hauptseite: „Letzte Suchanfragen“ bleiben auch nach dem Abmelden erhalten**
+- **Main site: search with fewer than 1,500 award miles**
+- **Main site: “Recent searches” are kept after logging out**
 
-### Geändert
+### Changed
 
-- **Ethiopian A350 heißt jetzt korrekt „A350-900“**
+- **Ethiopian A350 is now correctly named “A350-900”**
 
-### Behoben
+### Fixed
 
-- **Sitzplan: erste Economy-Reihe der Ethiopian A350 war fehlerhaft**
+- **Seat map: first Economy row of the Ethiopian A350 was wrong**
 
 ## 1.7.4 — 2026-10-03
 
-### Neu
+### Added
 
-- **Schalter „Buchungsbüro-Zeile" in den Einstellungen**
+- **Settings switch “Booking office line”**
 
-### Geändert
+### Changed
 
-- **Nach „Installieren" lädt die Seite einmal neu, damit die neue Version läuft**
+- **After “Install” the page reloads once so the new version runs**
 
-### Behoben
+### Fixed
 
-- **Kalender: Klick auf einen Tag in einem anderen Monat scheiterte manchmal**
-- **Kalender: Ladeanzeige drehte weiter, obwohl der Suchmonat fertig war**
-- **Kalender: nach „Cache leeren" luden Monate nicht mehr von selbst**
+- **Calendar: clicking a day in another month sometimes failed**
+- **Calendar: loading indicator kept spinning although the search month was done**
+- **Calendar: after “Clear cache” months no longer loaded by themselves**
 
 ## 1.7.3 — 2026-10-02
 
-### Neu
+### Added
 
-- **Update-Hinweis zeigt, was sich geändert hat**
+- **Update notice shows what has changed**
 
-### Behoben
+### Fixed
 
-- **Kalender zeigte beim Tageswechsel eine Ladeanzeige, obwohl alles geladen war**
+- **Calendar showed a loading indicator when changing days although everything was loaded**
 
 ## 1.7.2 — 2026-09-29
 
-### Geändert
+### Changed
 
-- **Filter neu gestaltet und erweitert**
+- **Filters redesigned and extended**
 
-### Behoben
+### Fixed
 
-- **Alle Airlines zeigen jetzt richtiges Logo statt Platzhalter**
-- **Von Hand eingetragenes Buchungsbüro zeigte das falsche Land**
-- **In der Mobilansicht zeigte der Klassenfilter keine Tarife**
+- **All airlines now show their real logo instead of a placeholder**
+- **A manually entered booking office showed the wrong country**
+- **In the mobile view the cabin filter showed no fares**
 
 ## 1.7.1 — 2026-09-24
 
-### Geändert
+### Changed
 
-- **Einige Hinweistexte überarbeitet**
+- **Some notices reworded**
 
-### Behoben
+### Fixed
 
-- **Nach einem Wechsel des Buchungsbüros lief der Warenkorb im alten Büro**
-  (andere Währung als in der Trefferliste)
+- **After changing the booking office the cart still ran in the old office**
+  (different currency than in the results)
 
 ## 1.7.0 — 2026-09-23
 
-### Neu
+### Added
 
-- **„Ich fliege nicht selbst" jetzt auch im Shop wählbar**, nicht mehr nur
-  auf der Hauptseite
-- **Ergebnisansicht leicht überarbeitet**
-- **Übersichtlichere Preise bei mehreren Reisenden**: pro Erwachsener oder
-  gesamt (Idee aus [#6](https://github.com/wedge256/mm-patcher/pull/6), danke
+- **“I'm not travelling myself” now selectable in the shop too**, not only on
+  the main site
+- **Results view slightly reworked**
+- **Clearer prices with several travellers**: per adult or in total (idea from
+  [#6](https://github.com/wedge256/mm-patcher/pull/6), thanks
   [@simonguenther](https://github.com/simonguenther))
 
-### Behoben
+### Fixed
 
-- **Kalender zeigte teils das Ziel des ersten Tages statt des gesuchten**
-- **Verbindungen mit Zuganschluss ließen sich nicht wählen**
-- **Kalender zeigte bei mehreren Reisenden teils den Kleinkindpreis**
+- **Calendar sometimes showed the destination of the first day instead of the searched one**
+- **Connections with a train leg could not be selected**
+- **Calendar sometimes showed the infant price with several travellers**
 
 ## 1.6.4 — 2026-09-19
 
-### Neu
+### Added
 
-- **Reiseklassenfilter in der Trefferliste**
+- **Cabin filter in the results**
 
-### Behoben
+### Fixed
 
-- **Kalenderklick auf eine andere Kabine am bereits gesuchten Tag löst wieder
-  eine Suche aus**
+- **Clicking another cabin in the calendar on the day already searched searches
+  again**
 
 ## 1.6.3 — 2026-09-16
 
-### Behoben
+### Fixed
 
-- **Kalender: doppelte Kabinen-Beschriftung unter dem Raster entfernt**
-- **Airline-Symbole: fehlende und leere Logos ergänzt**
-- **Sitzplan: Kabinen, Sitzbreiten und Rumpf korrigiert**
+- **Calendar: duplicate cabin labels below the grid removed**
+- **Airline icons: missing and empty logos added**
+- **Seat map: cabins, seat widths and fuselage corrected**
 
 ## 1.6.2 — 2026-09-16
 
-### Behoben
+### Fixed
 
-- **Update-Hinweis erschien bis zu 24 h nach einem Release**
+- **Update notice appeared up to 24 h after a release**
 
 ## 1.6.1 — 2026-09-16
 
-### Behoben
+### Fixed
 
-- **Buchungsbüro: Automatikmodus & Bürowechsel**
+- **Booking office: automatic mode & office change**
 
 ## 1.6.0 — 2026-09-15
 
-### Hinzugefügt
+### Added
 
-- **Buchungsbüro frei wählbar, voreingestellt automatisch nach Abflugland**
-  (Hintergrund: Buchungsbüro DE findet keine ET Flüge ab DE; Büro CH/AT
-  dagegen schon)
+- **Booking office freely selectable, by default automatic by departure country**
+  (background: booking office DE finds no ET flights from Germany; offices CH/AT
+  do)
 
-### Geändert
+### Changed
 
-- **Verbesserte Erkennung von Städten ohne Flughafen (Konstanz, …)
-  und neuen Flughäfen (WSI)**
-- **Vorschläge beim Tippen erscheinen sofort, unverzüglich**
-- **Kalender lädt nur noch den gesuchten Monat automatisch**
+- **Better recognition of cities without an airport (Konstanz, …)
+  and of new airports (WSI)**
+- **Suggestions appear instantly while typing**
+- **Calendar loads only the searched month automatically**
 
-### Behoben
+### Fixed
 
-- **Suchen landeten auf der Fehlerseite, obwohl die Anmeldung stand**
-- **Kalender konnte still hängenbleiben**
-- **Viele kleinere Bugs**
+- **Searches ended on the error page although the login was fine**
+- **Calendar could hang silently**
+- **Many smaller bugs**
 
 ## 1.5.0 — 2026-09-12
 
-### Hinzugefügt
+### Added
 
-- **Freie Plätze auf jeder Ergebniskarte**
-- **Suchzähler: warnt vor dem IP-Limit von Miles & More**
+- **Free seats on every result card**
+- **Search counter: warns before Miles & More's IP limit**
 
-### Behoben
+### Fixed
 
-- **Bugfixes und bessere Behandlung des IP-Limits**
+- **Bug fixes and better handling of the IP limit**
 
 ## 1.4.0 — 2026-08-31
 
-### Hinzugefügt
+### Added
 
-- **Ländersuche: Ein Ländername listet alle Städte des Landes**
+- **Country search: a country name lists all cities of that country**
 
-### Geändert
+### Changed
 
-- **Darstellung während der Sucheingabe optimiert**
+- **Display while typing a search optimised**
 
-### Behoben
+### Fixed
 
-- **„Wählen" scheiterte mit „Auswahl nicht möglich. Seite neu laden."**
-- **Darstellungsfehler und kosmetische Bugs gefixt**
-- **Performance-Optimierung**
+- **“Select” failed with “Selection not possible. Reload the page.”**
+- **Display errors and cosmetic bugs fixed**
+- **Performance optimisation**
 
 ## 1.3.0 — 2026-08-24
 
-### Hinzugefügt
+### Added
 
-- **Sitzplan zeigt auch den Flugzeugtyp an**
-- **Kennzeichnung besonderer Business-Kabinen in der Übersicht (Allegris,
-  Swiss Senses) bzw. der Seatmap (ANA THE Room, Polaris Studio u. a.)**
+- **Seat map also shows the aircraft type**
+- **Special business cabins marked in the overview (Allegris, Swiss Senses) and
+  in the seat map (ANA THE Room, Polaris Studio and others)**
 
-### Behoben
+### Fixed
 
-- **Sitzplan-Darstellung war teilweise fehlerhaft**
-- **Avianca hatte kein Logo**
+- **Seat map display was partly wrong**
+- **Avianca had no logo**
 
 ## 1.2.2 — 2026-08-24
 
-### Behoben
+### Fixed
 
-- **Kleinere Performance-Bugfixes**
+- **Minor performance fixes**
 
 ## 1.2.1 — 2026-08-24
 
-### Behoben
+### Fixed
 
-- **Hin- und Rückflug: Beim Wechsel des Rückflugdatums zeigt der Kalender
-  nicht mehr die Tarife der alten Suche**
+- **Round trip: changing the return date no longer shows the fares of the old
+  search in the calendar**
 
 ## 1.2.0 — 2026-08-24
 
-### Hinzugefügt
+### Added
 
-- **Rückflug-Kalender: Tage ohne Angebot zum gewählten Hinflug sind
-  durchgestrichen**
-- **Sitzplan: „Erneut laden", wenn eine Kabine nicht geladen werden konnte**
+- **Return calendar: days without an offer for the chosen outbound are struck
+  through**
+- **Seat map: “Reload” when a cabin could not be loaded**
 
-### Behoben
+### Fixed
 
-- **Hin- und Rückflug: Kalender und Rückflug-Auswahl funktionieren jetzt
-  richtig**
-- **Ladeanimation bleibt beim Neuaufbau der Ergebnisliste sichtbar**
-- **UI Reparaturen**
+- **Round trip: calendar and return selection now work properly**
+- **Loading animation stays visible while the results are rebuilt**
+- **UI repairs**
 
 ## 1.1.0 — 2026-08-22
 
-### Behoben
+### Fixed
 
-- **Hin- und Rückflug sollten jetzt normal funktionieren**
-- **Tarifwahl funktioniert auch in englischsprachigen Sitzungen**
-- **Sitzplan: Preise werden auch in Euro umgerechnet**
+- **Round trips should now work normally**
+- **Fare selection also works in English-language sessions**
+- **Seat map: prices are converted to euros too**
 
-### Hinzugefügt
+### Added
 
-- **Hinweis auf das aktive Buchungsbüro**, falls Zuzahlungen in Fremdwährung
-  berechnet werden
+- **Notice about the active booking office** when surcharges are charged in a
+  foreign currency
 
-### Geändert
+### Changed
 
-- **Tarif-Details nennen bei Fremdwährung zusätzlich den Originalbetrag**
+- **Fare details also name the original amount for foreign currencies**
 
 ## 1.0.2 — 2026-08-22
 
-### Behoben
+### Fixed
 
-- **Update-Prüfung funktioniert jetzt korrekt.**
+- **Update check now works correctly.**
 
 ## 1.0.1 — 2026-08-22
 
-### Behoben
+### Fixed
 
-- **Läuft jetzt auch unter Greasemonkey und Violentmonkey.**
+- **Now also runs under Greasemonkey and Violentmonkey.**
 
-### Geändert
+### Changed
 
-- kleinere optische Änderungen
+- minor visual changes
 
 ## 1.0.0 — 2026-08-21
 
-Initial Release.
+Initial release.

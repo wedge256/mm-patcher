@@ -5,149 +5,154 @@
   </picture>
 </p>
 
+<p align="center"><b>English</b> · <a href="README.de.md">Deutsch</a></p>
+
 <p align="center">
-  <a href="https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js"><img src="https://img.shields.io/badge/Installieren-mm--searchbar.user.js-1c5cab?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Installieren"></a>
+  <a href="https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js"><img src="https://img.shields.io/badge/Install-mm--patcher.user.js-1c5cab?style=for-the-badge&logo=tampermonkey&logoColor=white" alt="Install"></a>
 </p>
 <p align="center">
   <a href="https://github.com/wedge256/mm-patcher/releases"><img src="https://img.shields.io/github/v/release/wedge256/mm-patcher?label=Version&color=05164D" alt="Version"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-lesen-05164D" alt="Changelog"></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/Lizenz-PolyForm%20Strict-6c757d" alt="Lizenz"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-read-05164D" alt="Changelog"></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-PolyForm%20Strict-6c757d" alt="License"></a>
 </p>
 
-Userscript für die Prämienflugsuche auf miles-and-more.com. Es zeigt den Kalender für alle vier Kabinen,
-zu jedem Flug die Seatmap mit freien Plätzen, kennt 11.000 Flughäfen statt 1.500 und findet über das
-Buchungsbüro Partnerawards, die M&M sonst nicht anzeigt.
+Userscript for the award flight search on miles-and-more.com. It shows the calendar for all four
+cabins, the seat map with free seats for every flight, knows 11,000 airports instead of 1,500 and,
+through the booking office, finds partner awards that M&M otherwise hides.
 
 ---
 
 ## Installation
 
-1. [Tampermonkey](https://www.tampermonkey.net/) installieren (Chrome, Firefox, Edge).
-   Violentmonkey und Greasemonkey funktionieren ebenfalls.
+1. Install [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Firefox, Edge).
+   Violentmonkey and Greasemonkey work as well.
 
-   1a. Chrome only: URL eingeben: [chrome://extensions](chrome://extensions) -> Tampermonkey -> Details: "Nutzerscripte zulassen" aktivieren
+   1a. Chrome: open [chrome://extensions](chrome://extensions) → Tampermonkey → Details:
+   enable “Allow user scripts”
 
-   1b. Safari: statt Tampermonkey [Userscripts](https://apps.apple.com/de/app/userscripts/id1463298887) aus dem App Store installieren, dann Safari -> Einstellungen -> Erweiterungen: Userscripts aktivieren
+   1b. Safari: instead of Tampermonkey install [Userscripts](https://apps.apple.com/app/userscripts/id1463298887)
+   from the App Store, then Safari → Settings → Extensions: enable Userscripts
 
-2. [**mm-searchbar.user.js**](https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-searchbar.user.js)
-   anklicken - Tampermonkey öffnet den Installationsdialog
+2. Click [**mm-patcher.user.js**](https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js)
+   – Tampermonkey opens its install dialog
 
-   2a. Safari: Userscripts-Symbol in der Symbolleiste anklicken -> installieren, beim ersten Besuch auf M&M den Zugriff erlauben
+   2a. Safari: click the Userscripts icon in the toolbar → install, allow access on your first visit
+   to M&M
 
-Alle Funktionen lassen sich einzeln abschalten: Knopf "M&M Patcher Settings" oben
-rechts auf der Ergebnisseite.
-
----
-
-## Funktionen
-
-### Sitzplan
-
-- **Seatmaps für jeden Flug**
-
-  Ein Klick auf den Flugzeugtyp öffnet den Sitzplan und zeigt, welche Plätze noch frei sind.
-
-  <img src="assets/sitzplan.png" alt="Sitzplan" width="700">
-
-### Mehr Flüge finden
-
-- **Buchungsbüro wählen**
-
-  Das Buchungsbüro entscheidet mit, welche Flüge M&M anzeigt. Es richtet sich nicht
-  nach IP oder Wohnsitz, sondern nach dem Abflugort der Suche. Je nach Büro tauchen
-  Partnerawards auf, die sonst fehlen: DE findet z. B. keine Ethiopian-Flüge ab
-  Deutschland, AT oder CH schon. Voreingestellt ist "Automatisch (Abflugland)",
-  umstellbar in den Settings.
-
-### Suche
-
-- **Suchmaske**
-
-  Ein Swap-Knopf dreht Start und Ziel. Auch nach Orten, die die originale Prämiensuche gar
-  nicht kennt, lässt sich jetzt suchen.
-  Den "Ändern"-Button hat M&M inzwischen selbst wieder freigeschaltet; falls er
-  erneut verschwindet, holt das Script ihn zurück.
-
-- **Verbesserte Flughafensuche**
-
-  "BER" findet Berlin statt Berbera, "FRA" Frankfurt statt Francistown. Ein
-  Ländername wie "Japan" listet alle Städte des Landes.
-
-- **Erweiterte Flughafenliste**
-
-  Erweitert die kastrierte Prämienliste von ~1.500 auf 11.161 Orte, dazu Bahnhöfe und
-  Städte ohne Flughafen wie z.B. AGY (Augsburg) und KNC (Konstanz Bahnhof).
-
-- **Suche ab der Hauptseite**
-
-  Die Suchmaske auf miles-and-more.com sucht auch mit weniger als 1.500 Prämienmeilen.
-  "Letzte Suchanfragen" bleiben nach dem Abmelden erhalten und erscheinen auch ohne
-  frische Anmeldung. Meldet sich ein anderes Konto an, wird die Liste geleert.
-
-- **Suchlimit im Blick**
-
-  M&M erlaubt etwa 40 Suchen je IP-Adresse und Stunde, danach ist die Adresse eine
-  Stunde gesperrt. Ein Zähler zeigt den Stand und lässt sich nach IP-Wechsel leeren.
-
-### Kalender
-
-- **Größerer Kalender**
-
-  15 Tage statt 7, zum Blättern, auf Wunsch für alle vier Kabinen. Ein Klick auf
-  einen Tag sucht direkt in dieser Kabine. Dazu die Bestpreise des ganzen Jahres von
-  der M&M-Hauptseite (nicht für jede Route verfügbar und oft veraltet).
-
-  <img src="assets/kalender.png" alt="Kalender" width="700">
-
-### Ergebnisse
-
-- **Übersichtliche Ergebniskarten**
-
-  Zeitleiste und Umsteigezeiten sind übersichtlicher dargestellt, dazu das eingesetzte
-  Flugzeug samt Besonderheiten (Allegris, Retrofit-Business in der A380). Alle Tarife
-  je Kabine nebeneinander, mit den noch freien Plätzen, soweit M&M sie herausgibt.
-
-- **Zuzahlung in Euro**
-
-  Auch gerade keine Ahnung, wie viel 2.330.434.500 Argentinische Pesos heute sind?
-  Beträge in Fremdwährung zeigen jetzt den umgerechneten Euro-Betrag an.
-
-- **Sortieren und filtern**
-
-  Nach Meilen, Zuzahlung, Abflug oder Dauer, gerechnet in der gesuchten Kabine. Dazu
-  ein Filter nach Reiseklasse.
-
-- **Mehrere Reisende**
-
-  Preise wahlweise pro Erwachsener oder gesamt; in den Tarifdetails stehen die Summe
-  und der Preis für Kinder und Kleinkinder.
-
-### Buchen
-
-- **"Ich fliege nicht selbst"**
-
-  Buchen für andere direkt im Shop, im Dialog "Reisende" - nicht mehr nur auf der
-  Hauptseite.
-
-- **Angemeldet bleiben**
-
-  Verhindert vorzeitigen Logout, wenn man mal 15 Minuten Kaffee holen ist.
-
-- **Entschuldigung, das bereitgestellte Vielfliegerprofil ist falsch**
-
-  Diese eine Meldung bekommt man für JEDEN Fehler einer Sitzung. Das Script ersetzt sie
-  durch eine Seite, die meistens das tatsächliche Problem nennt.
+Every feature can be switched off on its own: the **M&M Patcher** button (with the patch) at the top
+right of the results page.
 
 ---
 
-## Hinweise
+## Features
 
-Kein offizielles Angebot der Lufthansa Group / Miles & More.
+### Search
 
-## Unterstützen
+- **Access restriction lifted**
 
-Gefällt dir M&M Patcher? [🍺 Bier spendieren](https://buymeacoffee.com/wedge_mm)
+  The search form on miles-and-more.com also searches with fewer than 1,500 award miles.
 
-## Lizenz
+- **Extended airport list**
 
-[PolyForm Strict 1.0.0](LICENSE.md): private, nichtkommerzielle Nutzung erlaubt. Weitergeben und Verändern nicht erlaubt, auch nicht unter anderem Namen.
+  Extends the trimmed award list from ~1,500 to 11,161 places, including railway stations and cities
+  without an airport such as AGY (Augsburg) and KNC (Konstanz station).
+
+- **Better airport search**
+
+  “BER” finds Berlin instead of Berbera, “FRA” Frankfurt instead of Francistown. A country name such
+  as “Japan” lists every city of that country.
+
+- **Search form**
+
+  A swap button turns origin and destination around.
+
+- **Date picker with prices**
+
+  The date field shows one month with the mile price per day, outbound and return as one range
+  with the number of nights.
+
+- **“I am not travelling myself”**
+
+  Book for others right in the shop, in the “Passengers” dialog, not only on the main site.
+
+- **Saved searches (main site)**
+
+  “Recent searches” are kept even after logging out.
+
+- **Search limit at a glance**
+
+  M&M allows about 37 searches per IP address and hour; after that the address is blocked for an
+  hour. A counter shows where you stand and can be reset after an IP change.
+
+### Calendar
+
+- **Bigger calendar**
+
+  15 days instead of 7, for all four cabins if you like.
+  On top, the best prices of the whole year from the M&M main site (“Best-By-Day” API; not available
+  for every route and often outdated).
+
+  <img src="assets/kalender.png" alt="Calendar" width="700">
+
+### Results
+
+- **Clear result cards**
+
+  Timeline and connection times are laid out more clearly, along with the aircraft and its specials
+  (Allegris, retrofitted business in the A380). All fares of each cabin side by side, showing the
+  seats still bookable.
+
+- **Seat map for every flight**
+
+  A click on the aircraft type opens the seat map and shows which seats are still free.
+
+  <img src="assets/sitzplan.png" alt="Seat map" width="700">
+
+### Booking office & currency
+
+- **Choose the booking office**
+
+  The booking office helps decide which flights M&M shows and which currency is charged. It usually
+  follows the departure point of the search. Depending on the office, partner awards appear that are
+  missing otherwise: DE, for example, finds no Ethiopian flights from Germany – AT or CH do. The
+  default is “Automatic (departure country)”, changeable in the settings.
+  Another booking office does not change prices or miles.
+
+- **Surcharge in a selectable currency**
+
+  For anyone else who has no idea what 782,773.36 Argentine pesos are worth in € today: amounts in a
+  foreign currency show the converted amount, in euros or another selectable currency.
+
+### Other
+
+- **Stay logged in**
+
+  Prevents an early logout when you're off getting coffee for 15 minutes.
+
+- **“Sorry, the frequent flyer profile provided is incorrect”**
+
+  You get this one message for EVERY error of a session. The script replaces it with a page that
+  usually names the actual problem.
+
+---
+
+## Languages
+
+The interface follows the language of the site, in all languages Miles & More offers.
+Switch seamlessly at any time if you need to.
+
+(Apart from German and English the translations are machine-made. Improvements are welcome as an
+[issue](https://github.com/wedge256/mm-patcher/issues).)
+
+## Notes
+
+Not an official offer of the Lufthansa Group / Miles & More.
+
+## Support
+
+Do you like M&M Patcher? [🍺 Buy me a beer](https://buymeacoffee.com/wedge_mm)
+
+## License
+
+[PolyForm Strict 1.0.0](LICENSE.md): private, non-commercial use allowed. Redistribution and
+modification not allowed, not even under another name.
