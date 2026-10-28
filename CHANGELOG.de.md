@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.0 — 2026-10-28
+
+### Neu
+
+- **Dark Mode** für die Shop-Seite
+
+### Behoben
+
+- **Kalender bei Hin-/Rück- und Gabelflügen zeigte fehlerhafte Werte und nicht buchbare Tarife an**
+
 ## 1.9.1 — 2026-10-27
 
 ### Behoben

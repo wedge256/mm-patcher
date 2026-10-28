@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.9.1
+// @version      1.10.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -15,7 +15,10 @@
 // @updateURL    https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js
 // @downloadURL  https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js
 // @run-at       document-start
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
+// @grant        unsafeWindow
+// @connect      api.shop.miles-and-more.com
 // @noframes
 // ==/UserScript==
 
@@ -214,7 +217,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
   })();
   (() => {
     "use strict";
-    const VERSION = 16;
+    const VERSION = 17;
     if (window.__mmI18n && window.__mmI18n.version >= VERSION) return;
     const LANGS = {
       en: {
@@ -572,7 +575,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         },
         "Miles &amp; More nennt die genaue Platzzahl erst bei 6 oder weniger.": "Miles &amp; More only gives the exact number of seats at 6 or fewer.",
         "7+ Plätze": "7+ seats",
-        "Alle {cabin}-Tarife erscheinen erst bei einer {cabin}-Suche.": "All {cabin} fares only appear in a {cabin} search.",
+        "Alle {cabin}-Tarife erscheinen erst bei einer {cabin}-Suche.": "All {cabin} fares only appear in a search for {cabin}.",
         "Eine eigene {cabin}-Suche kann weitere Tarife finden.": "A separate {cabin} search can find more fares.",
         "Prämienflüge": "Award flights",
         "Flüge werden gesucht …": "Searching for flights …",
@@ -644,7 +647,6 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: suites with a sliding door (1-2-1), A350-1000 only",
         "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: Signature cabin with Signature Plus suites (door) at the front",
         "Stück": "piece",
-        "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "Search limit reached (HTTP 429, reported by the browser as a network error).",
         "Suchlimit erreicht (HTTP 429).": "Search limit reached (HTTP 429).",
         "Suche fehlgeschlagen (HTTP {http}).": "Search failed (HTTP {http}).",
         "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP blocked for about an hour, until approx. {time}.",
@@ -706,10 +708,31 @@ if ("shop.miles-and-more.com" === location.hostname) {
         Fertig: "Done",
         "🏢 Buchungsbüro & Währung": "🏢 Booking office & currency",
         Kabine: "Cabin",
-        "sucht …": "searching …"
+        "sucht …": "searching …",
+        "Dunkles Design": "Dark mode",
+        "Helles Design": "Light mode",
+        "Das war wohl jemand übereifrig… (HTTP 429)": "Someone got a bit overeager… (HTTP 429)",
+        "Das war zu viel… (HTTP 429)": "That was too much… (HTTP 429)",
+        "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+          one: "The IP address has therefore been blocked until {time} ({n} minute left).",
+          other: "The IP address has therefore been blocked until {time} ({n} minutes left)."
+        },
+        "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+          one: "The IP address is still blocked until {time} ({n} minute left).",
+          other: "The IP address is still blocked until {time} ({n} minutes left)."
+        },
+        "Suche fehlgeschlagen (keine Antwort vom Server).": "Search failed (no response from the server).",
+        "Mit gewähltem Hinflug nicht buchbar.": "Not bookable with the chosen outbound flight.",
+        "Buchbar mit {fare} im Hinflug.": "Bookable with {fare} outbound.",
+        "Buchbar mit Comfort im Hinflug, jede Kabine.": "Bookable with Comfort outbound, any cabin.",
+        "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Bookable with Comfort +, Flex or Standard outbound, any cabin.",
+        "nicht mit gewähltem Hinflug buchbar": "not bookable with the chosen outbound flight",
+        "Rückflug nur {fare}": "Return only {fare}",
+        "Rückflug nur Comfort, jede Kabine": "Return only Comfort, any cabin",
+        "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.0/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -790,7 +813,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
     const dtf = opts => cached("d", Intl.DateTimeFormat, opts);
     const cap = s => s ? s.charAt(0).toLocaleUpperCase(locale()) + s.slice(1) : s;
     const textCache = new Map;
-    const REDRAW = [ [ "__mmIata", "redraw" ], [ "__mmCalUI", "render" ], [ "__mmCards", "render" ], [ "__mmSort", "rerender" ], [ "__mmPicker", "render" ], [ "__mmSettings", "redraw" ], [ "__mmsuHooks", "redraw" ] ];
+    const REDRAW = [ [ "__mmIata", "redraw" ], [ "__mmCalUI", "render" ], [ "__mmCards", "render" ], [ "__mmSort", "rerender" ], [ "__mmPicker", "render" ], [ "__mmSettings", "redraw" ], [ "__mmsuHooks", "redraw" ], [ "__mmDark", "redraw" ] ];
     function redraw() {
       for (const [name, fn] of REDRAW) try {
         const o = window[name];
@@ -888,7 +911,351 @@ if ("shop.miles-and-more.com" === location.hostname) {
   })();
   (() => {
     "use strict";
-    const VERSION = "1.18.21";
+    const VERSION = 5;
+    if (window.__mmDark && window.__mmDark.version >= VERSION) return;
+    try {
+      window.__mmDark?._retire?.();
+    } catch (e) {}
+    const state = {
+      version: VERSION
+    };
+    try {
+      Object.defineProperty(window, "__mmDark", {
+        value: state,
+        enumerable: !1,
+        configurable: !0
+      });
+    } catch (e) {
+      try {
+        window.__mmDark = state;
+      } catch (e2) {}
+    }
+    const CHOICE = "mm_theme";
+    const HUE = 222;
+    const BASE = [ HUE, .22, .055 ], CARD = [ HUE, .16, .15 ], LAYER = [ HUE, .15, .2 ];
+    const CANVAS = new Set([ "245,245,245" ]);
+    const hsl = ([h, s, l], a) => `hsl(${h.toFixed(1)} ${(100 * s).toFixed(1)}% ${(100 * l).toFixed(1)}%${a < 1 ? " / " + a : ""})`;
+    const neutral = (s, l) => s * (1 - Math.abs(2 * l - 1)) < .05;
+    const MAP = {
+      bg(h, s, l, key, layer) {
+        if (CANVAS.has(key) && !layer) return BASE;
+        if (l >= .97 && neutral(s, l)) return layer ? LAYER : CARD;
+        if (l >= .7) {
+          const tone = (layer ? LAYER : CARD)[2] + Math.min(.09, 1.2 * (1 - l));
+          return neutral(s, l) ? [ HUE, .15, tone ] : [ h, Math.min(s, .4), tone + .02 ];
+        }
+        return l >= .45 ? s > .25 ? [ h, .8 * s, .36 ] : [ HUE, .12, .3 ] : s > .4 && l < .3 ? [ h, .5 * s, .4 ] : [ h, s, l ];
+      },
+      fg: (h, s, l) => l > .55 ? [ h, s, l ] : neutral(s, l) ? [ HUE, .12, .92 - .4 * l ] : l < .25 ? [ h, .3, .88 ] : [ h, .8 * s, .88 - .3 * l ],
+      bd: (h, s, l) => l >= .5 ? neutral(s, l) ? [ HUE, .12, .24 + .35 * (1 - l) ] : [ h, Math.min(s, .3), .26 + .35 * (1 - l) ] : s > .3 ? [ h, .7 * s, .65 ] : [ HUE, .1, .45 ]
+    };
+    const COLOR_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|\bwhite\b|\bblack\b/gi;
+    function recolorValue(v, kind, layer) {
+      return v.replace(COLOR_RE, c => {
+        const p = function(c) {
+          let m = /^#([0-9a-f]{3,8})$/i.exec(c);
+          if (m) {
+            let x = m[1];
+            x.length <= 4 && (x = x.replace(/./g, "$&$&"));
+            return [ parseInt(x.slice(0, 2), 16), parseInt(x.slice(2, 4), 16), parseInt(x.slice(4, 6), 16), 8 === x.length ? +(parseInt(x.slice(6), 16) / 255).toFixed(3) : 1 ];
+          }
+          m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(c);
+          return m ? [ +m[1], +m[2], +m[3], void 0 === m[4] ? 1 : m[4].endsWith("%") ? parseFloat(m[4]) / 100 : +m[4] ] : /^white$/i.test(c) ? [ 255, 255, 255, 1 ] : /^black$/i.test(c) ? [ 0, 0, 0, 1 ] : null;
+        }(c);
+        if (!p || 0 === p[3]) return c;
+        const [h, s, l] = function(r, g, b) {
+          r /= 255;
+          g /= 255;
+          b /= 255;
+          const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
+          let h = 0, s = 0;
+          if (d) {
+            s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+            h = 60 * (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4);
+          }
+          return [ h, s, l ];
+        }(p[0], p[1], p[2]);
+        return hsl(MAP[kind](h, s, l, p[0] + "," + p[1] + "," + p[2], layer), p[3]);
+      });
+    }
+    const VAR_LAYER_RE = /panel|menu|dialog|tooltip|overlay|popover|dropdown|snackbar|datepicker|autocomplete/i;
+    const LAYER_SEL_RE = /cdk-overlay|menu-panel|menu-content|menu-item|select-panel|autocomplete-panel|dialog|popup|datepicker-content|tooltip|popover|dropdown/i;
+    function kindOf(p) {
+      return p.startsWith("--") ? /^--mat-sys-(primary|secondary|tertiary|error)$/.test(p) ? "fg" : !/color|background|surface|container|bg|text|foreground|border|outline|divider|fill/i.test(p) || /shadow|opacity|elevation|size|width|radius|weight|family|tracking|line-height/i.test(p) ? null : /background|surface|container|bg\b|-bg-|fill/i.test(p) && !/on-surface|on-primary|on-secondary|on-error|on-tertiary|text|foreground|label|icon/i.test(p) ? "bg" : /border|outline|divider/i.test(p) ? "bd" : "fg" : "background-color" === p || "background-image" === p ? "bg" : "color" === p || "fill" === p || "stroke" === p || "caret-color" === p || "text-decoration-color" === p || "-webkit-text-fill-color" === p ? "fg" : /^border-.*-color$|^outline-color$|^column-rule-color$/.test(p) ? "bd" : null;
+    }
+    let on = !1;
+    let undo = [];
+    let seen = new WeakSet;
+    const adopted = new Map;
+    const stats = {
+      decls: 0,
+      ms: 0
+    };
+    function setProp(st, p, v, out) {
+      const pr = st.getPropertyPriority(p);
+      undo.push([ st, p, st.getPropertyValue(p), pr ]);
+      st.setProperty(p, v, pr);
+      out.n++;
+    }
+    function recolorRules(list, sheetLayer, out) {
+      for (const r of list) {
+        if (7 === r.type) continue;
+        if (r.cssRules && !r.style) {
+          recolorRules(r.cssRules, sheetLayer, out);
+          continue;
+        }
+        const st = r.style;
+        if (!st) continue;
+        const sel = r.selectorText || "";
+        if (-1 !== sel.indexOf("mm-dark")) continue;
+        const layer = sheetLayer || LAYER_SEL_RE.test(sel) || /^(absolute|fixed)$/.test(st.getPropertyValue("position")) && "" !== st.getPropertyValue("z-index");
+        const op = parseFloat(st.getPropertyValue("opacity"));
+        op >= .2 && op <= .6 && !/backdrop/i.test(sel) && setProp(st, "opacity", String(+(op + .4 * (1 - op)).toFixed(2)), out);
+        for (let i = 0; i < st.length; i++) {
+          const p = st[i];
+          const kind = kindOf(p);
+          if (!kind) continue;
+          const v = st.getPropertyValue(p);
+          const custom = p.startsWith("--");
+          if (!v || !custom && -1 !== v.indexOf("var(") || -1 !== v.indexOf("url(")) continue;
+          COLOR_RE.lastIndex = 0;
+          if (!COLOR_RE.test(v)) continue;
+          const nv = recolorValue(v, kind, layer || custom && VAR_LAYER_RE.test(p));
+          nv !== v && setProp(st, p, nv, out);
+        }
+      }
+    }
+    function recolorSheet(sheet, layer) {
+      if (!sheet || seen.has(sheet)) return;
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch (e) {
+        return;
+      }
+      if (!rules) return;
+      seen.add(sheet);
+      const t0 = performance.now();
+      const out = {
+        n: 0
+      };
+      recolorRules(rules, layer, out);
+      stats.decls += out.n;
+      stats.ms += performance.now() - t0;
+    }
+    function recolorAll() {
+      if (on) {
+        for (const sh of document.styleSheets) recolorSheet(sh, !1);
+        for (const [sh, layer] of adopted) recolorSheet(sh, layer);
+      }
+    }
+    function restore() {
+      for (let i = undo.length - 1; i >= 0; i--) {
+        const [st, p, v, pr] = undo[i];
+        try {
+          v ? st.setProperty(p, v, pr) : st.removeProperty(p);
+        } catch (e) {}
+      }
+      undo = [];
+      seen = new WeakSet;
+    }
+    const css = `
+html.mm-dark { color-scheme: dark; background-color: ${hsl(BASE, 1)};
+    --mm-dark-base: ${hsl(BASE, 1)}; --mm-dark-card: ${hsl(CARD, 1)}; --mm-dark-layer: ${hsl(LAYER, 1)}; }
+html.mm-dark body { background-color: ${hsl(CARD, 1)}; }
+html.mmdm-switching *, html.mmdm-switching *::before, html.mmdm-switching *::after { transition: none !important; }
+html.mm-dark img.logo-img { filter: brightness(0) invert(.9); }
+html.mm-dark :is(.mat-mdc-select-panel, .mat-mdc-autocomplete-panel, .mat-mdc-menu-panel, .mat-mdc-dialog-surface,
+    .mat-datepicker-content, .mdc-tooltip__surface) { background-color: var(--mm-dark-layer) !important; }
+.mmdm-opt { margin-right: 1rem; }
+.mmdm-btn { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0;
+    border: 0; border-radius: 50%; background: transparent; color: #05164D; cursor: pointer; }
+.mmdm-btn:hover { background: rgba(5,22,77,.08); }
+.mmdm-btn:focus-visible { outline: 2px solid #1c5cab; outline-offset: 1px; }
+.mmdm-btn svg { width: 20px; height: 20px; display: block; }
+`;
+    let styleEl = null;
+    let boldEl = null;
+    const fontSeen = new WeakSet;
+    function boldFace() {
+      if (!boldEl || !boldEl.isConnected) for (const sh of document.styleSheets) {
+        if (fontSeen.has(sh)) continue;
+        let rules;
+        try {
+          rules = sh.cssRules;
+        } catch (e) {
+          continue;
+        }
+        if (rules) {
+          fontSeen.add(sh);
+          for (const r of rules) {
+            if (5 !== r.type || "lufthansa-bold" !== r.style.getPropertyValue("font-family").replace(/["']/g, "").trim()) continue;
+            const base = sh.href || document.baseURI;
+            const src = r.style.getPropertyValue("src").replace(/url\((["']?)([^"')]+)\1\)/g, (m, q, u) => 'url("' + new URL(u, base).href + '")');
+            boldEl = document.createElement("style");
+            boldEl.id = "mmdm-bold";
+            boldEl.textContent = "@font-face { font-family: lufthansa-regular; font-weight: 600 900; src: " + src + "; }";
+            (document.head || document.documentElement).appendChild(boldEl);
+            return;
+          }
+        }
+      }
+    }
+    const ICON = body => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + "</svg>";
+    const MOON = ICON('<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/>');
+    const SUN = ICON('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4' + 'M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>');
+    let opt = null;
+    function paint() {
+      const b = opt && opt.firstElementChild;
+      if (!b) return;
+      const label = (s = on ? "Helles Design" : "Dunkles Design", window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s));
+      var s, p;
+      if (b.title !== label) {
+        b.title = label;
+        b.setAttribute("aria-label", label);
+      }
+      const icon = on ? "sun" : "moon";
+      if (b.dataset.icon !== icon) {
+        b.dataset.icon = icon;
+        b.innerHTML = on ? SUN : MOON;
+      }
+    }
+    function place() {
+      if (opt && opt.isConnected) return;
+      const box = document.querySelector(".right-header-content .header-options-container");
+      if (!box) return;
+      if (!opt) {
+        opt = document.createElement("div");
+        opt.className = "header-option mmdm-opt";
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "mmdm-btn";
+        b.addEventListener("click", () => {
+          const next = !on;
+          ((k, v) => {
+            try {
+              null == v ? localStorage.removeItem(k) : localStorage.setItem(k, v);
+            } catch (e) {}
+          })(CHOICE, next ? "dark" : null);
+          apply(next);
+        });
+        opt.appendChild(b);
+      }
+      const lang = box.querySelector("refx-header-language-selector-pres");
+      const before = lang && lang.closest(".header-option") || box.firstElementChild;
+      box.insertBefore(opt, before && before.parentElement === box ? before : box.firstChild);
+      paint();
+    }
+    function apply(dark) {
+      if (dark !== on) {
+        on = dark;
+        const root = document.documentElement;
+        root.classList.add("mmdm-switching");
+        root.classList.toggle("mm-dark", dark);
+        dark ? recolorAll() : restore();
+        document;
+        root.classList.remove("mmdm-switching");
+      }
+      paint();
+    }
+    function onLoad(e) {
+      if (e.target && "LINK" === e.target.tagName) {
+        boldFace();
+        on && recolorAll();
+      }
+    }
+    let headObserver = null, rootObserver = null, domObserver = null;
+    !function() {
+      if (!styleEl || !styleEl.isConnected) {
+        styleEl = document.getElementById("mmdm-styles");
+        if (!styleEl) {
+          styleEl = document.createElement("style");
+          styleEl.id = "mmdm-styles";
+          styleEl.textContent = css;
+          (document.head || document.documentElement).appendChild(styleEl);
+        }
+      }
+    }();
+    apply("dark" === (k => {
+      try {
+        return localStorage.getItem(k);
+      } catch (e) {
+        return null;
+      }
+    })(CHOICE));
+    !function watchHead() {
+      if (document.head) {
+        headObserver = new MutationObserver(() => {
+          boldFace();
+          recolorAll();
+        });
+        headObserver.observe(document.head, {
+          childList: !0,
+          subtree: !0,
+          characterData: !0
+        });
+        boldFace();
+        recolorAll();
+      } else {
+        rootObserver = new MutationObserver(() => {
+          if (document.head) {
+            rootObserver.disconnect();
+            rootObserver = null;
+            watchHead();
+          }
+        });
+        rootObserver.observe(document.documentElement, {
+          childList: !0
+        });
+      }
+    }();
+    document.addEventListener("load", onLoad, !0);
+    domObserver = new MutationObserver(() => {
+      opt && opt.isConnected || place();
+    });
+    domObserver.observe(document.documentElement, {
+      childList: !0,
+      subtree: !0
+    });
+    place();
+    state.isOn = () => on;
+    state.redraw = paint;
+    state.stats = () => ({
+      on: on,
+      decls: stats.decls,
+      ms: +stats.ms.toFixed(1),
+      undo: undo.length
+    });
+    state.adopt = (sheet, layer) => {
+      if (sheet) {
+        adopted.set(sheet, !!layer);
+        on && recolorSheet(sheet, !!layer);
+      }
+    };
+    state._retire = () => {
+      restore();
+      on = !1;
+      document.documentElement.classList.remove("mm-dark");
+      [ headObserver, rootObserver, domObserver ].forEach(o => {
+        try {
+          o && o.disconnect();
+        } catch (e) {}
+      });
+      document.removeEventListener("load", onLoad, !0);
+      try {
+        opt && opt.remove();
+      } catch (e) {}
+      try {
+        styleEl && styleEl.remove();
+      } catch (e) {}
+      try {
+        boldEl && boldEl.remove();
+      } catch (e) {}
+    };
+  })();
+  (() => {
+    "use strict";
+    const VERSION = "1.18.23";
     const vnum = s => String(s || "0").split(".").reduce((a, n) => 1e3 * a + (parseInt(n, 10) || 0), 0);
     if (window.mmSearchUnlock && vnum(window.mmSearchUnlock.version) >= vnum(VERSION)) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
@@ -1388,6 +1755,11 @@ if ("shop.miles-and-more.com" === location.hostname) {
 .header-option refx-header-language-selector-pres .mmsu-globe { font-size: 2.4rem; line-height: 1; }
 .header-option refx-header-language-selector-pres .menu-trigger::after {
     content: attr(data-mm-code); margin-left: .6rem; font-size: 1.4rem; font-weight: 600; letter-spacing: .04em; }
+.cdk-overlay-pane .mat-mdc-menu-panel.mmsu-langmenu > .mat-mdc-menu-content { padding: 4px 0; }
+.cdk-overlay-pane .mat-mdc-menu-panel.mmsu-langmenu > .mat-mdc-menu-content > .mat-mdc-menu-item {
+    min-height: 32px; padding: 0 14px; font-size: 1.4rem; line-height: 2rem; }
+.cdk-overlay-pane .mat-mdc-menu-panel.mmsu-langmenu > .mat-mdc-menu-content > .mat-mdc-menu-item > .mat-mdc-menu-item-text {
+    padding: 6px 0; }
 
 refx-upsell-premium-pres refx-no-flights-found-pres { display: none; }
 
@@ -1714,6 +2086,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
       const lang = String(document.documentElement.lang || "").split("-")[0];
       const code = "uk" === lang ? "UA" : lang.toUpperCase();
       btn.dataset.mmCode !== code && (btn.dataset.mmCode = code);
+      const list = document.querySelector(".cdk-overlay-container .mat-mdc-menu-panel:not(.mmsu-langmenu)");
+      list && list.querySelector(".mat-mdc-menu-item-text > span[lang]") && list.classList.add("mmsu-langmenu");
     }
     let tripKey = null;
     function onDomChange(records) {
@@ -2519,7 +2893,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 29;
+    const VERSION = 32;
     if (window.__mmSponsor && window.__mmSponsor.version >= VERSION) return;
     if (window.__mmSponsor) try {
       window.__mmSponsor.teardown();
@@ -2804,10 +3178,14 @@ ${STEP} i { display: none !important; }
 ${STEP} .mdc-button__label { position: absolute !important; left: 50% !important; top: 50% !important;
         transform: translate(-50%, -50%) !important; width: 11px !important; height: 11px !important; margin: 0 !important; }
 ${STEP} .mdc-button__label::before,
-${STEP}[id$="plusButton"] .mdc-button__label::after { content: ''; position: absolute; background: ${INK_primary};
+${STEP}[id$="plusButton"] .mdc-button__label::after { content: ''; position: absolute; background: currentColor;
         border-radius: 1px; }
 ${STEP} .mdc-button__label::before { left: 0; right: 0; top: 5px; height: 1.5px; }
 ${STEP}[id$="plusButton"] .mdc-button__label::after { top: 0; bottom: 0; left: 5px; width: 1.5px; }
+${STEP}.mat-mdc-button-disabled .mdc-button__label::before,
+${STEP}[id$="plusButton"].mat-mdc-button-disabled .mdc-button__label::after { background: ${INK_primary}; }
+html.mm-dark ${STEP}.mat-mdc-button-disabled .mdc-button__label::before,
+html.mm-dark ${STEP}[id$="plusButton"].mat-mdc-button-disabled .mdc-button__label::after { background: currentColor; }
 ${STEP} .mat-focus-indicator,
 ${STEP} .mat-mdc-button-touch-target { width: 30px !important; height: 30px !important; }
 ${HOST} .stepper-inputs .value-container { border: 0 !important; width: 30px !important; height: 30px !important; }
@@ -3747,7 +4125,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.9.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.0/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -3937,7 +4315,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 40;
+    const VERSION = 41;
     if (window.__mmSuggest && window.__mmSuggest.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     if (window.__mmSuggest) try {
@@ -4250,6 +4628,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         panel.appendChild(viewport);
         root.appendChild(panel);
         document.body.appendChild(host);
+        try {
+          window.__mmDark?.adopt?.(style.sheet, !0);
+        } catch (e) {}
         viewport.addEventListener("scroll", scheduleDraw, {
           passive: !0
         });
@@ -4570,7 +4951,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 8;
+    const VERSION = 10;
     if (window.__mmFareNames && window.__mmFareNames.version >= VERSION) return;
     const inherited = window.__mmFareNames;
     const FF_RE = /fare-families\.json/i;
@@ -4700,6 +5081,23 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       if (!n) return null;
       const hit = NAME_CABIN.find(([re]) => re.test(n));
       return hit ? hit[1] : null;
+    };
+    const PAIR_RE = /^(?:MMWW[XRIO](LIGHT|NC|RC|FF)|ZMI[XRIO](NOR))$/;
+    const PAIR_GROUP = {
+      LIGHT: "light",
+      NC: "comfort",
+      RC: "plus",
+      FF: "plus",
+      NOR: "plus"
+    };
+    state.pairGroup = code => {
+      const m = PAIR_RE.exec(String(code || ""));
+      return m ? PAIR_GROUP[m[1] || m[2]] : null;
+    };
+    state.combinable = (outCode, outCabin, retCode, retCabin) => {
+      if (outCode && outCode === retCode) return !0;
+      const a = state.pairGroup(outCode), b = state.pairGroup(retCode);
+      return a && b ? a === b && ("light" !== a || !!outCabin && outCabin === retCabin) : null;
     };
     state.summary = () => ({
       version: VERSION,
@@ -4906,7 +5304,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 57;
+    const VERSION = 61;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inheritedCal = window.__mmCal;
@@ -4937,7 +5335,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       authDead: !1,
       loadedMonths: new Set,
       poolsLoaded: new Set,
-      noOffer: null
+      noOffer: null,
+      journey: inheritedCal && inheritedCal.journey || null
     };
     try {
       Object.defineProperty(window, "__mmCal", {
@@ -5067,9 +5466,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       try {
         localStorage.removeItem(CACHE_KEY);
         localStorage.removeItem(SEARCH_KEY);
+        localStorage.removeItem(NAMES_KEY);
       } catch (e) {}
       cacheMem = null;
       searchMem = null;
+      namesMem = null;
+      state.fareNamesRev++;
       rawReplies.clear();
       state.days = [];
       state.loadedMonths.clear();
@@ -5086,16 +5488,64 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }
       return searchMem;
     }
+    const NAMES_KEY = "mmcal_farenames";
+    const NAMES_TTL_MS = 24 * 60 * 60 * 1e3;
+    let namesMem = null;
+    function namesStore() {
+      if (!namesMem) try {
+        namesMem = JSON.parse(localStorage.getItem(NAMES_KEY) || "{}") || {};
+      } catch (e) {
+        namesMem = {};
+      }
+      return namesMem;
+    }
+    state.fareNamesRev = 0;
+    state.faresAt = (route, cabin, miles) => {
+      const e = namesStore()[route];
+      return e && Date.now() - e.ts <= NAMES_TTL_MS && e.m[cabin] && e.m[cabin][miles] || [];
+    };
     state.addSearchFares = (bodyText, fares) => {
       let body = null;
       try {
         body = JSON.parse(bodyText);
       } catch (e) {}
-      const it = body && !body.selectedBoundId ? requestedItin(body) : null;
+      body && function(body, fares) {
+        const j = journeyOf(body);
+        const first = j.legs[0];
+        if ("multi" === j.kind || !first || !first.o || !first.d) return;
+        const route = first.o + "-" + first.d;
+        const store = namesStore();
+        const now = Date.now();
+        const e = store[route] && now - store[route].ts <= NAMES_TTL_MS ? store[route] : {
+          m: {}
+        };
+        let added = !1;
+        (fares || []).forEach(f => {
+          if (!f || !f.cabin || !f.code || "number" != typeof f.miles) return;
+          const list = (e.m[f.cabin] = e.m[f.cabin] || {})[f.miles] = e.m[f.cabin][f.miles] || [];
+          if (list.indexOf(f.code) < 0) {
+            list.push(f.code);
+            added = !0;
+          }
+        });
+        if (added) {
+          e.ts = now;
+          store[route] = e;
+          Object.keys(store).forEach(r => {
+            now - store[r].ts > NAMES_TTL_MS && delete store[r];
+          });
+          try {
+            localStorage.setItem(NAMES_KEY, JSON.stringify(store));
+          } catch (e2) {}
+          state.fareNamesRev++;
+        }
+      }(body, fares);
+      const it = body ? requestedItin(body) : null;
       const date = it && String(it.departureDateTime || "").slice(0, 10);
       if (!date || !it.originLocationCode || !it.destinationLocationCode) return;
       const store = searchStore();
-      const route = it.originLocationCode + "-" + it.destinationLocationCode;
+      const route = routeKeyOf(body);
+      if (!route || body.selectedBoundId && route.indexOf("#") < 0) return;
       const day = (store[route] = store[route] || {})[date] = store[route][date] || {};
       const best = {};
       (fares || []).forEach(f => {
@@ -5147,7 +5597,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         if (its.length > 1) {
           const other = its.find(x => x && x !== it);
           const d = other && String(other.departureDateTime || "").slice(0, 10);
-          d && (key += "@" + d);
+          d && (key += "@" + d + "/" + other.originLocationCode + "-" + other.destinationLocationCode);
           body.selectedBoundId && (key += "#" + body.selectedBoundId);
         }
         return key;
@@ -5155,8 +5605,24 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return null;
       }
     }
+    function journeyOf(body) {
+      const its = body && body.itineraries || [];
+      const legs = its.map(x => ({
+        o: x.originLocationCode,
+        d: x.destinationLocationCode,
+        date: String(x.departureDateTime || "").slice(0, 10)
+      }));
+      return {
+        kind: legs.length < 2 ? "oneway" : 2 === legs.length && legs[1].o === legs[0].d && legs[1].d === legs[0].o ? "return" : "multi",
+        legs: legs,
+        req: Math.max(0, its.findIndex(x => x && !0 === x.isRequestedBound)),
+        selectedBoundId: body && body.selectedBoundId || null
+      };
+    }
     const baseOf = key => String(key || "").split("@")[0].split("#")[0];
     state.baseRoute = () => baseOf(state.routeKey || state.route);
+    state.searchRoute = () => String(state.routeKey || state.route || "").split("#")[0];
+    state.faresRoute = () => String(state.routeKey || state.route || "");
     function switchRoute(routeKey) {
       if (routeKey) {
         if (state.routeKey && state.routeKey !== routeKey) {
@@ -5203,7 +5669,14 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     }
     const POOLS = [ "ECONOMY", "PREMIUMECO", "BUSINESS", "FIRST" ];
     const poolKey = (month, pool) => month + "|" + pool;
-    const poolsMissing = month => POOLS.filter(p => !state.poolsLoaded.has(poolKey(month, p)));
+    const conditioned = () => {
+      try {
+        return !(!state.template || !JSON.parse(state.template.body).selectedBoundId);
+      } catch (e) {
+        return !1;
+      }
+    };
+    const poolsMissing = month => conditioned() ? [] : POOLS.filter(p => !state.poolsLoaded.has(poolKey(month, p)));
     const poolsHave = month => POOLS.filter(p => state.poolsLoaded.has(poolKey(month, p)));
     const b64url = s => btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const JWT_NONE = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.";
@@ -5494,11 +5967,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       rawReplies: rawReplies,
       noteSearch: function(url, body) {
         if (!BOUNDS_RE.test(String(url || "")) || "string" != typeof body) return;
-        let rk = null;
+        let rk = null, parsed = null;
         try {
-          rk = routeKeyOf(JSON.parse(body));
+          parsed = JSON.parse(body);
+          rk = routeKeyOf(parsed);
         } catch (e) {}
         if (rk) {
+          state.journey = journeyOf(parsed);
           switchRoute(rk);
           state.searchingSince = Date.now();
           emit();
@@ -5846,8 +6321,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     state.loadMonth = async function(year, month, opts = {}) {
       const key = monthKey(year, month);
       if (null === firstLoadableDay(year, month)) return "cached";
-      const allPools = void 0 !== opts.allPools ? opts.allPools : state.allCabins;
-      const named = opts.pools && state.poolsLacking(year, month, opts.pools);
+      const allPools = (void 0 !== opts.allPools ? opts.allPools : state.allCabins) && !conditioned();
+      const named = opts.pools && !conditioned() && state.poolsLacking(year, month, opts.pools);
       const pools = named || (allPools ? poolsMissing(key) : [ null ]);
       if (!named && !allPools && state.hasMonth(year, month)) return "cached";
       if (!pools.length) return "cached";
@@ -5887,11 +6362,25 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         today.setHours(0, 0, 0, 0);
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const firstDay = firstLoadableDay(year, month);
+        const its = body.itineraries || [];
+        const ri = Math.max(0, its.findIndex(x => x && !0 === x.isRequestedBound));
+        const legDay = i => its[i] && its[i].departureDateTime ? new Date(String(its[i].departureDateTime).slice(0, 10) + "T00:00:00") : null;
+        const lo = legDay(ri - 1), hi = legDay(ri + 1);
+        const inMonth = dt => dt && dt.getFullYear() === year && dt.getMonth() === month;
+        const first = lo && lo > new Date(year, month + 1, 0) ? daysInMonth + 1 : inMonth(lo) ? Math.max(firstDay, lo.getDate()) : firstDay;
+        const last = hi && hi < new Date(year, month, 1) ? 0 : inMonth(hi) ? hi.getDate() : daysInMonth;
         const centres = [];
-        for (let d = firstDay; d <= daysInMonth; d += span) {
-          let c = new Date(year, month, Math.min(d + flex, daysInMonth));
+        for (let d = first; d <= last; d += span) {
+          let c = new Date(year, month, Math.min(d + flex, last));
           c < today && (c = today);
           centres.push(c);
+        }
+        if (!centres.length) {
+          state.loadedMonths.add(key);
+          pools.forEach(p => {
+            p && state.poolsLoaded.add(poolKey(key, p));
+          });
+          return "cached";
         }
         state.progress = {
           done: 0,
@@ -6119,7 +6608,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 19;
+    const VERSION = 24;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inherited = window.__mmBBD;
@@ -6133,6 +6622,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       } catch (e) {}
     }
     const URL_ = "https://api.miles-and-more.com/flights/v3/bestbyday";
+    const URL_RETURN = "https://api.miles-and-more.com/flights/v3/bestreturn";
     const KEY = "agGBZmuTGwFXWzVDg8ckGKGBytemE1nS";
     const CFF = {
       eco: "CFFECOINS2",
@@ -6446,7 +6936,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     const originalFetch = window.fetch;
     const CACHE_KEY = "mmbbd_cache";
     const TTL_MS = 6 * 60 * 60 * 1e3;
-    const CACHE_FORMAT = 2;
+    const CACHE_FORMAT = 4;
     const state = {
       version: VERSION,
       superseded: !1,
@@ -6531,29 +7021,41 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         delete j[keys.sort((a, b) => (j[a].ts || 0) - (j[b].ts || 0))[0]];
       }
     }
-    async function fetchRoute(origin, dest, cc, signal) {
-      const start = (() => {
-        const d = new Date;
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      })();
+    const todayISO = () => {
+      const d = new Date;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const specKey = s => s.origin + "-" + s.dest + ("trip" === s.kind ? "~" + s.duration : "return" === s.kind ? "<" + s.date : "");
+    async function fetchRoute(spec, cc, signal) {
       let failed = 0, aborted = !1;
       const reasons = [];
-      const lists = await Promise.all(Object.keys(CFF).map(cab => async function(origin, dest, cabin, startDate, cc, signal) {
+      const lists = await Promise.all(Object.keys(CFF).map(cab => async function(spec, cabin, cc, signal) {
+        const {kind: kind, origin: origin, dest: dest} = spec;
+        const out = {
+          departureDateTime: ("return" === kind ? spec.date : todayISO()) + "T00:00:00",
+          originLocationCode: origin,
+          destinationLocationCode: dest
+        };
         const body = JSON.stringify({
           commercialFareFamilies: [ CFF[cabin] ],
           corporateCodes: [ 223293 ],
           countryOfCommencement: cc,
           currencyCode: currencyOfCountry(cc),
-          itineraries: [ {
-            departureDateTime: startDate + "T00:00:00",
-            originLocationCode: origin,
-            destinationLocationCode: dest
+          itineraries: "oneway" === kind ? [ out ] : [ out, {
+            originLocationCode: dest,
+            destinationLocationCode: origin
           } ],
-          tripDetails: {
+          tripDetails: "oneway" === kind ? {
             rangeOfDeparture: 360
+          } : "trip" === kind ? {
+            rangeOfDeparture: 360,
+            tripDuration: spec.duration
+          } : {
+            durationFlexibility: 30,
+            tripDuration: 1
           }
         });
-        const res = await originalFetch.call(window, URL_, {
+        const res = await originalFetch.call(window, "return" === kind ? URL_RETURN : URL_, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -6572,21 +7074,27 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           const dp = (curDict[code] || {}).decimalPlaces;
           return v / Math.pow(10, null == dp ? 2 : dp);
         };
+        const leg = "oneway" === kind ? null : "trip" === kind ? 0 : 1;
         return (j.data || []).map(e => {
-          const date = String(e.departureDate || "").slice(0, 10);
-          const p = e.prices || {};
+          const b = null == leg ? null : (e.bounds || [])[leg];
+          const p = null == leg ? e.prices || {} : b && b.prices;
+          if (!p) return null;
+          const date = String((1 === leg ? e.returnDate : e.departureDate) || "").slice(0, 10);
           const miles = p.milesConversion && p.milesConversion.convertedMiles ? p.milesConversion.convertedMiles.base : null;
           const tp = p.totalPrices && p.totalPrices[0] || {};
-          return null != miles ? {
+          if (null == miles) return null;
+          const row = {
             date: date,
             cabin: cabin,
-            code: e.fareFamilyCode,
+            code: b && b.fareFamilyCode || e.fareFamilyCode,
             miles: miles,
             taxes: amount(tp.totalTaxes, tp.currencyCode),
             currency: tp.currencyCode || null
-          } : null;
+          };
+          1 === leg && (row.out = ((e.bounds || [])[0] || {}).fareFamilyCode || null);
+          return row;
         }).filter(Boolean);
-      }(origin, dest, cab, start, cc, signal).catch(e => {
+      }(spec, cab, cc, signal).catch(e => {
         if (e && "AbortError" === e.name) {
           aborted = !0;
           return [];
@@ -6609,7 +7117,98 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         aborted: aborted
       };
     }
+    function named(spec, days) {
+      if ("oneway" === spec.kind) return days;
+      const at = window.__mmCal && window.__mmCal.faresAt;
+      const route = spec.origin + "-" + spec.dest;
+      return days.map(d => {
+        const codes = at ? at(route, d.cabin, d.miles) : [];
+        return codes.indexOf(d.code) >= 0 ? d : 1 === codes.length ? Object.assign({}, d, {
+          code: codes[0]
+        }) : /^ZM/.test(d.code || "") && d.miles % 500 != 0 ? null : d;
+      }).filter(Boolean);
+    }
     let inflight = null;
+    async function load(spec, grid, mark) {
+      const key = specKey(spec);
+      const pick = days => {
+        const d = named(spec, days);
+        return mark ? d.map(mark).filter(Boolean) : d;
+      };
+      state.pick = pick;
+      state.raw = null;
+      try {
+        inflight && inflight.abort();
+      } catch (e) {}
+      inflight = null;
+      const cached = readCache()[key];
+      if (cached) {
+        state.route = grid;
+        state.raw = cached.days;
+        state.days = pick(cached.days);
+        byDate = null;
+        state.error = null;
+        state.loading = !1;
+        emit();
+        return;
+      }
+      const cc = countryOf(spec.origin);
+      if (!cc) {
+        state.route = null;
+        state.days = [];
+        byDate = null;
+        state.loading = !1;
+        state.error = null;
+        emit();
+        return;
+      }
+      const ctrl = "undefined" != typeof AbortController ? new AbortController : null;
+      inflight = ctrl;
+      state.loading = !0;
+      state.error = null;
+      state.route = grid;
+      state.days = [];
+      byDate = null;
+      emit();
+      try {
+        const {days: days, failed: failed, reasons: reasons, aborted: aborted} = await fetchRoute(spec, cc, ctrl ? ctrl.signal : void 0);
+        if (aborted || ctrl && inflight !== ctrl || state.superseded || state.route !== grid) return;
+        state.raw = days;
+        state.days = pick(days);
+        byDate = null;
+        state.error = failed ? T("{n} von 4 Kabinen nicht geladen ({reasons})", {
+          n: failed,
+          reasons: reasons.join(", ")
+        }) : null;
+        failed || writeCache(key, days);
+      } catch (e) {
+        e && "AbortError" === e.name || (state.error = T("nicht erreichbar ({detail})", {
+          detail: e && e.message || T("Fehler")
+        }));
+      } finally {
+        if (!ctrl || inflight === ctrl) {
+          inflight = null;
+          if (!state.superseded && state.route === grid) {
+            state.loading = !1;
+            emit();
+          }
+        }
+      }
+    }
+    function none(grid) {
+      try {
+        inflight && inflight.abort();
+      } catch (e) {}
+      inflight = null;
+      state.route = grid;
+      state.days = [];
+      state.raw = null;
+      byDate = null;
+      state.loading = !1;
+      state.error = null;
+      emit();
+    }
+    let namesRev = -1;
     let byDate = null;
     function indexOf(days) {
       const map = new Map;
@@ -6620,36 +7219,54 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           map.set(d.date, day);
         }
         const prev = day[d.cabin];
-        (!prev || d.miles < prev.miles) && (day[d.cabin] = d);
+        (!prev || prev.blocked && !d.blocked || !prev.blocked == !d.blocked && d.miles < prev.miles) && (day[d.cabin] = d);
       }
       return map;
     }
     const index = () => byDate = indexOf(state.days);
     state.forDate = dateStr => (byDate || index()).get(dateStr) || {};
     const others = new Map;
-    state.forRoute = route => {
-      if (route === state.route) return state.loading ? null : byDate || index();
-      if (others.has(route)) return others.get(route);
+    function forSpec(spec) {
+      const key = specKey(spec);
+      if (others.has(key)) return others.get(key);
       if (state.superseded || !calendarOn() || !bbdOn()) return null;
-      const cached = readCache()[route];
+      const cached = readCache()[key];
       if (cached) {
-        others.set(route, indexOf(cached.days));
-        return others.get(route);
+        others.set(key, indexOf(named(spec, cached.days)));
+        return others.get(key);
       }
-      const [origin, dest] = String(route || "").split("-");
-      const cc = origin && dest ? countryOf(origin) : null;
+      const cc = spec.origin && spec.dest ? countryOf(spec.origin) : null;
       if (!cc) return null;
       others.size >= MAX_ROUTES && others.delete(others.keys().next().value);
-      others.set(route, null);
-      fetchRoute(origin, dest, cc).then(r => {
-        others.set(route, indexOf(r.days));
-        r.failed || writeCache(route, r.days);
+      others.set(key, null);
+      fetchRoute(spec, cc).then(r => {
+        others.set(key, indexOf(named(spec, r.days)));
+        r.failed || writeCache(key, r.days);
         emit();
       });
       return null;
+    }
+    const split = route => {
+      const [origin, dest] = String(route || "").split("-");
+      return {
+        origin: origin,
+        dest: dest
+      };
     };
+    state.forRoute = route => route === state.route ? state.loading ? null : byDate || index() : forSpec(Object.assign({
+      kind: "oneway"
+    }, split(route)));
+    state.forTrip = (route, days) => forSpec(Object.assign({
+      kind: "trip",
+      duration: days
+    }, split(route)));
+    state.forReturn = (route, date) => forSpec(Object.assign({
+      kind: "return",
+      date: date
+    }, split(route)));
     state.clearCache = () => {
       cacheMem = null;
+      others.clear();
       try {
         localStorage.removeItem(CACHE_KEY);
       } catch (e) {}
@@ -6658,65 +7275,67 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       if (state.superseded || !calendarOn() || !bbdOn()) return;
       const cal = window.__mmCal;
       const route = cal && (cal.baseRoute ? cal.baseRoute() : String(cal.routeKey || cal.route || "").split("@")[0].split("#")[0]);
-      route && route !== state.route && async function(route) {
-        const [origin, dest] = String(route || "").split("-");
-        if (!origin || !dest) return;
-        try {
-          inflight && inflight.abort();
-        } catch (e) {}
-        inflight = null;
-        const cached = readCache()[route];
-        if (cached) {
-          state.route = route;
-          state.days = cached.days;
-          byDate = null;
-          state.error = null;
-          state.loading = !1;
-          emit();
-          return;
-        }
-        const cc = countryOf(origin);
-        if (!cc) {
-          state.route = null;
-          state.days = [];
-          byDate = null;
-          state.loading = !1;
-          state.error = null;
-          emit();
-          return;
-        }
-        const ctrl = "undefined" != typeof AbortController ? new AbortController : null;
-        inflight = ctrl;
-        state.loading = !0;
-        state.error = null;
-        state.route = route;
-        state.days = [];
-        byDate = null;
-        emit();
-        try {
-          const {days: days, failed: failed, reasons: reasons, aborted: aborted} = await fetchRoute(origin, dest, cc, ctrl ? ctrl.signal : void 0);
-          if (aborted || ctrl && inflight !== ctrl || state.superseded || state.route !== route) return;
-          state.days = days;
-          byDate = null;
-          state.error = failed ? T("{n} von 4 Kabinen nicht geladen ({reasons})", {
-            n: failed,
-            reasons: reasons.join(", ")
-          }) : null;
-          failed || writeCache(route, state.days);
-        } catch (e) {
-          e && "AbortError" === e.name || (state.error = T("nicht erreichbar ({detail})", {
-            detail: e && e.message || T("Fehler")
-          }));
-        } finally {
-          if (!ctrl || inflight === ctrl) {
-            inflight = null;
-            if (!state.superseded && state.route === route) {
-              state.loading = !1;
-              emit();
-            }
+      if (!route) return;
+      !function() {
+        const rev = window.__mmCal && window.__mmCal.fareNamesRev || 0;
+        if (rev !== namesRev) {
+          namesRev = rev;
+          for (const [k, v] of others) v && others.delete(k);
+          if (state.raw && state.pick && !state.loading) {
+            state.days = state.pick(state.raw);
+            byDate = null;
+            emit();
           }
         }
-      }(route);
+      }();
+      const j = cal.journey;
+      if (!j || "oneway" === j.kind) {
+        route !== state.route && load(Object.assign({
+          kind: "oneway"
+        }, split(route)), route);
+        return;
+      }
+      const leg = j.legs[0];
+      if ("return" === j.kind && 0 === j.req) {
+        const span = Math.round((new Date(j.legs[1].date) - new Date(leg.date)) / 864e5);
+        const spec = {
+          kind: "trip",
+          origin: leg.o,
+          dest: leg.d,
+          duration: span
+        };
+        span >= 1 && specKey(spec) !== state.route ? load(spec, specKey(spec)) : span < 1 && state.route !== route + "|none" && none(route + "|none");
+        return;
+      }
+      const outbound = "return" === j.kind && 1 === j.req && j.selectedBoundId ? function(id) {
+        try {
+          for (const b of window.__mmBounds.bounds.values()) for (const f of b.fares || []) if (f.airBoundId === id) return {
+            code: f.code,
+            cabin: f.cabin
+          };
+        } catch (e) {}
+        return null;
+      }(j.selectedBoundId) : null;
+      if (!outbound) {
+        const grid = (cal.searchRoute ? cal.searchRoute() : route) + "|none";
+        grid !== state.route && none(grid);
+        return;
+      }
+      const grid = leg.o + "-" + leg.d + "<" + leg.date + "|" + outbound.code + "/" + outbound.cabin;
+      grid !== state.route && load({
+        kind: "return",
+        origin: leg.o,
+        dest: leg.d,
+        date: leg.date
+      }, grid, function(outbound) {
+        const F = window.__mmFareNames;
+        return r => {
+          const ok = F && F.combinable ? F.combinable(outbound.code, outbound.cabin, r.code, r.cabin) : r.out === outbound.code || null;
+          return !0 === ok ? r : !1 === ok ? Object.assign({}, r, {
+            blocked: !0
+          }) : null;
+        };
+      }(outbound));
     }
     window.__mmCal && window.__mmCal.onUpdate && (state._off = window.__mmCal.onUpdate(syncRoute));
     syncRoute();
@@ -6744,7 +7363,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 156;
+    const VERSION = 168;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -6900,6 +7519,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         label: tier ? meta.short + " " + tier : meta.short
       };
     }
+    const CHEVRON = {
+      left: "M10 3.5 5.5 8 10 12.5",
+      right: "M6 3.5 10.5 8 6 12.5",
+      up: "M3.5 10 8 5.5 12.5 10",
+      down: "M3.5 6 8 10.5 12.5 6"
+    };
+    const chevron = dir => '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="' + CHEVRON[dir] + '"/></svg>';
     const esc = s => String(null == s ? "" : s).replace(/[&<>"]/g, c => ({
       "&": "&amp;",
       "<": "&lt;",
@@ -7048,7 +7674,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           miles: x.miles,
           taxes: x.taxes,
           currency: x.currency,
-          src: "bbd"
+          src: "bbd",
+          blocked: !!x.blocked,
+          code: x.code
         });
       }
       const rec = days.get(dateStr);
@@ -7057,7 +7685,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         if (!fare) continue;
         const cab = cabKey(fare.cabin, "eco");
         const prev = out[cab];
-        prev && prev.miles <= f.miles || (out[cab] = {
+        prev && !prev.blocked && prev.miles <= f.miles || (out[cab] = {
           fare: fare,
           miles: f.miles,
           taxes: f.taxes,
@@ -7066,13 +7694,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         });
       }
       const cal = window.__mmCal;
-      const s = void 0 !== searchDay ? searchDay : cal && cal.searchFares ? cal.searchFares(calRoute(cal), dateStr) : null;
+      const s = void 0 !== searchDay ? searchDay : cal && cal.searchFares ? cal.searchFares(cal.faresRoute ? cal.faresRoute() : cal.searchRoute ? cal.searchRoute() : calRoute(cal), dateStr) : null;
       if (s) for (const cab of Object.keys(s)) {
         const x = s[cab];
         const fare = describeFare(x.code, cab);
         if (!fare) continue;
         const k = cabKey(cab, cabKey(fare.cabin, "eco"));
-        out[k] && out[k].miles <= x.miles || (out[k] = {
+        out[k] && !out[k].blocked && out[k].miles < x.miles || (out[k] = {
           fare: fare,
           miles: x.miles,
           taxes: x.taxes,
@@ -7261,10 +7889,16 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const tipTax = null != x.taxes ? "\n" + T("Zuzahlung {amount}", {
         amount: curFmt(Math.round(x.taxes), x.currency, 0) + (eur ? " (" + eur + ")" : "")
       }) : "";
-      const isBest = null != best && x.miles === best && !w.off;
+      const isBest = null != best && x.miles === best && !w.off && !x.blocked;
       const tipText = v.longDate(w.d) + "\n" + meta.full + " " + (x.fare.tier || "") + "\n" + T("{miles} Meilen", {
         miles: fmtMiles(x.miles)
-      }) + tipTax + (isBest ? "\n" + T("Günstigster Tag im Ausschnitt") : "") + "\n" + T("Quelle: {source}", {
+      }) + tipTax + (isBest ? "\n" + T("Günstigster Tag im Ausschnitt") : "") + (x.blocked ? "\n" + T("Mit gewähltem Hinflug nicht buchbar.") + function(code, cab) {
+        const F = window.__mmFareNames;
+        const g = F && F.pairGroup ? F.pairGroup(code) : null;
+        return "light" === g ? "\n" + T("Buchbar mit {fare} im Hinflug.", {
+          fare: CABIN_META[cab].full + " Light"
+        }) : "comfort" === g ? "\n" + T("Buchbar mit Comfort im Hinflug, jede Kabine.") : "plus" === g ? "\n" + T("Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.") : "";
+      }(x.code, cab) : "") + "\n" + T("Quelle: {source}", {
         source: isBbd ? "Best-by-Day" : "search" === x.src ? T("Suche {time}", {
           time: (ts = x.ts, dtf({
             hour: "2-digit",
@@ -7273,7 +7907,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         }) : T("Kalender")
       }) + (w.dead ? "\n" + T("Mit dem gewählten Hinflug kein Angebot an diesem Tag.") : "");
       var ts;
-      return '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (isBest ? " is-best" : null != best ? " is-dear" : "") + (w.dead ? " is-deadday" : "") + (busy ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" tabindex="-1"' + (w.off ? " disabled" : "") + ' data-tip="' + esc(tipText) + '" aria-label="' + esc(tipText.replace(/\n/g, ", ")) + '">' + '<span class="mmcal-tier">' + esc(x.fare.tier || "") + (busy ? " · " + esc(T("sucht …")) : "") + "</span>" + '<span class="mmcal-miles">' + esc(fmtMiles(x.miles)) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + esc(null != eurVal ? curFmt(Math.round(eurVal), fx.target(), 0) : curFmt(Math.round(x.taxes), x.currency, 0)) + "</span>" : "") + "</button>";
+      return '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (x.blocked ? " is-blocked" : isBest ? " is-best" : null != best ? " is-dear" : "") + (w.dead ? " is-deadday" : "") + (busy ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" tabindex="-1"' + (w.off ? " disabled" : "") + ' data-tip="' + esc(tipText) + '" aria-label="' + esc(tipText.replace(/\n/g, ", ")) + '">' + '<span class="mmcal-tier">' + esc(x.fare.tier || "") + (busy ? " · " + esc(T("sucht …")) : "") + "</span>" + '<span class="mmcal-miles">' + esc(fmtMiles(x.miles)) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + esc(null != eurVal ? curFmt(Math.round(eurVal), fx.target(), 0) : curFmt(Math.round(x.taxes), x.currency, 0)) + "</span>" : "") + "</button>";
     }
     function paint(html) {
       if (state.root.__mmcalHtml !== html) {
@@ -7302,7 +7936,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }() + esc((cal.route || "").replace("-", " → "));
       if (state.folded) {
         state.root.classList.add("is-folded");
-        paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn is-wide" data-fold="1" aria-expanded="false">' + T("Kalender zeigen") + " ▾</button>" + "</span>" + "</div>");
+        paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn is-wide" data-fold="1" aria-expanded="false">' + T("Kalender zeigen") + chevron("down") + "</button>" + "</span>" + "</div>");
         return;
       }
       state.root.classList.remove("is-folded");
@@ -7375,13 +8009,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }(cal);
       const rows = function(v) {
         let html = "";
-        let anyBest = !1, anyNone = !1;
+        let anyBest = !1, anyNone = !1, anyBlocked = !1;
         const cabinsPresent = new Set;
         for (const cab of ORDER) {
           const meta = CABIN_META[cab];
           const rlWait = v.win.some(w => v.waiting(w.dateStr, cab));
           const thin = !rlWait && !v.win.some(w => w.cells[cab]);
-          const priced = v.win.filter(w => !w.off && w.cells[cab] && "number" == typeof w.cells[cab].miles).map(w => w.cells[cab].miles);
+          const priced = v.win.filter(w => !w.off && w.cells[cab] && !w.cells[cab].blocked && "number" == typeof w.cells[cab].miles).map(w => w.cells[cab].miles);
           const best = priced.length && new Set(priced).size > 1 ? Math.min(...priced) : null;
           null != best && (anyBest = !0);
           html += '<div class="mmcal-rl' + (rlWait ? " is-wait" : "") + (thin ? " is-thin" : "") + '"' + (rlWait ? ' title="' + esc(T("{cabin}: Kalenderpreise werden geholt.", {
@@ -7392,6 +8026,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
             const x = w.cells[cab];
             if (x) {
               cabinsPresent.add(cab);
+              x.blocked && !w.off && (anyBlocked = !0);
               html += priceCellHtml(v, w, cab, x, best, nm);
             } else {
               v.waiting(w.dateStr, cab) || w.off || (anyNone = !0);
@@ -7403,6 +8038,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           html: html,
           anyBest: anyBest,
           anyNone: anyNone,
+          anyBlocked: anyBlocked,
           cabinsPresent: cabinsPresent
         };
       }(v);
@@ -7507,10 +8143,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return html;
       }(cal, v, s);
       const legend = function(v, r) {
-        return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
+        return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", r.anyBlocked ? '<span><i class="mmcal-lgblk"></i>' + T("nicht mit gewähltem Hinflug buchbar") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
       }(v, rows);
       const wantAll = !!cal.allCabins;
-      paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">‹</button>' + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">›</button>' + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">▴</button>' + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
+      paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button>" + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
       !function(blocked) {
         if (state._blockTick) {
           clearInterval(state._blockTick);
@@ -7972,8 +8608,10 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-nav { margin-left: auto; display: flex; gap: 5px; align-items: center; }
 .mmcal-btn { font: inherit; font-size: 13px; line-height: 1; border: 1px solid ${INK_hairline};
              background: #fff; color: ${INK_primary}; border-radius: 5px; width: 27px; height: 26px;
-             cursor: pointer; padding: 0; }
+             cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .mmcal-btn.is-wide { width: auto; padding: 0 11px; font-size: 12px; font-weight: 600; }
+.mmcal-btn svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2;
+                 stroke-linecap: round; stroke-linejoin: round; }
 .mmcal-btn:hover:not(:disabled) { background: #f3f6fc; border-color: #b9c6e0; }
 .mmcal-btn:disabled { opacity: .35; cursor: default; }
 
@@ -8067,6 +8705,11 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-miles { font-size: 14px; font-weight: 700; line-height: 1.1; color: ${INK_primary}; }
 .mmcal-tax { font-size: 11px; color: ${INK_secondary}; line-height: 1.2; }
 .mmcal-c.is-dear { background: color-mix(in oklab, var(--mc) 84%, #000); }
+.mmcal-c.is-blocked { opacity: .5;
+    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 3px, transparent 3px 7px); }
+.mmcal-lgblk { display: inline-block; width: 14px; height: 10px; margin-right: 5px; vertical-align: -1px;
+               border-radius: 2px; opacity: .5; background-color: ${INK_secondary};
+               background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.4) 0 2px, transparent 2px 5px); }
 .mmcal-rl.is-thin { font-weight: 400; color: ${INK_muted}; }
 .mmcal-c.is-thin { min-height: 18px; padding: 0 2px; }
 .mmcal-c.is-thin .mmcal-dash { font-size: 10px; line-height: 1; }
@@ -8107,6 +8750,18 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                   margin-left: 8px; vertical-align: -1px; }
 @keyframes mmcal-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mmcal-spinner { animation-duration: 2.4s; } }
+
+html.mm-dark .mmcal-c:hover:not(.is-none) { border-color: rgba(255,255,255,.65); }
+html.mm-dark .mmcal-c.is-busy { border-color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); }
+html.mm-dark .mmcal-c.is-busy::after { background: #fff; }
+html.mm-dark .mmcal-c.is-none.is-busy { border-color: transparent; box-shadow: none; }
+html.mm-dark .mmcal-c.is-none.is-busy::after { content: none; }
+html.mm-dark .mmcal-newmo { box-shadow: -2px 0 0 0 hsl(222 14% 36%); }
+html.mm-dark .mmcal-c.is-wait { background: color-mix(in oklab, var(--mc) 45%, var(--mm-dark-card)); }
+html.mm-dark .mmcal-c.is-wait:not(.is-deadday) { animation: mmcal-tile 1.6s ease-in-out infinite; }
+html.mm-dark .mmcal-c.is-wait::before { content: none; }
+@keyframes mmcal-tile { 0%, 100% { opacity: .35; } 50% { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { html.mm-dark .mmcal-c.is-wait:not(.is-deadday) { animation-duration: 2.6s; } }
 `;
         let el = document.getElementById("mmcal-styles");
         if (!el) {
@@ -8322,7 +8977,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 14;
+    const VERSION = 15;
     if (window.__mmPicker && window.__mmPicker.version >= VERSION) return;
     if (window.__mmPicker) try {
       window.__mmPicker.teardown();
@@ -8446,13 +9101,18 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         if (!g) return null;
         const at = i => legs[i] ? dayOf(legs[i].controls.multiCityDepartureTime.value) : null;
         const prev = at(open.leg - 1), next = at(open.leg + 1);
+        const route = [ code(g.multiCityOrigin.value), code(g.multiCityDestination.value) ];
+        const o = legs[0 === open.leg ? 1 : 0], oc = o && o.controls, od = o && at(0 === open.leg ? 1 : 0);
+        const key = oc && od && route[0] && route[1] ? route.join("-") + "@" + iso(od) + "/" + code(oc.multiCityOrigin.value) + "-" + code(oc.multiCityDestination.value) : null;
         return {
           f: f,
           kind: "leg",
           cabin: cabin,
           ctrl: g.multiCityDepartureTime,
           date: at(open.leg),
-          route: [ code(g.multiCityOrigin.value), code(g.multiCityDestination.value) ],
+          route: route,
+          key: key,
+          bbd: null,
           min: prev && prev > today ? prev : today,
           max: next && next < max ? next : max
         };
@@ -8465,11 +9125,17 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         ctrl: c.departureDate,
         date: dayOf(c.departureDate.value),
         route: route,
+        key: route.join("-"),
+        bbd: {
+          fn: "route",
+          route: route.join("-")
+        },
         min: today,
         max: max
       };
       const dep = dayOf(c.departureDate.value), ret = dayOf(c.returnDate.value);
       const back = "ret" === open.stage && dep;
+      const span = dep && ret ? Math.round((ret - dep) / 864e5) : 0;
       return {
         f: f,
         kind: "range",
@@ -8479,20 +9145,31 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
         ctrl: back ? c.returnDate : c.departureDate,
         date: back ? ret : dep,
         route: back ? [ route[1], route[0] ] : route,
+        key: back || !ret ? null : route.join("-") + "@" + iso(ret) + "/" + route[1] + "-" + route[0],
+        bbd: back ? {
+          fn: "return",
+          route: route.join("-"),
+          date: iso(dep)
+        } : {
+          fn: "trip",
+          route: route.join("-"),
+          days: span || 7
+        },
         min: back ? dep : today,
         max: max
       };
     }
-    const baseRoute = cal => cal.baseRoute ? cal.baseRoute() : String(cal.routeKey || cal.route || "").split("@")[0].split("#")[0];
+    const sameJourney = (cal, ctx) => !!(cal && ctx.key && cal.searchRoute && cal.searchRoute() === ctx.key);
     function prices(ctx, dates) {
       const out = new Map;
       const ui = window.__mmCalUI, cal = window.__mmCal, bbd = window.__mmBBD;
       if (!(ui && ui.cellsFor && ctx.route[0] && ctx.route[1])) return out;
-      const route = ctx.route.join("-");
-      const days = cal && baseRoute(cal) === route ? new Map(cal.days.map(d => [ d.date, d ])) : new Map;
-      const idx = bbd && bbd.forRoute ? bbd.forRoute(route) : null;
+      const days = sameJourney(cal, ctx) ? new Map(cal.days.map(d => [ d.date, d ])) : new Map;
+      const idx = function(bbd, q) {
+        return bbd && q ? "route" === q.fn ? bbd.forRoute ? bbd.forRoute(q.route) : null : "trip" === q.fn ? bbd.forTrip ? bbd.forTrip(q.route, q.days) : null : "return" === q.fn && bbd.forReturn ? bbd.forReturn(q.route, q.date) : null : null;
+      }(bbd, ctx.bbd);
       for (const ds of dates) {
-        const found = cal && cal.searchFares ? cal.searchFares(route, ds) : null;
+        const found = cal && ctx.key && cal.searchFares ? cal.searchFares(ctx.key, ds) : null;
         const cell = ui.cellsFor(days, ds, idx && idx.get(ds) || null, found)[ctx.cabin] || null;
         const rec = days.get(ds);
         out.set(ds, {
@@ -8504,7 +9181,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     }
     function missing(ctx, months) {
       const cal = window.__mmCal;
-      return cal && cal.poolsLacking && cal.template && baseRoute(cal) === ctx.route.join("-") ? months.filter(m => cal.poolsLacking(m.getFullYear(), m.getMonth(), POOLS_FOR[ctx.cabin]).length) : [];
+      return cal && cal.poolsLacking && cal.template && sameJourney(cal, ctx) ? months.filter(m => cal.poolsLacking(m.getFullYear(), m.getMonth(), POOLS_FOR[ctx.cabin]).length) : [];
     }
     function load(ctx, months) {
       const cal = window.__mmCal;
@@ -8909,9 +9586,13 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 70;
+    const VERSION = 74;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
+    const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
+      n: n
+    }, p));
+    const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
     const API_RE = /\/one-booking\/v\d+\//i;
@@ -9136,6 +9817,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
       try {
         localStorage.removeItem(CALLS_KEY);
       } catch (e) {}
+      clearBlock();
       state.lastError && state.lastError.transport && (state.lastError = null);
       emit();
       return state.budget();
@@ -9153,27 +9835,45 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
     };
     const hhmmLocal = ms => {
       try {
-        return (o = {
+        return dtf({
           hour: "2-digit",
           minute: "2-digit"
-        }, window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o)).format(new Date(ms));
+        }).format(new Date(ms));
       } catch (e) {
         return "";
       }
-      var o;
     };
+    const hmsLocal = ms => {
+      try {
+        return dtf({
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        }).format(new Date(ms));
+      } catch (e) {
+        return "";
+      }
+    };
+    const BLOCK_KEY = "mm_block";
+    const BURST_S = 900;
+    function clearBlock() {
+      try {
+        localStorage.getItem(BLOCK_KEY) && localStorage.removeItem(BLOCK_KEY);
+      } catch (e) {}
+    }
+    let probing = null;
     function failed(status, detail, sig) {
       const http = Number(status) || 0;
       const what = detail ? String(detail).slice(0, 200) : null;
       const blocked = 429 === http || 0 === http;
-      const title = blocked ? T(0 === http ? "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet)." : "Suchlimit erreicht (HTTP 429).") : T("Suche fehlgeschlagen (HTTP {http}).", {
+      const title = blocked ? T("Suchlimit erreicht (HTTP 429).") : T("Suche fehlgeschlagen (HTTP {http}).", {
         http: http
       });
       const free = blocked ? state.budget().freeAt : null;
       const why = blocked ? free ? T("IP-Sperre etwa eine Stunde, bis ca. {time}.", {
         time: hhmmLocal(free)
       }) : T("IP-Sperre etwa eine Stunde.") : "";
-      state.lastError = {
+      const err = state.lastError = {
         code: null,
         http: http,
         transport: !0,
@@ -9184,6 +9884,101 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
       };
       noList(void 0 !== sig ? sig : state._pendingSig);
       emit();
+      blocked && function() {
+        if (probing) return probing;
+        probing = (path = "air-bounds", new Promise(resolve => {
+          let bridge = !1;
+          const pong = () => {
+            bridge = !0;
+          };
+          document.addEventListener("mm:probe-pong", pong);
+          document.dispatchEvent(new CustomEvent("mm:probe-ping"));
+          document.removeEventListener("mm:probe-pong", pong);
+          if (!bridge) {
+            resolve(null);
+            return;
+          }
+          const id = Math.random().toString(36).slice(2);
+          const finish = r => {
+            document.removeEventListener("mm:probe-result", onResult);
+            clearTimeout(timer);
+            resolve(r);
+          };
+          const onResult = e => {
+            let r = null;
+            try {
+              r = JSON.parse(String(e.detail));
+            } catch (x) {}
+            r && r.id === id && finish(r);
+          };
+          const timer = setTimeout(() => finish(null), 2e4);
+          document.addEventListener("mm:probe-result", onResult);
+          document.dispatchEvent(new CustomEvent("mm:probe", {
+            detail: JSON.stringify({
+              id: id,
+              path: path
+            })
+          }));
+        })).then(r => {
+          probing = null;
+          if (!r) return null;
+          if (429 !== r.status || !(r.retryAfter > 0)) {
+            clearBlock();
+            return {
+              status: r.status
+            };
+          }
+          const until = Date.now() + 1e3 * r.retryAfter;
+          const prev = function() {
+            try {
+              const b = JSON.parse(localStorage.getItem(BLOCK_KEY) || "null");
+              return b && b.until > Date.now() ? b : null;
+            } catch (e) {
+              return null;
+            }
+          }();
+          const same = prev && Math.abs(prev.until - until) < 15e3;
+          const b = {
+            status: 429,
+            until: until,
+            kind: r.retryAfter > BURST_S + 60 ? "hour" : same && prev.kind ? prev.kind : r.retryAfter >= BURST_S - 30 ? "burst" : null,
+            retryAfter: r.retryAfter,
+            t: Date.now()
+          };
+          try {
+            localStorage.setItem(BLOCK_KEY, JSON.stringify(b));
+          } catch (e) {}
+          return b;
+        }, () => {
+          probing = null;
+          return null;
+        });
+        var path;
+        return probing;
+      }().then(b => {
+        if (b && state.lastError === err) {
+          if (429 === b.status) {
+            const t = function(b) {
+              const n = Math.max(1, Math.ceil((b.until - Date.now()) / 6e4));
+              const p = {
+                time: hmsLocal(b.until),
+                n: n
+              };
+              return {
+                head: T("hour" === b.kind ? "Das war zu viel… (HTTP 429)" : "Das war wohl jemand übereifrig… (HTTP 429)"),
+                hint: b.kind ? Tn(n, "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).", "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minuten).", p) : Tn(n, "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).", "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minuten).", p)
+              };
+            }(b);
+            err.title = t.head;
+            err.why = t.hint;
+            err.block = b;
+          } else if (b.status) {
+            err.title = T("Suche fehlgeschlagen (keine Antwort vom Server).");
+            err.why = "";
+          }
+          emit();
+        }
+      });
     }
     function noList(sig) {
       state.current = [];
@@ -9757,6 +10552,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
           json = JSON.parse(text);
         } catch (e) {}
         if (json && "object" == typeof json) {
+          status >= 200 && status < 300 && clearBlock();
           ingest(json, status, sig);
           const groups = json.data?.airBoundGroups;
           placeholderScan = {
@@ -10090,7 +10886,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 379;
+    const VERSION = 386;
     if (window.__mmCards?.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -10374,6 +11170,9 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 html.mmrc-active .upsell-premium-pres-container > mat-accordion { display: none !important; }
 
 html.mmrc-active .footer-buttons .continue-button-container { display: none !important; }
+
+html.mmrc-active refx-messages-panel-cont.mmrc-dup-msg,
+html.mmrc-active .messages-list .message.mmrc-dup-msg { display: none !important; }
 
 .mmrc-list { list-style: none; margin: 0; padding: 0; display: flex;
              flex-direction: column; gap: 12px;
@@ -10670,6 +11469,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmrc-fback-tier { font-size: 15px; font-weight: 700; margin-top: 1px; line-height: 1.2; }
 .mmrc-fback-balance { font-size: 10.5px; margin-top: 3px; opacity: .85; }
 .mmrc-fback-balance.is-short { color: #ffd9d4; opacity: 1; font-weight: 600; }
+.mmrc-fback-combo { font-size: 10.5px; margin-top: 3px; opacity: .85; }
 .mmrc-fback-big { font-size: 19px; font-weight: 800; margin-top: 5px; line-height: 1.15;
                   font-variant-numeric: tabular-nums; }
 .mmrc-fback-bigc { font-size: 12px; font-weight: 600; opacity: .95; font-variant-numeric: tabular-nums; }
@@ -10731,6 +11531,18 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
               justify-content: space-between; align-items: baseline; gap: 8px; }
 .mmrc-pop-h b { font-size: 12px; color: var(--mmc); }
 .mmrc-pop-h span { font-size: 10px; color: ${INK_muted}; white-space: nowrap; }
+
+html.mm-dark .mmrc-col, html.mm-dark .mmrc-cab {
+    --mmrc-ink: oklch(from var(--mmc) calc(l * 0.9 + 0.33) min(calc(c * 1.6), 0.09) h); }
+html.mm-dark :is(.mmrc-mi, .mmrc-col.is-empty .mmrc-nm, .mmrc-cab i, .mmrc-pop-h b, .mmrc-ptab tr.is-sum td, .mmrc-svc li.is-up .mmrc-sv),
+html.mm-dark .mmrc-ptab tr.is-shown td.mmrc-pw::after, html.mm-dark .mmrc-svc li.is-up .mmrc-sv::before { color: var(--mmrc-ink); }
+html.mm-dark .mmrc-segs:not(:empty) { background: var(--mm-dark-layer); }
+html.mm-dark .mmrc-colface { border-color: color-mix(in oklab, var(--mmc) 65%, var(--mm-dark-card)); }
+html.mm-dark .mmrc-col.is-empty .mmrc-colface { border-color: color-mix(in oklab, var(--mmc) 30%, var(--mm-dark-card)); }
+html.mm-dark .mmrc-cab { border-color: color-mix(in oklab, var(--mmc) 55%, var(--mm-dark-card)); border-top-color: var(--mmc); }
+html.mm-dark .mmrc-cab:hover, html.mm-dark .mmrc-f:hover::before {
+    background: color-mix(in oklab, var(--mmc) 18%, var(--mm-dark-card)); }
+html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0 0 0 1.5px #fff; }
 `;
     let styleEl = null;
     function injectStyles() {
@@ -11028,6 +11840,26 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
       }
     }
     const REFUSAL_FLASH_MS = 8e3;
+    function hideShownRefusal() {
+      const text = pendingBooking && pendingBooking.refused;
+      const panels = new Map;
+      messageNodes().forEach(li => {
+        const same = !!text && messageText(li) === text;
+        li.classList.contains("mmrc-dup-msg") !== same && li.classList.toggle("mmrc-dup-msg", same);
+        const box = li.closest("refx-messages-panel-cont");
+        if (box) {
+          const n = panels.get(box) || [ 0, 0 ];
+          n[0]++;
+          same && n[1]++;
+          panels.set(box, n);
+        }
+      });
+      document.querySelectorAll("refx-messages-panel-cont").forEach(box => {
+        const n = panels.get(box);
+        const all = !!n && n[1] > 0 && n[1] === n[0];
+        box.classList.contains("mmrc-dup-msg") !== all && box.classList.toggle("mmrc-dup-msg", all);
+      });
+    }
     function refuseBooking(text) {
       const p = pendingBooking;
       if (p) {
@@ -11036,6 +11868,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         p.text = T("Nicht buchbar");
         p.nativeBtn = null;
         restoreBooking();
+        hideShownRefusal();
         setTimeout(() => {
           if (pendingBooking !== p) return;
           const list = listEl();
@@ -11088,15 +11921,21 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
       };
       const fail = t => {
         note("book gescheitert: " + t);
+        const p = pendingBooking;
         pendingBooking = null;
-        if (uiBtn) {
-          uiBtn.disabled = !1;
-          uiBtn.classList.add("is-error");
-          uiBtn.textContent = t;
+        const btn = uiBtn && uiBtn.isConnected ? uiBtn : p && function(key, code) {
+          const card = [ ...listEl()?.querySelectorAll(".mmrc-card") || [] ].find(c => c.dataset.key === key);
+          const tile = card && [ ...card.querySelectorAll(".mmrc-f[data-code]") ].find(t => t.dataset.code === code);
+          return tile && tile.closest(".mmrc-col")?.querySelector(".mmrc-fchoose") || null;
+        }(p.key, p.code);
+        if (btn) {
+          btn.disabled = !1;
+          btn.classList.add("is-error");
+          btn.textContent = t;
           setTimeout(() => {
-            if (uiBtn.isConnected) {
-              uiBtn.classList.remove("is-error");
-              uiBtn.textContent = label;
+            if (btn.isConnected) {
+              btn.classList.remove("is-error");
+              btn.textContent = label || T("Wählen");
             }
           }, 5e3);
         }
@@ -11181,7 +12020,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
       done || (failTimer = setTimeout(() => {
         mo.disconnect();
         fail(T("Tarif nicht wählbar"));
-      }, 8e3));
+      }, 2e3));
     }
     const TIER_ORDER = [ "Basic", "Light", "Classic", "Comfort", "Comfort +", "Flex", "Standard" ];
     let openFareCol = null;
@@ -11273,7 +12112,16 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
           } else price = (null != f.miles ? `<div class="mmrc-fback-big">${T("{miles} Meilen", {
             miles: esc(num(f.miles))
           })}</div>` : "") + (null != f.cash ? `<div class="mmrc-fback-bigc">+ ${esc(cashLabel(f.cash, f.currency))}</div>` : "");
-          return `<button type="button" class="mmrc-fclose" title="${T("Schließen")}" aria-label="${T("Schließen")}">✕</button>` + `<div class="mmrc-fback-head">` + `<div class="mmrc-fback-cabin">${esc(cabinMeta.name)}</div>` + `<div class="mmrc-fback-tier">${esc(f.tier || "")}</div>` + price + balanceHtml(f) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${servicesHtml(f, base, !0).html}</div>` + `<button type="button" class="mmrc-fchoose">${T("Wählen")}</button>`;
+          return `<button type="button" class="mmrc-fclose" title="${T("Schließen")}" aria-label="${T("Schließen")}">✕</button>` + `<div class="mmrc-fback-head">` + `<div class="mmrc-fback-cabin">${esc(cabinMeta.name)}</div>` + `<div class="mmrc-fback-tier">${esc(f.tier || "")}</div>` + price + balanceHtml(f) + function(f, cabinMeta) {
+            const j = window.__mmCal && window.__mmCal.journey;
+            const F = window.__mmFareNames;
+            if (!j || "return" !== j.kind || 0 !== j.req || !F || !F.pairGroup) return "";
+            const g = F.pairGroup(f.code);
+            const text = "light" === g ? T("Rückflug nur {fare}", {
+              fare: cabinMeta.name + " Light"
+            }) : "comfort" === g ? T("Rückflug nur Comfort, jede Kabine") : "plus" === g ? T("Rückflug Comfort +, Flex oder Standard, jede Kabine") : "";
+            return text ? `<div class="mmrc-fback-combo">${esc(text)}</div>` : "";
+          }(f, cabinMeta) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${servicesHtml(f, base, !0).html}</div>` + `<button type="button" class="mmrc-fchoose">${T("Wählen")}</button>`;
         }(f, d.meta, d.base);
         col.querySelector(".mmrc-colflip").appendChild(fp);
         openFareCol = col;
@@ -12041,6 +12889,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
         }, 600);
       }
       checkRefusal();
+      hideShownRefusal();
       const host = resultsHost();
       host && !host.querySelector(".mmrc-list") && render();
     });
@@ -12053,6 +12902,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
     state.refreshOfficeNote = refreshOfficeNote;
     state._trace = trace;
     state._checkRefusal = checkRefusal;
+    state._hideShownRefusal = hideShownRefusal;
     state._css = CSS;
     state._nativeCardFor = nativeCardFor;
     state._onCartAnswer = onCartAnswer;
@@ -12116,7 +12966,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
   })();
   (() => {
     "use strict";
-    const VERSION = 133;
+    const VERSION = 135;
     if (window.__mmSeatmap && window.__mmSeatmap.version >= VERSION) return;
     if (window.__mmSeatmap) try {
       window.__mmSeatmap.teardown();
@@ -14839,7 +15689,8 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
       });
       firstOf.forEach((list, cabin) => {
         const xs = list.map(q => q[0]), mid = (Math.min(...xs) + Math.max(...xs)) / 2, top = Math.min(...list.map(q => q[1]));
-        out.push(`<text class="mmsm-cabin" x="${r1(mid)}" y="${r1(top - 1.25 * u)}" font-size="${r1(.42 * u)}" fill="${(CABIN[cabin] || CABIN.eco).color}">${esc(nameOf(cabin).toUpperCase())}</text>`);
+        const cc = (CABIN[cabin] || CABIN.eco).color;
+        out.push(`<text class="mmsm-cabin" x="${r1(mid)}" y="${r1(top - 1.25 * u)}" font-size="${r1(.42 * u)}" fill="${cc}" style="--c:${cc}">${esc(nameOf(cabin).toUpperCase())}</text>`);
       });
       if (glass && null != plan.glassTip) {
         const FF = plan.glassF || F;
@@ -15176,6 +16027,31 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmsm-peek .mmsm-deck[data-name]::before { content: attr(data-name); display: block; font-size: 22px; font-weight: 600; color: ${INK_secondary}; }
 .mmsm-peek .mmsm-head, .mmsm-peek .mmsm-legend, .mmsm-peek .mmsm-note { display: none; }
 .mmsm-peekhint { font-size: 10.5px; color: ${INK_muted}; text-align: center; padding: 2px 0; }
+
+html.mm-dark .mmsm-overlay { background: rgba(0, 0, 0, .6); }
+html.mm-dark .mmsm-wing { fill: hsl(222 10% 25%); stroke: hsl(222 9% 36%); }
+html.mm-dark .mmsm-hull { fill: hsl(222 13% 20%); stroke: hsl(222 10% 46%); }
+html.mm-dark :is(.mmsm-wall, .mmsm-curtain) { stroke: hsl(222 9% 46%); }
+html.mm-dark .mmsm-room rect { fill: hsl(222 10% 29%); stroke: hsl(222 9% 42%); }
+html.mm-dark .mmsm-room.is-galley rect { fill: hsl(222 7% 34%); stroke: hsl(222 7% 46%); }
+html.mm-dark .mmsm-room.is-closet rect { fill: hsl(222 9% 25%); stroke: hsl(222 8% 36%); }
+html.mm-dark .mmsm-room.is-console rect { fill: hsl(222 9% 23%); stroke: hsl(222 8% 32%); }
+html.mm-dark .mmsm-room text { fill: hsl(222 10% 68%); }
+html.mm-dark .mmsm-cup { stroke: hsl(222 8% 62%); }
+html.mm-dark .mmsm-glass { fill: hsl(210 18% 42%); stroke: hsl(210 14% 55%); }
+html.mm-dark .mmsm-glass.is-dark { fill: hsl(210 18% 34%); }
+html.mm-dark .mmsm-svg pattern rect:first-child { fill: hsl(222 9% 27%); }
+html.mm-dark .mmsm-svg pattern rect:last-child { fill: hsl(222 9% 40%); }
+html.mm-dark :is(.mmsm-seat, .mmsm-cabin) { --mmsm-ink: oklch(from var(--c) calc(l * 0.9 + 0.33) min(calc(c * 1.6), 0.09) h); }
+html.mm-dark .mmsm-cabin { fill: var(--mmsm-ink); }
+html.mm-dark .mmsm-seat rect { fill: hsl(222 13% 24%); stroke: var(--mmsm-ink); }
+html.mm-dark .mmsm-seat .mmsm-back { fill: var(--mmsm-ink); opacity: .35; }
+html.mm-dark .mmsm-letter { fill: var(--mmsm-ink); opacity: .9; }
+html.mm-dark .mmsm-seat.is-taken rect { fill: hsl(222 8% 33%); stroke: hsl(222 8% 38%); }
+html.mm-dark .mmsm-seat.is-taken .mmsm-back { fill: hsl(222 8% 40%); opacity: 1; }
+html.mm-dark .mmsm-seat.is-taken .mmsm-letter { fill: hsl(222 8% 58%); }
+html.mm-dark .mmsm-seat.is-held rect { fill: hsl(222 13% 20%); }
+html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color: hsl(222 8% 38%); }
 `;
     let styleEl = null;
     function injectStyles() {
@@ -15318,7 +16194,7 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
   })();
   (() => {
     "use strict";
-    const VERSION = 55;
+    const VERSION = 57;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -16245,6 +17121,10 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmsort-opt:focus-visible, .mmchip-opt:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: -2px; }
 .mmsort-pm-opt:focus-visible { outline: 2px solid ${INK_accent}; outline-offset: 1px; }
 .mmsort-budget-reset:focus-visible { border-radius: 4px; }
+
+html.mm-dark :is(.mmsort-list, .mmchip-dd, .mmflt-pop) { background-color: var(--mm-dark-layer); }
+html.mm-dark :is(.mmchip, .mmsort-trigger, .mmflt-reset):not(.is-on) { background-color: var(--mm-dark-layer); border-color: hsl(222 12% 34%); }
+html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%); }
 `;
             styleEl.textContent !== css && (styleEl.textContent = css);
           }();
@@ -17727,7 +18607,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.9.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -18171,6 +19051,46 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     });
   } catch (e) {}
 })();
+    }
+
+    var gmXhr = null;
+    try {
+        if (typeof GM_xmlhttpRequest === 'function') gmXhr = GM_xmlhttpRequest;
+        else if (typeof GM !== 'undefined' && GM && typeof GM.xmlHttpRequest === 'function') {
+            gmXhr = function (o) { GM.xmlHttpRequest(o); };
+        }
+    } catch (e) { }
+    if (gmXhr) {
+        var PROBES = {
+            'air-bounds': 'https://api.shop.miles-and-more.com/one-booking/v2/search/air-bounds',
+            'air-calendars': 'https://api.shop.miles-and-more.com/one-booking/v2/search/air-calendars'
+        };
+        var answer = function (id, r) {
+            r.id = id;
+            document.dispatchEvent(new CustomEvent('mm:probe-result', { detail: JSON.stringify(r) }));
+        };
+        document.addEventListener('mm:probe-ping', function () {
+            document.dispatchEvent(new CustomEvent('mm:probe-pong'));
+        });
+        document.addEventListener('mm:probe', function (e) {
+            var q = null;
+            try { q = JSON.parse(String(e.detail)); } catch (x) { }
+            var url = q && PROBES[q.path];
+            if (!url) return;
+            try {
+                gmXhr({
+                    method: 'POST', url: url, data: '{}', timeout: 15000,
+                    headers: { 'Content-Type': 'application/json' },
+                    onload: function (r) {
+                        var m = /^retry-after:\s*(\d+)/im.exec(r.responseHeaders || '');
+                        answer(q.id, { status: r.status, retryAfter: m ? Number(m[1]) : null,
+                            body: String(r.responseText || '').slice(0, 300) });
+                    },
+                    onerror: function () { answer(q.id, { status: 0 }); },
+                    ontimeout: function () { answer(q.id, { status: 0 }); }
+                });
+            } catch (x) { answer(q.id, { status: 0 }); }
+        });
     }
 
     var sandboxed = false;

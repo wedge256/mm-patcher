@@ -445,7 +445,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: suites con puerta corredera (1-2-1), solo en el A350-1000",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: cabina Signature con suites Signature Plus (puerta) delante",
  "Stück": "pieza",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "Límite de búsqueda alcanzado (HTTP 429, notificado por el navegador como error de red).",
  "Suchlimit erreicht (HTTP 429).": "Límite de búsqueda alcanzado (HTTP 429).",
  "Suche fehlgeschlagen (HTTP {http}).": "La búsqueda ha fallado (HTTP {http}).",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP bloqueada aproximadamente una hora, hasta las {time} aprox.",
@@ -500,5 +499,28 @@
  "Fertig": "Listo",
  "🏢 Buchungsbüro & Währung": "🏢 Oficina de reservas y moneda",
  "Kabine": "Cabina",
- "sucht …": "buscando …"
+ "sucht …": "buscando …",
+ "Dunkles Design": "Modo oscuro",
+ "Helles Design": "Modo claro",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "Parece que alguien se ha emocionado demasiado… (HTTP 429)",
+ "Das war zu viel… (HTTP 429)": "Eso fue demasiado… (HTTP 429)",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "one": "Por ello, la dirección IP queda bloqueada hasta las {time} (falta {n} minuto).",
+  "many": "Por ello, la dirección IP queda bloqueada hasta las {time} (faltan {n} minutos).",
+  "other": "Por ello, la dirección IP queda bloqueada hasta las {time} (faltan {n} minutos)."
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "one": "La dirección IP sigue bloqueada hasta las {time} (falta {n} minuto).",
+  "many": "La dirección IP sigue bloqueada hasta las {time} (faltan {n} minutos).",
+  "other": "La dirección IP sigue bloqueada hasta las {time} (faltan {n} minutos)."
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "La búsqueda ha fallado (sin respuesta del servidor).",
+ "Mit gewähltem Hinflug nicht buchbar.": "No reservable con el vuelo de ida elegido.",
+ "Buchbar mit {fare} im Hinflug.": "Reservable con {fare} a la ida.",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "Reservable con Comfort a la ida, cualquier cabina.",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Reservable con Comfort +, Flex o Standard a la ida, cualquier cabina.",
+ "nicht mit gewähltem Hinflug buchbar": "no reservable con el vuelo de ida elegido",
+ "Rückflug nur {fare}": "Vuelta solo {fare}",
+ "Rückflug nur Comfort, jede Kabine": "Vuelta solo Comfort, cualquier cabina",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Vuelta Comfort +, Flex o Standard, cualquier cabina"
 }

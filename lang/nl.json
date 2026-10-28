@@ -433,7 +433,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: suites met schuifdeur (1-2-1), alleen op de A350-1000",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: Signature-cabine met Signature Plus-suites (deur) voorin",
  "Stück": "stuk",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "Zoeklimiet bereikt (HTTP 429, door de browser gemeld als netwerkfout).",
  "Suchlimit erreicht (HTTP 429).": "Zoeklimiet bereikt (HTTP 429).",
  "Suche fehlgeschlagen (HTTP {http}).": "Zoeken mislukt (HTTP {http}).",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP geblokkeerd voor ongeveer een uur, tot ca. {time}.",
@@ -487,5 +486,26 @@
  "Fertig": "Klaar",
  "🏢 Buchungsbüro & Währung": "🏢 Boekingskantoor & valuta",
  "Kabine": "Cabine",
- "sucht …": "zoekt …"
+ "sucht …": "zoekt …",
+ "Dunkles Design": "Donkere modus",
+ "Helles Design": "Lichte modus",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "Daar was iemand wel erg ijverig… (HTTP 429)",
+ "Das war zu viel… (HTTP 429)": "Dat was te veel… (HTTP 429)",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "one": "Het IP-adres is daarom geblokkeerd tot {time} (nog {n} minuut).",
+  "other": "Het IP-adres is daarom geblokkeerd tot {time} (nog {n} minuten)."
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "one": "Het IP-adres blijft geblokkeerd tot {time} (nog {n} minuut).",
+  "other": "Het IP-adres blijft geblokkeerd tot {time} (nog {n} minuten)."
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "Zoeken mislukt (geen antwoord van de server).",
+ "Mit gewähltem Hinflug nicht buchbar.": "Niet boekbaar met de gekozen heenvlucht.",
+ "Buchbar mit {fare} im Hinflug.": "Boekbaar met {fare} op de heenvlucht.",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "Boekbaar met Comfort op de heenvlucht, elke cabine.",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Boekbaar met Comfort +, Flex of Standard op de heenvlucht, elke cabine.",
+ "nicht mit gewähltem Hinflug buchbar": "niet boekbaar met de gekozen heenvlucht",
+ "Rückflug nur {fare}": "Terugvlucht alleen {fare}",
+ "Rückflug nur Comfort, jede Kabine": "Terugvlucht alleen Comfort, elke cabine",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Terugvlucht Comfort +, Flex of Standard, elke cabine"
 }

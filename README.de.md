@@ -128,6 +128,11 @@ der Ergebnisseite.
 
 ### Sonstiges
 
+- **Dark Mode**
+
+  Auch spät nachts am gleißend hellen OLED-Monitor über die strahlend weiße Oberfläche geärgert
+  und sich gefragt, wieso diese Seite eigentlich keinen Dark Mode hat? Hier ist er.
+
 - **Angemeldet bleiben**
 
   Verhindert vorzeitigen Logout, wenn man mal 15 Minuten Kaffee holen ist.

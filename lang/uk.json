@@ -447,7 +447,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: сьюти з розсувними дверима (1-2-1), лише на A350-1000",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: салон Signature із сьютами Signature Plus (двері) спереду",
  "Stück": "шт.",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "Ліміт пошуку досягнуто (HTTP 429, браузер повідомив про помилку мережі).",
  "Suchlimit erreicht (HTTP 429).": "Ліміт пошуку досягнуто (HTTP 429).",
  "Suche fehlgeschlagen (HTTP {http}).": "Пошук не вдався (HTTP {http}).",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP заблоковано приблизно на годину, до бл. {time}.",
@@ -513,5 +512,30 @@
  "Fertig": "Готово",
  "🏢 Buchungsbüro & Währung": "🏢 Бюро бронювання та валюта",
  "Kabine": "Клас",
- "sucht …": "пошук …"
+ "sucht …": "пошук …",
+ "Dunkles Design": "Темна тема",
+ "Helles Design": "Світла тема",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "Хтось надто розігнався… (HTTP 429)",
+ "Das war zu viel… (HTTP 429)": "Це було забагато… (HTTP 429)",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "one": "Тому IP-адресу заблоковано до {time} (лишилася {n} хвилина).",
+  "few": "Тому IP-адресу заблоковано до {time} (лишилося {n} хвилини).",
+  "many": "Тому IP-адресу заблоковано до {time} (лишилося {n} хвилин).",
+  "other": "Тому IP-адресу заблоковано до {time} (лишилося {n} хвилини)."
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "one": "IP-адресу досі заблоковано до {time} (лишилася {n} хвилина).",
+  "few": "IP-адресу досі заблоковано до {time} (лишилося {n} хвилини).",
+  "many": "IP-адресу досі заблоковано до {time} (лишилося {n} хвилин).",
+  "other": "IP-адресу досі заблоковано до {time} (лишилося {n} хвилини)."
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "Пошук не вдався (сервер не відповів).",
+ "Mit gewähltem Hinflug nicht buchbar.": "Бронювання неможливе з вибраним рейсом туди.",
+ "Buchbar mit {fare} im Hinflug.": "Можна забронювати з {fare} на рейсі туди.",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "Можна забронювати з Comfort на рейсі туди, будь-який клас.",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Можна забронювати з Comfort +, Flex або Standard на рейсі туди, будь-який клас.",
+ "nicht mit gewähltem Hinflug buchbar": "бронювання неможливе з вибраним рейсом туди",
+ "Rückflug nur {fare}": "Зворотний рейс лише {fare}",
+ "Rückflug nur Comfort, jede Kabine": "Зворотний рейс лише Comfort, будь-який клас",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Зворотний рейс Comfort +, Flex або Standard, будь-який клас"
 }

@@ -2,6 +2,16 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.0 — 2026-10-28
+
+### Added
+
+- **Dark mode** for the shop page
+
+### Fixed
+
+- **Calendar for round trips and open-jaw trips showed wrong prices and fares that could not be booked**
+
 ## 1.9.1 — 2026-10-27
 
 ### Fixed
