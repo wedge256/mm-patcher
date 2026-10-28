@@ -423,7 +423,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business：スライドドア付きスイート（1-2-1）、A350-1000のみ",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10：前方にSignature Plusスイート（ドア付き）のあるSignatureキャビン",
  "Stück": "個",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "検索上限に達しました（HTTP 429、ブラウザにはネットワークエラーとして表示）。",
  "Suchlimit erreicht (HTTP 429).": "検索上限に達しました（HTTP 429）。",
  "Suche fehlgeschlagen (HTTP {http}).": "検索に失敗しました（HTTP {http}）。",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IPブロックは約1時間、{time}頃まで。",
@@ -474,5 +473,24 @@
  "Fertig": "完了",
  "🏢 Buchungsbüro & Währung": "🏢 予約オフィスと通貨",
  "Kabine": "キャビン",
- "sucht …": "検索中 …"
+ "sucht …": "検索中 …",
+ "Dunkles Design": "ダークモード",
+ "Helles Design": "ライトモード",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "ちょっと張り切りすぎたようです…（HTTP 429）",
+ "Das war zu viel… (HTTP 429)": "さすがに多すぎました…（HTTP 429）",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "other": "そのため、IPアドレスは{time}までブロックされています（残り{n}分）。"
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "other": "IPアドレスは{time}まで引き続きブロックされています（残り{n}分）。"
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "検索に失敗しました（サーバーから応答がありません）。",
+ "Mit gewähltem Hinflug nicht buchbar.": "選択した往路では予約不可。",
+ "Buchbar mit {fare} im Hinflug.": "往路が{fare}なら予約可能。",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "往路がComfortなら予約可能、キャビン不問。",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "往路がComfort +、FlexまたはStandardなら予約可能、キャビン不問。",
+ "nicht mit gewähltem Hinflug buchbar": "選択した往路では予約不可",
+ "Rückflug nur {fare}": "復路は{fare}のみ",
+ "Rückflug nur Comfort, jede Kabine": "復路はComfortのみ、キャビン不問",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "復路はComfort +、FlexまたはStandard、キャビン不問"
 }

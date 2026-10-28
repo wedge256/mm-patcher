@@ -129,6 +129,11 @@ right of the results page.
 
 ### Other
 
+- **Dark mode**
+
+  Ever been annoyed late at night by the glaring white interface on a bright OLED monitor and
+  wondered why this site has no dark mode? Here it is.
+
 - **Stay logged in**
 
   Prevents an early logout when you're off getting coffee for 15 minutes.

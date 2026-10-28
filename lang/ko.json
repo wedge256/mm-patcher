@@ -423,7 +423,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: 슬라이딩 도어 스위트(1-2-1), A350-1000에만 해당",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: 앞쪽에 Signature Plus 스위트(도어)가 있는 Signature 캐빈",
  "Stück": "개",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "검색 한도에 도달했습니다(HTTP 429, 브라우저에는 네트워크 오류로 표시).",
  "Suchlimit erreicht (HTTP 429).": "검색 한도에 도달했습니다(HTTP 429).",
  "Suche fehlgeschlagen (HTTP {http}).": "검색에 실패했습니다(HTTP {http}).",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP 차단 약 1시간, {time}경까지.",
@@ -474,5 +473,24 @@
  "Fertig": "완료",
  "🏢 Buchungsbüro & Währung": "🏢 예약 사무소 및 통화",
  "Kabine": "캐빈",
- "sucht …": "검색 중 …"
+ "sucht …": "검색 중 …",
+ "Dunkles Design": "다크 모드",
+ "Helles Design": "라이트 모드",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "누군가 너무 의욕이 넘쳤나 봅니다…(HTTP 429)",
+ "Das war zu viel… (HTTP 429)": "너무 많았습니다…(HTTP 429)",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "other": "이 때문에 IP 주소가 {time}까지 차단되었습니다({n}분 남음)."
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "other": "IP 주소는 {time}까지 계속 차단됩니다({n}분 남음)."
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "검색에 실패했습니다(서버 응답 없음).",
+ "Mit gewähltem Hinflug nicht buchbar.": "선택한 가는 편으로는 예약 불가.",
+ "Buchbar mit {fare} im Hinflug.": "가는 편이 {fare}이면 예약 가능.",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "가는 편이 Comfort이면 예약 가능, 캐빈 무관.",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "가는 편이 Comfort +, Flex 또는 Standard이면 예약 가능, 캐빈 무관.",
+ "nicht mit gewähltem Hinflug buchbar": "선택한 가는 편으로는 예약 불가",
+ "Rückflug nur {fare}": "오는 편 {fare}만",
+ "Rückflug nur Comfort, jede Kabine": "오는 편 Comfort만, 캐빈 무관",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "오는 편 Comfort +, Flex 또는 Standard, 캐빈 무관"
 }

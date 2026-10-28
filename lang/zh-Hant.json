@@ -423,7 +423,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business：附推拉門的套房（1-2-1），僅限A350-1000",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10：前部為Signature客艙，設有Signature Plus套房（附門）",
  "Stück": "件",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "已達搜尋上限（HTTP 429，瀏覽器回報為網路錯誤）。",
  "Suchlimit erreicht (HTTP 429).": "已達搜尋上限（HTTP 429）。",
  "Suche fehlgeschlagen (HTTP {http}).": "搜尋失敗（HTTP {http}）。",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP封鎖約一小時，至約{time}。",
@@ -474,5 +473,24 @@
  "Fertig": "完成",
  "🏢 Buchungsbüro & Währung": "🏢 訂位辦事處與貨幣",
  "Kabine": "艙位",
- "sucht …": "搜尋中 …"
+ "sucht …": "搜尋中 …",
+ "Dunkles Design": "深色模式",
+ "Helles Design": "淺色模式",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "有人太心急了……（HTTP 429）",
+ "Das war zu viel… (HTTP 429)": "這次太多了……（HTTP 429）",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "other": "因此該IP位址被封鎖至{time}（還剩{n}分鐘）。"
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "other": "該IP位址仍被封鎖至{time}（還剩{n}分鐘）。"
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "搜尋失敗（伺服器無回應）。",
+ "Mit gewähltem Hinflug nicht buchbar.": "所選去程無法訂位。",
+ "Buchbar mit {fare} im Hinflug.": "去程為{fare}時可訂位。",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "去程為Comfort時可訂位，艙位不限。",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "去程為Comfort +、Flex或Standard時可訂位，艙位不限。",
+ "nicht mit gewähltem Hinflug buchbar": "所選去程無法訂位",
+ "Rückflug nur {fare}": "回程僅限{fare}",
+ "Rückflug nur Comfort, jede Kabine": "回程僅限Comfort，艙位不限",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "回程限Comfort +、Flex或Standard，艙位不限"
 }

@@ -434,7 +434,6 @@
  "Turkish Crystal Business: Suiten mit Schiebetür (1-2-1), nur auf dem A350-1000": "Turkish Crystal Business: kayar kapılı süitler (1-2-1), yalnızca A350-1000’de",
  "Air Canada 787-10: Signature-Kabine mit Signature-Plus-Suiten (Tür) vorn": "Air Canada 787-10: önde Signature Plus süitleri (kapılı) olan Signature kabini",
  "Stück": "adet",
- "Suchlimit erreicht (HTTP 429, vom Browser als Netzfehler gemeldet).": "Arama sınırına ulaşıldı (HTTP 429, tarayıcı tarafından ağ hatası olarak bildirildi).",
  "Suchlimit erreicht (HTTP 429).": "Arama sınırına ulaşıldı (HTTP 429).",
  "Suche fehlgeschlagen (HTTP {http}).": "Arama başarısız (HTTP {http}).",
  "IP-Sperre etwa eine Stunde, bis ca. {time}.": "IP yaklaşık bir saat engelli, yaklaşık {time} saatine kadar.",
@@ -487,5 +486,26 @@
  "Fertig": "Tamam",
  "🏢 Buchungsbüro & Währung": "🏢 Rezervasyon ofisi & para birimi",
  "Kabine": "Kabin",
- "sucht …": "aranıyor …"
+ "sucht …": "aranıyor …",
+ "Dunkles Design": "Koyu tema",
+ "Helles Design": "Açık tema",
+ "Das war wohl jemand übereifrig… (HTTP 429)": "Biri biraz fazla hevesliydi… (HTTP 429)",
+ "Das war zu viel… (HTTP 429)": "Bu kadarı fazlaydı… (HTTP 429)",
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
+  "one": "Bu nedenle IP adresi {time} saatine kadar engellendi ({n} dakika kaldı).",
+  "other": "Bu nedenle IP adresi {time} saatine kadar engellendi ({n} dakika kaldı)."
+ },
+ "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
+  "one": "IP adresi {time} saatine kadar hâlâ engelli ({n} dakika kaldı).",
+  "other": "IP adresi {time} saatine kadar hâlâ engelli ({n} dakika kaldı)."
+ },
+ "Suche fehlgeschlagen (keine Antwort vom Server).": "Arama başarısız (sunucudan yanıt yok).",
+ "Mit gewähltem Hinflug nicht buchbar.": "Seçilen gidiş uçuşuyla rezervasyon yapılamaz.",
+ "Buchbar mit {fare} im Hinflug.": "Gidişte {fare} ile rezervasyon yapılabilir.",
+ "Buchbar mit Comfort im Hinflug, jede Kabine.": "Gidişte Comfort ile rezervasyon yapılabilir, her kabin.",
+ "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Gidişte Comfort +, Flex veya Standard ile rezervasyon yapılabilir, her kabin.",
+ "nicht mit gewähltem Hinflug buchbar": "seçilen gidiş uçuşuyla rezervasyon yapılamaz",
+ "Rückflug nur {fare}": "Dönüş yalnızca {fare}",
+ "Rückflug nur Comfort, jede Kabine": "Dönüş yalnızca Comfort, her kabin",
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Dönüş Comfort +, Flex veya Standard, her kabin"
 }

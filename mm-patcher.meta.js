@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.9.1
+// @version      1.10.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -15,6 +15,9 @@
 // @updateURL    https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js
 // @downloadURL  https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js
 // @run-at       document-start
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
+// @grant        unsafeWindow
+// @connect      api.shop.miles-and-more.com
 // @noframes
 // ==/UserScript==
