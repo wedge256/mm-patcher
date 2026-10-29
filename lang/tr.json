@@ -495,11 +495,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IP adresi {time} saatine kadar hâlâ engelli ({left} kaldı).",
  "Die Sperre ist aufgehoben! 🎉": "Engel kaldırıldı! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Arama başarısız (sunucudan yanıt yok).",
- "Mit gewähltem Hinflug nicht buchbar.": "Seçilen gidiş uçuşuyla rezervasyon yapılamaz.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "En ucuz tarife, seçilen gidiş uçuşuyla birleştirilemez. Uygun tarifeler mevcut olabilir.",
  "Buchbar mit {fare} im Hinflug.": "Gidişte {fare} ile rezervasyon yapılabilir.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Gidişte Comfort ile rezervasyon yapılabilir, her kabin.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Gidişte Comfort +, Flex veya Standard ile rezervasyon yapılabilir, her kabin.",
- "nicht mit gewähltem Hinflug buchbar": "seçilen gidiş uçuşuyla rezervasyon yapılamaz",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "en ucuz tarife, seçilen gidiş uçuşuyla birleştirilemez",
  "Rückflug nur {fare}": "Dönüş yalnızca {fare}",
  "Rückflug nur Comfort, jede Kabine": "Dönüş yalnızca Comfort, her kabin",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Dönüş Comfort +, Flex veya Standard, her kabin"

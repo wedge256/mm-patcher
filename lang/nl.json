@@ -495,11 +495,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Het IP-adres blijft geblokkeerd tot {time} (nog {left}).",
  "Die Sperre ist aufgehoben! 🎉": "De blokkade is opgeheven! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Zoeken mislukt (geen antwoord van de server).",
- "Mit gewähltem Hinflug nicht buchbar.": "Niet boekbaar met de gekozen heenvlucht.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Goedkoopste tarief, niet te combineren met de gekozen heenvlucht. Combineerbare tarieven zijn mogelijk beschikbaar.",
  "Buchbar mit {fare} im Hinflug.": "Boekbaar met {fare} op de heenvlucht.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Boekbaar met Comfort op de heenvlucht, elke cabine.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Boekbaar met Comfort +, Flex of Standard op de heenvlucht, elke cabine.",
- "nicht mit gewähltem Hinflug buchbar": "niet boekbaar met de gekozen heenvlucht",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "goedkoopste tarief, niet te combineren met de gekozen heenvlucht",
  "Rückflug nur {fare}": "Terugvlucht alleen {fare}",
  "Rückflug nur Comfort, jede Kabine": "Terugvlucht alleen Comfort, elke cabine",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Terugvlucht Comfort +, Flex of Standard, elke cabine"

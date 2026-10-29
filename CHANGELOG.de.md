@@ -2,6 +2,14 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.2 — 2026-10-29
+
+### Behoben
+
+- **Kalender läuft seltener ins Suchlimit (429)**
+- **Kalender bei Hin-/Rückflügen zeigt richtige Werte an (Work in Progress)**
+- **Dark Mode auf den Buchungsseiten**
+
 ## 1.10.1 — 2026-10-29
 
 ### Behoben

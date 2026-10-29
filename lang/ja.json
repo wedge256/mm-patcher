@@ -482,11 +482,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IPアドレスは{time}まで引き続きブロックされています（残り{left}）。",
  "Die Sperre ist aufgehoben! 🎉": "ブロックが解除されました！🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "検索に失敗しました（サーバーから応答がありません）。",
- "Mit gewähltem Hinflug nicht buchbar.": "選択した往路では予約不可。",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "最安運賃。選択した往路とは組み合わせ不可。組み合わせ可能な運賃が空いている可能性あり。",
  "Buchbar mit {fare} im Hinflug.": "往路が{fare}なら予約可能。",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "往路がComfortなら予約可能、キャビン不問。",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "往路がComfort +、FlexまたはStandardなら予約可能、キャビン不問。",
- "nicht mit gewähltem Hinflug buchbar": "選択した往路では予約不可",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "最安運賃、選択した往路とは組み合わせ不可",
  "Rückflug nur {fare}": "復路は{fare}のみ",
  "Rückflug nur Comfort, jede Kabine": "復路はComfortのみ、キャビン不問",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "復路はComfort +、FlexまたはStandard、キャビン不問"

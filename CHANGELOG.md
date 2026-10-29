@@ -2,6 +2,14 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.2 — 2026-10-29
+
+### Fixed
+
+- **Calendar runs into the search limit (429) less often**
+- **Calendar for round trips shows correct values (work in progress)**
+- **Dark mode on the booking pages**
+
 ## 1.10.1 — 2026-10-29
 
 ### Fixed
