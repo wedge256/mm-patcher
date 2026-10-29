@@ -504,16 +504,9 @@
  "Helles Design": "Modo claro",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Alguém se entusiasmou demasiado… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Foi demais… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Por isso, o endereço IP foi bloqueado até às {time} (falta {n} minuto).",
-  "many": "Por isso, o endereço IP foi bloqueado até às {time} (faltam {n} minutos).",
-  "other": "Por isso, o endereço IP foi bloqueado até às {time} (faltam {n} minutos)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "O endereço IP continua bloqueado até às {time} (falta {n} minuto).",
-  "many": "O endereço IP continua bloqueado até às {time} (faltam {n} minutos).",
-  "other": "O endereço IP continua bloqueado até às {time} (faltam {n} minutos)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Por isso, o endereço IP foi bloqueado até às {time} (faltam {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "O endereço IP continua bloqueado até às {time} (faltam {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "O bloqueio foi levantado! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "A pesquisa falhou (sem resposta do servidor).",
  "Mit gewähltem Hinflug nicht buchbar.": "Não reservável com o voo de ida escolhido.",
  "Buchbar mit {fare} im Hinflug.": "Reservável com {fare} na ida.",

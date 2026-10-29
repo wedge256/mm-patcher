@@ -2,6 +2,13 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.1 — 2026-10-29
+
+### Fixed
+
+- **Dark mode: switching faded slowly instead of changing at once**
+- **Search limit notice (HTTP 429) showed neither the reason nor the exact end of the block**
+
 ## 1.10.0 — 2026-10-28
 
 ### Added

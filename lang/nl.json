@@ -491,14 +491,9 @@
  "Helles Design": "Lichte modus",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Daar was iemand wel erg ijverig… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Dat was te veel… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Het IP-adres is daarom geblokkeerd tot {time} (nog {n} minuut).",
-  "other": "Het IP-adres is daarom geblokkeerd tot {time} (nog {n} minuten)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "Het IP-adres blijft geblokkeerd tot {time} (nog {n} minuut).",
-  "other": "Het IP-adres blijft geblokkeerd tot {time} (nog {n} minuten)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Het IP-adres is daarom geblokkeerd tot {time} (nog {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Het IP-adres blijft geblokkeerd tot {time} (nog {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "De blokkade is opgeheven! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Zoeken mislukt (geen antwoord van de server).",
  "Mit gewähltem Hinflug nicht buchbar.": "Niet boekbaar met de gekozen heenvlucht.",
  "Buchbar mit {fare} im Hinflug.": "Boekbaar met {fare} op de heenvlucht.",

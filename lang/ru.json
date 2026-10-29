@@ -517,18 +517,9 @@
  "Helles Design": "Светлая тема",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Кто-то слишком разогнался… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Это было слишком… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Поэтому IP-адрес заблокирован до {time} (осталась {n} минута).",
-  "few": "Поэтому IP-адрес заблокирован до {time} (осталось {n} минуты).",
-  "many": "Поэтому IP-адрес заблокирован до {time} (осталось {n} минут).",
-  "other": "Поэтому IP-адрес заблокирован до {time} (осталось {n} минуты)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "IP-адрес всё ещё заблокирован до {time} (осталась {n} минута).",
-  "few": "IP-адрес всё ещё заблокирован до {time} (осталось {n} минуты).",
-  "many": "IP-адрес всё ещё заблокирован до {time} (осталось {n} минут).",
-  "other": "IP-адрес всё ещё заблокирован до {time} (осталось {n} минуты)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Поэтому IP-адрес заблокирован до {time} (осталось {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IP-адрес всё ещё заблокирован до {time} (осталось {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "Блокировка снята! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Поиск не удался (сервер не ответил).",
  "Mit gewähltem Hinflug nicht buchbar.": "Нельзя забронировать с выбранным рейсом туда.",
  "Buchbar mit {fare} im Hinflug.": "Можно забронировать с {fare} на рейсе туда.",

@@ -478,12 +478,9 @@
  "Helles Design": "浅色模式",
  "Das war wohl jemand übereifrig… (HTTP 429)": "有人太心急了……（HTTP 429）",
  "Das war zu viel… (HTTP 429)": "这次太多了……（HTTP 429）",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "other": "因此该IP地址被封锁至{time}（还剩{n}分钟）。"
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "other": "该IP地址仍被封锁至{time}（还剩{n}分钟）。"
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "因此该IP地址被封锁至{time}（还剩{left}）。",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "该IP地址仍被封锁至{time}（还剩{left}）。",
+ "Die Sperre ist aufgehoben! 🎉": "封锁已解除！🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "搜索失败（服务器无响应）。",
  "Mit gewähltem Hinflug nicht buchbar.": "所选去程不可预订。",
  "Buchbar mit {fare} im Hinflug.": "去程为{fare}时可预订。",

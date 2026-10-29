@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.1 — 2026-10-29
+
+### Behoben
+
+- **Dark Mode: Umschalten blendete langsam über statt sofort**
+- **Hinweis bei Suchlimit (HTTP 429) zeigte weder Grund noch genaue Sperrzeit an**
+
 ## 1.10.0 — 2026-10-28
 
 ### Neu

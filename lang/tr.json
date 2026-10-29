@@ -491,14 +491,9 @@
  "Helles Design": "Açık tema",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Biri biraz fazla hevesliydi… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Bu kadarı fazlaydı… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Bu nedenle IP adresi {time} saatine kadar engellendi ({n} dakika kaldı).",
-  "other": "Bu nedenle IP adresi {time} saatine kadar engellendi ({n} dakika kaldı)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "IP adresi {time} saatine kadar hâlâ engelli ({n} dakika kaldı).",
-  "other": "IP adresi {time} saatine kadar hâlâ engelli ({n} dakika kaldı)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Bu nedenle IP adresi {time} saatine kadar engellendi ({left} kaldı).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IP adresi {time} saatine kadar hâlâ engelli ({left} kaldı).",
+ "Die Sperre ist aufgehoben! 🎉": "Engel kaldırıldı! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Arama başarısız (sunucudan yanıt yok).",
  "Mit gewähltem Hinflug nicht buchbar.": "Seçilen gidiş uçuşuyla rezervasyon yapılamaz.",
  "Buchbar mit {fare} im Hinflug.": "Gidişte {fare} ile rezervasyon yapılabilir.",

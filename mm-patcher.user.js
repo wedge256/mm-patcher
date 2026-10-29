@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.0
+// @version      1.10.1
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -713,14 +713,9 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Helles Design": "Light mode",
         "Das war wohl jemand übereifrig… (HTTP 429)": "Someone got a bit overeager… (HTTP 429)",
         "Das war zu viel… (HTTP 429)": "That was too much… (HTTP 429)",
-        "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-          one: "The IP address has therefore been blocked until {time} ({n} minute left).",
-          other: "The IP address has therefore been blocked until {time} ({n} minutes left)."
-        },
-        "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-          one: "The IP address is still blocked until {time} ({n} minute left).",
-          other: "The IP address is still blocked until {time} ({n} minutes left)."
-        },
+        "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "The IP address has therefore been blocked until {time} ({left} left).",
+        "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "The IP address is still blocked until {time} ({left} left).",
+        "Die Sperre ist aufgehoben! 🎉": "The block has been lifted! 🎉",
         "Suche fehlgeschlagen (keine Antwort vom Server).": "Search failed (no response from the server).",
         "Mit gewähltem Hinflug nicht buchbar.": "Not bookable with the chosen outbound flight.",
         "Buchbar mit {fare} im Hinflug.": "Bookable with {fare} outbound.",
@@ -732,7 +727,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.1/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -911,7 +906,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
   })();
   (() => {
     "use strict";
-    const VERSION = 5;
+    const VERSION = 6;
     if (window.__mmDark && window.__mmDark.version >= VERSION) return;
     try {
       window.__mmDark?._retire?.();
@@ -1153,7 +1148,7 @@ html.mm-dark :is(.mat-mdc-select-panel, .mat-mdc-autocomplete-panel, .mat-mdc-me
         root.classList.add("mmdm-switching");
         root.classList.toggle("mm-dark", dark);
         dark ? recolorAll() : restore();
-        document;
+        root.getBoundingClientRect();
         root.classList.remove("mmdm-switching");
       }
       paint();
@@ -4125,7 +4120,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.1/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -9586,12 +9581,10 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 74;
+    const VERSION = 76;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
-      n: n
-    }, p));
+    const nf = o => window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
     const inherited = window.__mmBounds;
     const BOUNDS_RE = /air-bounds/i;
@@ -9862,6 +9855,30 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
       } catch (e) {}
     }
     let probing = null;
+    function leftText(ms) {
+      const s = Math.ceil(ms / 1e3);
+      return nf({
+        useGrouping: !1
+      }).format(Math.floor(s / 60)) + ":" + nf({
+        minimumIntegerDigits: 2
+      }).format(s % 60);
+    }
+    function blockText(b) {
+      const head = T("hour" === b.kind ? "Das war zu viel… (HTTP 429)" : "Das war wohl jemand übereifrig… (HTTP 429)");
+      const ms = b.until - Date.now();
+      if (ms <= 0) return {
+        head: head,
+        hint: T("Die Sperre ist aufgehoben! 🎉")
+      };
+      const p = {
+        time: hmsLocal(b.until),
+        left: leftText(ms)
+      };
+      return {
+        head: head,
+        hint: T(b.kind ? "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left})." : "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).", p)
+      };
+    }
     function failed(status, detail, sig) {
       const http = Number(status) || 0;
       const what = detail ? String(detail).slice(0, 200) : null;
@@ -9886,43 +9903,48 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
       emit();
       blocked && function() {
         if (probing) return probing;
-        probing = (path = "air-bounds", new Promise(resolve => {
-          let bridge = !1;
-          const pong = () => {
-            bridge = !0;
-          };
-          document.addEventListener("mm:probe-pong", pong);
-          document.dispatchEvent(new CustomEvent("mm:probe-ping"));
-          document.removeEventListener("mm:probe-pong", pong);
-          if (!bridge) {
-            resolve(null);
-            return;
-          }
-          const id = Math.random().toString(36).slice(2);
-          const finish = r => {
-            document.removeEventListener("mm:probe-result", onResult);
-            clearTimeout(timer);
-            resolve(r);
-          };
-          const onResult = e => {
-            let r = null;
-            try {
-              r = JSON.parse(String(e.detail));
-            } catch (x) {}
-            r && r.id === id && finish(r);
-          };
-          const timer = setTimeout(() => finish(null), 2e4);
-          document.addEventListener("mm:probe-result", onResult);
-          document.dispatchEvent(new CustomEvent("mm:probe", {
-            detail: JSON.stringify({
-              id: id,
-              path: path
-            })
-          }));
-        })).then(r => {
+        probing = freshHeaders().then(h => {
+          return h ? (path = "air-bounds", headers = h, new Promise(resolve => {
+            let bridge = !1;
+            const pong = () => {
+              bridge = !0;
+            };
+            document.addEventListener("mm:probe-pong", pong);
+            document.dispatchEvent(new CustomEvent("mm:probe-ping"));
+            document.removeEventListener("mm:probe-pong", pong);
+            if (!bridge) {
+              resolve(null);
+              return;
+            }
+            const id = Math.random().toString(36).slice(2);
+            const finish = r => {
+              document.removeEventListener("mm:probe-result", onResult);
+              clearTimeout(timer);
+              resolve(r);
+            };
+            const onResult = e => {
+              let r = null;
+              try {
+                r = JSON.parse(String(e.detail));
+              } catch (x) {}
+              r && r.id === id && finish(r);
+            };
+            const timer = setTimeout(() => finish(null), 2e4);
+            document.addEventListener("mm:probe-result", onResult);
+            document.dispatchEvent(new CustomEvent("mm:probe", {
+              detail: JSON.stringify({
+                id: id,
+                path: path,
+                headers: headers
+              })
+            }));
+          })) : null;
+          var path, headers;
+        }).then(r => {
           probing = null;
           if (!r) return null;
           if (429 !== r.status || !(r.retryAfter > 0)) {
+            if (!/^\s*[{[]/.test(r.body || "")) return null;
             clearBlock();
             return {
               status: r.status
@@ -9953,24 +9975,16 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
           probing = null;
           return null;
         });
-        var path;
         return probing;
       }().then(b => {
         if (b && state.lastError === err) {
           if (429 === b.status) {
-            const t = function(b) {
-              const n = Math.max(1, Math.ceil((b.until - Date.now()) / 6e4));
-              const p = {
-                time: hmsLocal(b.until),
-                n: n
-              };
-              return {
-                head: T("hour" === b.kind ? "Das war zu viel… (HTTP 429)" : "Das war wohl jemand übereifrig… (HTTP 429)"),
-                hint: b.kind ? Tn(n, "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).", "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minuten).", p) : Tn(n, "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).", "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minuten).", p)
-              };
-            }(b);
-            err.title = t.head;
-            err.why = t.hint;
+            err.title = blockText(b).head;
+            Object.defineProperty(err, "why", {
+              get: () => blockText(b).hint,
+              enumerable: !0,
+              configurable: !0
+            });
             err.block = b;
           } else if (b.status) {
             err.title = T("Suche fehlgeschlagen (keine Antwort vom Server).");
@@ -10495,7 +10509,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
       }
     }
     let officeFollowing = !1;
-    state.freshHeaders = function(force) {
+    function freshHeaders(force) {
       const a = state.api;
       return a ? refreshToken(force).then(token => {
         if (!token) return a.headers;
@@ -10505,7 +10519,8 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         h[Object.keys(h).filter(x => "authorization" === x.toLowerCase())[0] || "authorization"] = "Bearer " + token;
         return h;
       }) : Promise.resolve(null);
-    };
+    }
+    state.freshHeaders = freshHeaders;
     state.refreshAuth = force => refreshToken(force).then(t => !!t);
     state.handover = handover;
     state.authzUrl = () => auth.authzUrl || builtAuthzUrl();
@@ -17380,7 +17395,7 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
   })();
   (() => {
     "use strict";
-    const VERSION = 63;
+    const VERSION = 68;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -17725,13 +17740,16 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
         const box = n.closest(".upsell-link-out") || n.closest("lhg-upsell-link-out");
         const msg = box && box.querySelector(".message");
         if (tc) {
-          if (n.textContent === tc.title) return;
-          if (!NO_FLIGHT_BANNER_RE.test(n.textContent || "")) return;
-          n.dataset.mmrecOrig = n.textContent;
+          const why = tc.why || "";
+          if (n.textContent === tc.title && (!msg || null == msg.dataset.mmrecOrig || msg.textContent === why)) return;
+          if (null == n.dataset.mmrecOrig) {
+            if (!NO_FLIGHT_BANNER_RE.test(n.textContent || "")) return;
+            n.dataset.mmrecOrig = n.textContent;
+          }
           n.textContent = tc.title;
           if (msg && !msg.childElementCount) {
-            msg.dataset.mmrecOrig = msg.textContent;
-            msg.textContent = tc.why || "";
+            null == msg.dataset.mmrecOrig && (msg.dataset.mmrecOrig = msg.textContent);
+            msg.textContent = why;
           }
           injectStyles();
           box && box.classList.add("mmrec-noanswer");
@@ -17745,6 +17763,12 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
           box && box.classList.remove("mmrec-noanswer");
         }
       });
+      tc && tc.block && !state.blockTick && Date.now() < tc.block.until + 1e3 && (state.blockTick = setTimeout(() => {
+        state.blockTick = null;
+        if (!state.superseded) try {
+          rewriteBanners();
+        } catch (e) {}
+      }, 1e3 - Date.now() % 1e3 + 20));
       const panels = document.querySelectorAll("refx-messages-panel-cont");
       if (!panels.length) return;
       let cause = null;
@@ -18607,7 +18631,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -19077,10 +19101,18 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
             try { q = JSON.parse(String(e.detail)); } catch (x) { }
             var url = q && PROBES[q.path];
             if (!url) return;
+            var headers = { 'Content-Type': 'application/json' };
+            ['authorization', 'ama-client-facts', 'ama-client-ref', 'callid', 'accept'].forEach(function (name) {
+                var h = q.headers || {};
+                Object.keys(h).forEach(function (k) {
+                    if (k.toLowerCase() === name && typeof h[k] === 'string') headers[name] = h[k];
+                });
+            });
             try {
                 gmXhr({
                     method: 'POST', url: url, data: '{}', timeout: 15000,
-                    headers: { 'Content-Type': 'application/json' },
+                    cookiePartition: { topLevelSite: 'https://miles-and-more.com' },
+                    headers: headers,
                     onload: function (r) {
                         var m = /^retry-after:\s*(\d+)/im.exec(r.responseHeaders || '');
                         answer(q.id, { status: r.status, retryAfter: m ? Number(m[1]) : null,

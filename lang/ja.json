@@ -478,12 +478,9 @@
  "Helles Design": "ライトモード",
  "Das war wohl jemand übereifrig… (HTTP 429)": "ちょっと張り切りすぎたようです…（HTTP 429）",
  "Das war zu viel… (HTTP 429)": "さすがに多すぎました…（HTTP 429）",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "other": "そのため、IPアドレスは{time}までブロックされています（残り{n}分）。"
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "other": "IPアドレスは{time}まで引き続きブロックされています（残り{n}分）。"
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "そのため、IPアドレスは{time}までブロックされています（残り{left}）。",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IPアドレスは{time}まで引き続きブロックされています（残り{left}）。",
+ "Die Sperre ist aufgehoben! 🎉": "ブロックが解除されました！🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "検索に失敗しました（サーバーから応答がありません）。",
  "Mit gewähltem Hinflug nicht buchbar.": "選択した往路では予約不可。",
  "Buchbar mit {fare} im Hinflug.": "往路が{fare}なら予約可能。",
