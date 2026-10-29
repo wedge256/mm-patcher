@@ -478,12 +478,9 @@
  "Helles Design": "라이트 모드",
  "Das war wohl jemand übereifrig… (HTTP 429)": "누군가 너무 의욕이 넘쳤나 봅니다…(HTTP 429)",
  "Das war zu viel… (HTTP 429)": "너무 많았습니다…(HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "other": "이 때문에 IP 주소가 {time}까지 차단되었습니다({n}분 남음)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "other": "IP 주소는 {time}까지 계속 차단됩니다({n}분 남음)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "이 때문에 IP 주소가 {time}까지 차단되었습니다({left} 남음).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IP 주소는 {time}까지 계속 차단됩니다({left} 남음).",
+ "Die Sperre ist aufgehoben! 🎉": "차단이 해제되었습니다! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "검색에 실패했습니다(서버 응답 없음).",
  "Mit gewähltem Hinflug nicht buchbar.": "선택한 가는 편으로는 예약 불가.",
  "Buchbar mit {fare} im Hinflug.": "가는 편이 {fare}이면 예약 가능.",

@@ -491,14 +491,9 @@
  "Helles Design": "Φωτεινό θέμα",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Κάποιος παρασύρθηκε λίγο… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Αυτό ήταν υπερβολικό… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Γι’ αυτό η διεύθυνση IP αποκλείστηκε έως τις {time} (απομένει {n} λεπτό).",
-  "other": "Γι’ αυτό η διεύθυνση IP αποκλείστηκε έως τις {time} (απομένουν {n} λεπτά)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "Η διεύθυνση IP παραμένει αποκλεισμένη έως τις {time} (απομένει {n} λεπτό).",
-  "other": "Η διεύθυνση IP παραμένει αποκλεισμένη έως τις {time} (απομένουν {n} λεπτά)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Γι’ αυτό η διεύθυνση IP αποκλείστηκε έως τις {time} (απομένουν {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Η διεύθυνση IP παραμένει αποκλεισμένη έως τις {time} (απομένουν {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "Ο αποκλεισμός άρθηκε! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Η αναζήτηση απέτυχε (καμία απάντηση από τον διακομιστή).",
  "Mit gewähltem Hinflug nicht buchbar.": "Μη διαθέσιμη για κράτηση με την επιλεγμένη πτήση αναχώρησης.",
  "Buchbar mit {fare} im Hinflug.": "Διαθέσιμη για κράτηση με {fare} στην αναχώρηση.",

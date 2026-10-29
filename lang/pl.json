@@ -517,18 +517,9 @@
  "Helles Design": "Tryb jasny",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Ktoś chyba za bardzo się rozpędził… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "Tego było za wiele… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "Dlatego adres IP został zablokowany do {time} (jeszcze {n} minuta).",
-  "few": "Dlatego adres IP został zablokowany do {time} (jeszcze {n} minuty).",
-  "many": "Dlatego adres IP został zablokowany do {time} (jeszcze {n} minut).",
-  "other": "Dlatego adres IP został zablokowany do {time} (jeszcze {n} minuty)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "Adres IP jest nadal zablokowany do {time} (jeszcze {n} minuta).",
-  "few": "Adres IP jest nadal zablokowany do {time} (jeszcze {n} minuty).",
-  "many": "Adres IP jest nadal zablokowany do {time} (jeszcze {n} minut).",
-  "other": "Adres IP jest nadal zablokowany do {time} (jeszcze {n} minuty)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "Dlatego adres IP został zablokowany do {time} (jeszcze {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Adres IP jest nadal zablokowany do {time} (jeszcze {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "Blokada została zniesiona! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Wyszukiwanie nie powiodło się (brak odpowiedzi serwera).",
  "Mit gewähltem Hinflug nicht buchbar.": "Nie do rezerwacji z wybranym lotem tam.",
  "Buchbar mit {fare} im Hinflug.": "Do rezerwacji z {fare} w locie tam.",

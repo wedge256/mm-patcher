@@ -504,16 +504,9 @@
  "Helles Design": "Mode clair",
  "Das war wohl jemand übereifrig… (HTTP 429)": "Quelqu’un a été un peu trop zélé… (HTTP 429)",
  "Das war zu viel… (HTTP 429)": "C’en était trop… (HTTP 429)",
- "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {n} Minute).": {
-  "one": "L’adresse IP a donc été bloquée jusqu’à {time} (encore {n} minute).",
-  "many": "L’adresse IP a donc été bloquée jusqu’à {time} (encore {n} minutes).",
-  "other": "L’adresse IP a donc été bloquée jusqu’à {time} (encore {n} minutes)."
- },
- "Die IP-Adresse ist noch bis {time} gesperrt ({n} Minute).": {
-  "one": "L’adresse IP reste bloquée jusqu’à {time} (encore {n} minute).",
-  "many": "L’adresse IP reste bloquée jusqu’à {time} (encore {n} minutes).",
-  "other": "L’adresse IP reste bloquée jusqu’à {time} (encore {n} minutes)."
- },
+ "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left}).": "L’adresse IP a donc été bloquée jusqu’à {time} (encore {left}).",
+ "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "L’adresse IP reste bloquée jusqu’à {time} (encore {left}).",
+ "Die Sperre ist aufgehoben! 🎉": "Le blocage est levé ! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Échec de la recherche (aucune réponse du serveur).",
  "Mit gewähltem Hinflug nicht buchbar.": "Non réservable avec le vol aller choisi.",
  "Buchbar mit {fare} im Hinflug.": "Réservable avec {fare} à l’aller.",
