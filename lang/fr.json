@@ -508,11 +508,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "L’adresse IP reste bloquée jusqu’à {time} (encore {left}).",
  "Die Sperre ist aufgehoben! 🎉": "Le blocage est levé ! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Échec de la recherche (aucune réponse du serveur).",
- "Mit gewähltem Hinflug nicht buchbar.": "Non réservable avec le vol aller choisi.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Tarif le moins cher, non combinable avec le vol aller choisi. Des tarifs combinables peuvent être disponibles.",
  "Buchbar mit {fare} im Hinflug.": "Réservable avec {fare} à l’aller.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Réservable avec Comfort à l’aller, toute cabine.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Réservable avec Comfort +, Flex ou Standard à l’aller, toute cabine.",
- "nicht mit gewähltem Hinflug buchbar": "non réservable avec le vol aller choisi",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "tarif le moins cher, non combinable avec le vol aller choisi",
  "Rückflug nur {fare}": "Retour uniquement {fare}",
  "Rückflug nur Comfort, jede Kabine": "Retour uniquement Comfort, toute cabine",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Retour Comfort +, Flex ou Standard, toute cabine"

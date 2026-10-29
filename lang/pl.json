@@ -521,11 +521,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Adres IP jest nadal zablokowany do {time} (jeszcze {left}).",
  "Die Sperre ist aufgehoben! 🎉": "Blokada została zniesiona! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Wyszukiwanie nie powiodło się (brak odpowiedzi serwera).",
- "Mit gewähltem Hinflug nicht buchbar.": "Nie do rezerwacji z wybranym lotem tam.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Najtańsza taryfa, nie łączy się z wybranym lotem tam. Pasujące taryfy mogą być dostępne.",
  "Buchbar mit {fare} im Hinflug.": "Do rezerwacji z {fare} w locie tam.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Do rezerwacji z Comfort w locie tam, dowolna kabina.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Do rezerwacji z Comfort +, Flex lub Standard w locie tam, dowolna kabina.",
- "nicht mit gewähltem Hinflug buchbar": "nie do rezerwacji z wybranym lotem tam",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "najtańsza taryfa, nie łączy się z wybranym lotem tam",
  "Rückflug nur {fare}": "Powrót tylko {fare}",
  "Rückflug nur Comfort, jede Kabine": "Powrót tylko Comfort, dowolna kabina",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Powrót Comfort +, Flex lub Standard, dowolna kabina"

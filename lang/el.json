@@ -495,11 +495,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "Η διεύθυνση IP παραμένει αποκλεισμένη έως τις {time} (απομένουν {left}).",
  "Die Sperre ist aufgehoben! 🎉": "Ο αποκλεισμός άρθηκε! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Η αναζήτηση απέτυχε (καμία απάντηση από τον διακομιστή).",
- "Mit gewähltem Hinflug nicht buchbar.": "Μη διαθέσιμη για κράτηση με την επιλεγμένη πτήση αναχώρησης.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Φθηνότερος ναύλος, δεν συνδυάζεται με την επιλεγμένη πτήση αναχώρησης. Συμβατοί ναύλοι μπορεί να είναι διαθέσιμοι.",
  "Buchbar mit {fare} im Hinflug.": "Διαθέσιμη για κράτηση με {fare} στην αναχώρηση.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Διαθέσιμη για κράτηση με Comfort στην αναχώρηση, οποιαδήποτε καμπίνα.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Διαθέσιμη για κράτηση με Comfort +, Flex ή Standard στην αναχώρηση, οποιαδήποτε καμπίνα.",
- "nicht mit gewähltem Hinflug buchbar": "μη διαθέσιμη για κράτηση με την επιλεγμένη πτήση αναχώρησης",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "φθηνότερος ναύλος, δεν συνδυάζεται με την επιλεγμένη πτήση αναχώρησης",
  "Rückflug nur {fare}": "Επιστροφή μόνο {fare}",
  "Rückflug nur Comfort, jede Kabine": "Επιστροφή μόνο Comfort, οποιαδήποτε καμπίνα",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Επιστροφή Comfort +, Flex ή Standard, οποιαδήποτε καμπίνα"

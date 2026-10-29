@@ -521,11 +521,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "IP-адрес всё ещё заблокирован до {time} (осталось {left}).",
  "Die Sperre ist aufgehoben! 🎉": "Блокировка снята! 🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "Поиск не удался (сервер не ответил).",
- "Mit gewähltem Hinflug nicht buchbar.": "Нельзя забронировать с выбранным рейсом туда.",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Самый дешёвый тариф, не сочетается с выбранным рейсом туда. Подходящие тарифы могут быть доступны.",
  "Buchbar mit {fare} im Hinflug.": "Можно забронировать с {fare} на рейсе туда.",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "Можно забронировать с Comfort на рейсе туда, любая кабина.",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Можно забронировать с Comfort +, Flex или Standard на рейсе туда, любая кабина.",
- "nicht mit gewähltem Hinflug buchbar": "нельзя забронировать с выбранным рейсом туда",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "самый дешёвый тариф, не сочетается с выбранным рейсом туда",
  "Rückflug nur {fare}": "Обратно только {fare}",
  "Rückflug nur Comfort, jede Kabine": "Обратно только Comfort, любая кабина",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Обратно Comfort +, Flex или Standard, любая кабина"

@@ -482,11 +482,11 @@
  "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "該IP位址仍被封鎖至{time}（還剩{left}）。",
  "Die Sperre ist aufgehoben! 🎉": "封鎖已解除！🎉",
  "Suche fehlgeschlagen (keine Antwort vom Server).": "搜尋失敗（伺服器無回應）。",
- "Mit gewähltem Hinflug nicht buchbar.": "所選去程無法訂位。",
+ "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "最低票價，無法與所選去程組合。可能有可組合的票價。",
  "Buchbar mit {fare} im Hinflug.": "去程為{fare}時可訂位。",
  "Buchbar mit Comfort im Hinflug, jede Kabine.": "去程為Comfort時可訂位，艙位不限。",
  "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "去程為Comfort +、Flex或Standard時可訂位，艙位不限。",
- "nicht mit gewähltem Hinflug buchbar": "所選去程無法訂位",
+ "günstigster Tarif, passt nicht zum gewählten Hinflug": "最低票價，無法與所選去程組合",
  "Rückflug nur {fare}": "回程僅限{fare}",
  "Rückflug nur Comfort, jede Kabine": "回程僅限Comfort，艙位不限",
  "Rückflug Comfort +, Flex oder Standard, jede Kabine": "回程限Comfort +、Flex或Standard，艙位不限"

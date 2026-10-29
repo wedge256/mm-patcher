@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.1
+// @version      1.10.2
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -27,7 +27,7 @@
 if ("shop.miles-and-more.com" === location.hostname) {
   (() => {
     "use strict";
-    const VERSION = 9;
+    const VERSION = 10;
     if (window.__mmAuth && window.__mmAuth.version >= VERSION) return;
     const state = {
       version: VERSION,
@@ -717,17 +717,17 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).": "The IP address is still blocked until {time} ({left} left).",
         "Die Sperre ist aufgehoben! 🎉": "The block has been lifted! 🎉",
         "Suche fehlgeschlagen (keine Antwort vom Server).": "Search failed (no response from the server).",
-        "Mit gewähltem Hinflug nicht buchbar.": "Not bookable with the chosen outbound flight.",
+        "Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.": "Cheapest fare, does not go with the chosen outbound flight. Fares that do may be available.",
         "Buchbar mit {fare} im Hinflug.": "Bookable with {fare} outbound.",
         "Buchbar mit Comfort im Hinflug, jede Kabine.": "Bookable with Comfort outbound, any cabin.",
         "Buchbar mit Comfort +, Flex oder Standard im Hinflug, jede Kabine.": "Bookable with Comfort +, Flex or Standard outbound, any cabin.",
-        "nicht mit gewähltem Hinflug buchbar": "not bookable with the chosen outbound flight",
+        "günstigster Tarif, passt nicht zum gewählten Hinflug": "cheapest fare, does not go with the chosen outbound flight",
         "Rückflug nur {fare}": "Return only {fare}",
         "Rückflug nur Comfort, jede Kabine": "Return only Comfort, any cabin",
         "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.2/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -906,7 +906,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
   })();
   (() => {
     "use strict";
-    const VERSION = 6;
+    const VERSION = 23;
     if (window.__mmDark && window.__mmDark.version >= VERSION) return;
     try {
       window.__mmDark?._retire?.();
@@ -929,6 +929,18 @@ if ("shop.miles-and-more.com" === location.hostname) {
     const HUE = 222;
     const BASE = [ HUE, .22, .055 ], CARD = [ HUE, .16, .15 ], LAYER = [ HUE, .15, .2 ];
     const CANVAS = new Set([ "245,245,245" ]);
+    function toHsl(r, g, b) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
+      let h = 0, s = 0;
+      if (d) {
+        s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+        h = 60 * (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4);
+      }
+      return [ h, s, l ];
+    }
     const hsl = ([h, s, l], a) => `hsl(${h.toFixed(1)} ${(100 * s).toFixed(1)}% ${(100 * l).toFixed(1)}%${a < 1 ? " / " + a : ""})`;
     const neutral = (s, l) => s * (1 - Math.abs(2 * l - 1)) < .05;
     const MAP = {
@@ -942,6 +954,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         return l >= .45 ? s > .25 ? [ h, .8 * s, .36 ] : [ HUE, .12, .3 ] : s > .4 && l < .3 ? [ h, .5 * s, .4 ] : [ h, s, l ];
       },
       fg: (h, s, l) => l > .55 ? [ h, s, l ] : neutral(s, l) ? [ HUE, .12, .92 - .4 * l ] : l < .25 ? [ h, .3, .88 ] : [ h, .8 * s, .88 - .3 * l ],
+      fgDim: (h, s, l) => l > .55 && neutral(s, l) ? [ HUE, .1, .42 ] : MAP.fg(h, s, l),
       bd: (h, s, l) => l >= .5 ? neutral(s, l) ? [ HUE, .12, .24 + .35 * (1 - l) ] : [ h, Math.min(s, .3), .26 + .35 * (1 - l) ] : s > .3 ? [ h, .7 * s, .65 ] : [ HUE, .1, .45 ]
     };
     const COLOR_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|\bwhite\b|\bblack\b/gi;
@@ -958,23 +971,13 @@ if ("shop.miles-and-more.com" === location.hostname) {
           return m ? [ +m[1], +m[2], +m[3], void 0 === m[4] ? 1 : m[4].endsWith("%") ? parseFloat(m[4]) / 100 : +m[4] ] : /^white$/i.test(c) ? [ 255, 255, 255, 1 ] : /^black$/i.test(c) ? [ 0, 0, 0, 1 ] : null;
         }(c);
         if (!p || 0 === p[3]) return c;
-        const [h, s, l] = function(r, g, b) {
-          r /= 255;
-          g /= 255;
-          b /= 255;
-          const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, l = (mx + mn) / 2;
-          let h = 0, s = 0;
-          if (d) {
-            s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
-            h = 60 * (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4);
-          }
-          return [ h, s, l ];
-        }(p[0], p[1], p[2]);
+        const [h, s, l] = toHsl(p[0], p[1], p[2]);
         return hsl(MAP[kind](h, s, l, p[0] + "," + p[1] + "," + p[2], layer), p[3]);
       });
     }
-    const VAR_LAYER_RE = /panel|menu|dialog|tooltip|overlay|popover|dropdown|snackbar|datepicker|autocomplete/i;
+    const VAR_LAYER_RE = /select-panel|menu|dialog|tooltip|overlay|popover|dropdown|snackbar|datepicker|autocomplete/i;
     const LAYER_SEL_RE = /cdk-overlay|menu-panel|menu-content|menu-item|select-panel|autocomplete-panel|dialog|popup|datepicker-content|tooltip|popover|dropdown/i;
+    const PICTURE_SEL_RE = /lhg-fice-svg-seatmap/i;
     function kindOf(p) {
       return p.startsWith("--") ? /^--mat-sys-(primary|secondary|tertiary|error)$/.test(p) ? "fg" : !/color|background|surface|container|bg|text|foreground|border|outline|divider|fill/i.test(p) || /shadow|opacity|elevation|size|width|radius|weight|family|tracking|line-height/i.test(p) ? null : /background|surface|container|bg\b|-bg-|fill/i.test(p) && !/on-surface|on-primary|on-secondary|on-error|on-tertiary|text|foreground|label|icon/i.test(p) ? "bg" : /border|outline|divider/i.test(p) ? "bd" : "fg" : "background-color" === p || "background-image" === p ? "bg" : "color" === p || "fill" === p || "stroke" === p || "caret-color" === p || "text-decoration-color" === p || "-webkit-text-fill-color" === p ? "fg" : /^border-.*-color$|^outline-color$|^column-rule-color$/.test(p) ? "bd" : null;
     }
@@ -1003,19 +1006,21 @@ if ("shop.miles-and-more.com" === location.hostname) {
         if (!st) continue;
         const sel = r.selectorText || "";
         if (-1 !== sel.indexOf("mm-dark")) continue;
+        const picture = PICTURE_SEL_RE.test(sel);
         const layer = sheetLayer || LAYER_SEL_RE.test(sel) || /^(absolute|fixed)$/.test(st.getPropertyValue("position")) && "" !== st.getPropertyValue("z-index");
+        const disabled = /disabled/i.test(sel.replace(/:not\([^)]*\)/g, ""));
         const op = parseFloat(st.getPropertyValue("opacity"));
         op >= .2 && op <= .6 && !/backdrop/i.test(sel) && setProp(st, "opacity", String(+(op + .4 * (1 - op)).toFixed(2)), out);
         for (let i = 0; i < st.length; i++) {
           const p = st[i];
           const kind = kindOf(p);
-          if (!kind) continue;
+          if (!kind || picture && ("fill" === p || "stroke" === p)) continue;
           const v = st.getPropertyValue(p);
           const custom = p.startsWith("--");
           if (!v || !custom && -1 !== v.indexOf("var(") || -1 !== v.indexOf("url(")) continue;
           COLOR_RE.lastIndex = 0;
           if (!COLOR_RE.test(v)) continue;
-          const nv = recolorValue(v, kind, layer || custom && VAR_LAYER_RE.test(p));
+          const nv = recolorValue(v, "fg" === kind && (disabled || custom && /disabled/i.test(p)) ? "fgDim" : kind, layer || custom && VAR_LAYER_RE.test(p));
           nv !== v && setProp(st, p, nv, out);
         }
       }
@@ -1062,6 +1067,26 @@ html.mmdm-switching *, html.mmdm-switching *::before, html.mmdm-switching *::aft
 html.mm-dark img.logo-img { filter: brightness(0) invert(.9); }
 html.mm-dark :is(.mat-mdc-select-panel, .mat-mdc-autocomplete-panel, .mat-mdc-menu-panel, .mat-mdc-dialog-surface,
     .mat-datepicker-content, .mdc-tooltip__surface) { background-color: var(--mm-dark-layer) !important; }
+html.mm-dark img.operating-airline-logo { background: #fff; border-radius: 3px; box-shadow: 0 0 0 1.5px #fff; }
+html.mm-dark .mdc-switch--unselected:enabled .mdc-switch__handle::after { background-color: ${hsl([ HUE, .12, .82 ], 1)} !important; }
+html.mm-dark .mdc-switch--unselected:enabled .mdc-switch__track::before { background-color: ${hsl([ HUE, .12, .6 ], 1)} !important; }
+html.mm-dark .mat-mdc-unelevated-button:not(:disabled) { box-shadow: inset 0 0 0 1px ${hsl(MAP.bd(...toHsl(5, 22, 77)), 1)}; }
+html.mm-dark { --mm-dark-seat-taken: ${hsl([ HUE, .1, .21 ], 1)}; --mm-dark-seat-taken-line: ${hsl([ HUE, .1, .45 ], 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap :is(.mcd, .non-mcd), .mmdm-seatplan) > svg { background-color: ${hsl(BASE, 1)} !important; }
+html.mm-dark :is(lhg-fice-svg-seatmap :is(.mcd, .non-mcd), .mmdm-seatplan) > svg > g > rect { fill: ${hsl(BASE, 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is([class^="AirplaneFrame"] path, [class^="Wing"], [class^="Wing"] path, .Galley_Toilet_Bar rect[fill]) { fill: ${hsl(CARD, 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.Window, .Window path, .Windshield) { fill: ${hsl([ HUE, .1, .32 ], 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) .Storage { fill: ${hsl(MAP.bg(...toHsl(204, 204, 204)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) .SeatArea [fill]:not([fill="none"]) { fill: ${hsl(MAP.bg(...toHsl(245, 245, 245)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) .SeatArea [stroke]:not([stroke="none"]) { stroke: ${hsl(MAP.bd(...toHsl(180, 180, 180)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) [class^="RowNumbers"] path { fill: ${hsl(MAP.fg(...toHsl(102, 102, 102)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is([class^="PartitionWall"], [class^="Curtain"], .Galley_Toilet_Bar rect[stroke]) { stroke: ${hsl(MAP.bd(...toHsl(102, 102, 102)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.Galley_Toilet_Bar, .Bassinet) svg path { fill: ${hsl(MAP.fg(...toHsl(5, 22, 77)), 1)}; }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.Galley_Toilet_Bar, .Bassinet) image { filter: brightness(0) invert(.87); }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.blocked, .occupied, .mmdm-taken) :is([class^="Fill_"], [class^="Fill_"] > path, .SeatIcon rect) { fill: var(--mm-dark-seat-taken); }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.blocked, .occupied, .mmdm-taken) :is([class^="Outline_"]:not(.Outline_Bed), [class^="Outline_"] > path, .SeatIcon svg path) { fill: var(--mm-dark-seat-taken-line); }
+html.mm-dark :is(lhg-fice-svg-seatmap, .mmdm-seatplan) :is(.blocked, .occupied, .mmdm-taken) .Outline_Bed { fill: var(--mm-dark-seat-taken); stroke: var(--mm-dark-seat-taken-line); }
+html.mm-dark .legend-section .seat-button.unavailable { filter: invert(1) brightness(1.53); }
 .mmdm-opt { margin-right: 1rem; }
 .mmdm-btn { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0;
     border: 0; border-radius: 50%; background: transparent; color: #05164D; cursor: pointer; }
@@ -2188,7 +2213,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 109;
+    const VERSION = 112;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
@@ -4120,7 +4145,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.2/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -5299,7 +5324,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 61;
+    const VERSION = 74;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inheritedCal = window.__mmCal;
@@ -5607,10 +5632,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         d: x.destinationLocationCode,
         date: String(x.departureDateTime || "").slice(0, 10)
       }));
+      const kind = legs.length < 2 ? "oneway" : 2 === legs.length && legs[1].o === legs[0].d && legs[1].d === legs[0].o ? "return" : "multi";
+      const asked = its.findIndex(x => x && !0 === x.isRequestedBound);
       return {
-        kind: legs.length < 2 ? "oneway" : 2 === legs.length && legs[1].o === legs[0].d && legs[1].d === legs[0].o ? "return" : "multi",
+        kind: kind,
         legs: legs,
-        req: Math.max(0, its.findIndex(x => x && !0 === x.isRequestedBound)),
+        req: Math.max(0, asked),
+        flagged: asked >= 0,
         selectedBoundId: body && body.selectedBoundId || null
       };
     }
@@ -5628,6 +5656,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           state.route = null;
           state.noOffer = null;
           state.queue.length = 0;
+          state.gate && state.gate._wake.splice(0).forEach(r => r());
         }
         state.routeKey = routeKey;
         !function(routeKey) {
@@ -5841,6 +5870,15 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       resort.forEach(d => d.fares.sort((a, b) => (a.miles ?? 1 / 0) - (b.miles ?? 1 / 0)));
       state.days = [ ...byDate.values() ].sort((a, b) => a.date.localeCompare(b.date));
     }
+    function offersNoDay(json, reqBody) {
+      try {
+        if (!reqBody || !JSON.parse(reqBody).selectedBoundId) return !1;
+        const days = parse("string" == typeof json ? JSON.parse(json) : json).days;
+        return days.length > 0 && days.every(d => !d.available);
+      } catch (e) {
+        return !1;
+      }
+    }
     function noteConditioned(days, sel) {
       if (sel) {
         state.noOffer && state.noOffer.boundId === sel || (state.noOffer = {
@@ -6012,7 +6050,23 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           name: key || "ama-client-facts",
           value: JWT_NONE + b64url(JSON.stringify(sponsorFacts(facts))) + "."
         };
-      }
+      },
+      noteAppCall: function() {
+        const now = Date.now();
+        gate.starts = sharedStarts(now);
+        gate.starts.push(now);
+        gate.lastStart = now;
+        try {
+          localStorage.setItem(GATE_KEY, JSON.stringify(gate.starts.slice(-50)));
+        } catch (e) {}
+      },
+      appGate: async function() {
+        gate.starts = sharedStarts(Date.now());
+        const d = minuteWait(Date.now(), gate.limits.appCap);
+        d > 0 && await new Promise(r => setTimeout(r, d));
+      },
+      offersNoDay: offersNoDay,
+      gated: fn => gated(fn)
     };
     if (!window.__mmCalHooked) {
       window.__mmCalHooked = !0;
@@ -6097,6 +6151,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           }
           let res;
           try {
+            c.appGate && await c.appGate();
+          } catch (e) {}
+          try {
+            c.noteAppCall && c.noteAppCall();
+          } catch (e) {}
+          try {
             res = await baseFetch.apply(this, args);
           } catch (e) {
             try {
@@ -6130,8 +6190,17 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           try {
             text = await res.clone().text();
           } catch (e) {}
+          const sent = (args[1] || {}).body;
+          if (res.ok && null !== text && "string" == typeof url && "string" == typeof args[0] && "string" == typeof sent && c.offersNoDay && c.offersNoDay(text, sent)) try {
+            const again = await c.gated(() => baseFetch.apply(this, args));
+            const t2 = again.ok ? await again.clone().text() : null;
+            if (null !== t2 && !c.offersNoDay(t2, sent)) {
+              res = again;
+              text = t2;
+            }
+          } catch (e) {}
           if (null !== text) {
-            key && res.ok && c.rememberRaw(key, text);
+            !key || !res.ok || c.offersNoDay && c.offersNoDay(text, sent) || c.rememberRaw(key, text);
             try {
               h().ingest(JSON.parse(text), (args[1] || {}).body);
             } catch (e) {}
@@ -6233,6 +6302,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               h().ingest(JSON.parse(raw), sentBody);
             } catch (e) {}
           });
+          try {
+            h().noteAppCall && h().noteAppCall();
+          } catch (e) {}
         } else try {
           const c = h();
           c.noteSearch && c.noteSearch(this.__mmCalUrl, body);
@@ -6240,11 +6312,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return XS.call(this, body);
       };
     }
+    const LIMIT = 23;
     const gate = {
       limits: {
         maxInFlight: 2,
-        minGapMs: 400,
-        perWindow: 20,
+        minGapMs: 300,
+        perWindow: LIMIT - 1,
+        appCap: LIMIT,
         windowMs: 6e4
       },
       inFlight: 0,
@@ -6254,11 +6328,70 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       _wake: []
     };
     state.gate = gate;
+    const GATE_KEY = "mm_cal_gate";
+    function sharedStarts(now) {
+      let stored = [];
+      try {
+        stored = JSON.parse(localStorage.getItem(GATE_KEY) || "[]");
+      } catch (e) {}
+      return [ ...new Set((Array.isArray(stored) ? stored : []).concat(gate.starts)) ].filter(t => "number" == typeof t && t <= now && now - t < 2 * gate.limits.windowMs).sort((a, b) => a - b);
+    }
+    function minuteCount(t) {
+      const W = gate.limits.windowMs, m = t - t % W;
+      let prev = 0, curr = 0;
+      for (const s of gate.starts) s >= m ? curr++ : s >= m - W && prev++;
+      return prev * (1 - (t - m) / W) + curr;
+    }
+    function minuteWait(now, cap) {
+      const W = gate.limits.windowMs;
+      for (let d = 0; d < 2 * W; d += 250) if (minuteCount(now + d) + 1 <= cap) return d;
+      return 2 * W;
+    }
     function gateDelay() {
       const now = Date.now();
       const L = gate.limits;
-      gate.starts = gate.starts.filter(t => now - t < L.windowMs);
-      return gate.inFlight >= L.maxInFlight ? -1 : Math.max(0, gate.lastStart ? gate.lastStart + L.minGapMs - now : 0, gate.starts.length >= L.perWindow ? gate.starts[0] + L.windowMs - now : 0);
+      gate.starts = sharedStarts(now);
+      if (gate.inFlight >= L.maxInFlight) return -1;
+      const last = Math.max(gate.lastStart, gate.starts.length ? gate.starts[gate.starts.length - 1] : 0);
+      const gap = last ? last + L.minGapMs - now : 0;
+      const budget = minuteWait(now, L.perWindow);
+      gate.throttled = budget > 0;
+      return Math.max(0, gap, budget);
+    }
+    async function gated(fn, cancelled) {
+      gate.waiting++;
+      try {
+        for (;;) {
+          if (cancelled && cancelled()) throw Object.assign(new Error("stale"), {
+            name: "SkipError",
+            stale: !0
+          });
+          const d = gateDelay();
+          if (0 === d) break;
+          d > 500 && emit();
+          await new Promise(r => {
+            const t = d > 0 ? setTimeout(r, d) : null;
+            gate._wake.push(() => {
+              clearTimeout(t);
+              r();
+            });
+          });
+        }
+      } finally {
+        gate.waiting--;
+      }
+      gate.inFlight++;
+      gate.lastStart = Date.now();
+      gate.starts.push(gate.lastStart);
+      try {
+        localStorage.setItem(GATE_KEY, JSON.stringify(gate.starts.slice(-50)));
+      } catch (e) {}
+      try {
+        return await fn();
+      } finally {
+        gate.inFlight--;
+        gate._wake.splice(0).forEach(r => r());
+      }
     }
     const TOK_KEY = "gateway-auth-tokens";
     function storedBearer() {
@@ -6285,27 +6418,53 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       var o;
     };
     const offline = () => "undefined" != typeof navigator && !1 === navigator.onLine;
+    const CAL_BLOCK_KEY = "mm_cal_block";
+    function loadBlock() {
+      let b = null;
+      try {
+        b = JSON.parse(localStorage.getItem(CAL_BLOCK_KEY) || "null");
+      } catch (e) {}
+      if (b && b.since > 0 && !(Date.now() - b.since > 3 * BLOCK_WINDOW_MS)) {
+        (!state.blockedSince || b.since < state.blockedSince) && (state.blockedSince = b.since);
+        b.until > state.blockedUntil && (state.blockedUntil = b.until);
+      }
+    }
     function noteRefusal(detail, retryAfterS) {
       const now = Date.now();
       state.blockedSince || (state.blockedSince = now);
       state.blockedUntil = now + (retryAfterS > 0 ? 1e3 * retryAfterS + 500 : PROBE_GAP_MS);
-      state.error = function() {
-        const since = state.blockedSince || Date.now();
-        return T("Kalender-Abfrage abgewiesen: HTTP 429, zu viele Anfragen (der Browser meldet nur „Failed to fetch“). " + "Sperre etwa 10 Minuten, seit {since}, voraussichtlich bis {until}.", {
-          since: hhmm(since),
-          until: hhmm(since + BLOCK_WINDOW_MS)
-        });
-      }();
+      try {
+        localStorage.setItem(CAL_BLOCK_KEY, JSON.stringify({
+          since: state.blockedSince,
+          until: state.blockedUntil
+        }));
+      } catch (e) {}
+      state.error = refusalText();
       emit();
     }
     function clearBlock() {
+      try {
+        localStorage.removeItem(CAL_BLOCK_KEY);
+      } catch (e) {}
       if (state.blockedSince || state.blockedUntil) {
         state.blockedSince = 0;
         state.blockedUntil = 0;
         state.error && /HTTP 429/.test(state.error) && (state.error = null);
       }
     }
-    state.blocked = () => Date.now() < state.blockedUntil;
+    function refusalText() {
+      const since = state.blockedSince || Date.now();
+      return T("Kalender-Abfrage abgewiesen: HTTP 429, zu viele Anfragen (der Browser meldet nur „Failed to fetch“). " + "Sperre etwa 10 Minuten, seit {since}, voraussichtlich bis {until}.", {
+        since: hhmm(since),
+        until: hhmm(since + BLOCK_WINDOW_MS)
+      });
+    }
+    state.blocked = () => {
+      loadBlock();
+      return Date.now() < state.blockedUntil;
+    };
+    loadBlock();
+    state.blockedSince && (state.error = refusalText());
     state.setBoundsCabinOnce = setBoundsCabinOnce;
     state.boundsCabinArmed = () => !!boundsCabinOnce;
     state.noteRefusal = noteRefusal;
@@ -6316,6 +6475,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     state.loadMonth = async function(year, month, opts = {}) {
       const key = monthKey(year, month);
       if (null === firstLoadableDay(year, month)) return "cached";
+      try {
+        if (state.template && state.routeKey && routeKeyOf(JSON.parse(state.template.body)) !== state.routeKey) return "stale";
+      } catch (e) {}
       const allPools = (void 0 !== opts.allPools ? opts.allPools : state.allCabins) && !conditioned();
       const named = opts.pools && !conditioned() && state.poolsLacking(year, month, opts.pools);
       const pools = named || (allPools ? poolsMissing(key) : [ null ]);
@@ -6370,6 +6532,20 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           c < today && (c = today);
           centres.push(c);
         }
+        const asked = legDay(ri);
+        asked && centres.sort((a, b) => Math.abs(a - asked) - Math.abs(b - asked));
+        if (conditioned()) {
+          const have = new Set(state.days.map(d => d.date));
+          const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+          const covered = c => {
+            for (let k = -flex; k <= flex; k++) {
+              const dt = new Date(c.getFullYear(), c.getMonth(), c.getDate() + k);
+              if (!(!inMonth(dt) || dt.getDate() < first || dt.getDate() > last || dt < today || have.has(iso(dt)))) return !1;
+            }
+            return !0;
+          };
+          for (let i = centres.length - 1; i >= 0; i--) covered(centres[i]) && centres.splice(i, 1);
+        }
         if (!centres.length) {
           state.loadedMonths.add(key);
           pools.forEach(p => {
@@ -6395,7 +6571,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           };
           const poolBody = JSON.parse(state.template.body);
           const poolIt = requestedItin(poolBody);
-          if (pool) {
+          pool && function(headers, body, pool) {
+            delete body.selectedBoundId;
             Object.keys(headers).forEach(k => {
               "ama-client-facts" === k.toLowerCase() && delete headers[k];
             });
@@ -6404,8 +6581,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               cabin: pool,
               isCompanion: "true"
             }))) + ".";
-            delete poolBody.selectedBoundId;
-          }
+          }(headers, poolBody, pool);
           let okCount = 0, lastStatus = null, lastFailed = null, refused = !1, retryAfter = 0;
           let renewed = !1;
           const send = async renew => {
@@ -6422,43 +6598,20 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               h[Object.keys(h).find(x => "authorization" === x.toLowerCase()) || "authorization"] = "Bearer " + token;
               return h;
             }(headers, renew);
-            return async function() {
-              gate.waiting++;
-              try {
-                for (;;) {
-                  const d = gateDelay();
-                  if (0 === d) break;
-                  d > 500 && emit();
-                  await new Promise(r => {
-                    d > 0 ? setTimeout(r, d) : gate._wake.push(r);
-                  });
-                }
-              } finally {
-                gate.waiting--;
-              }
-              gate.inFlight++;
-              gate.lastStart = Date.now();
-              gate.starts.push(gate.lastStart);
-              try {
-                return await (refusedNow ? Promise.reject(Object.assign(new Error(T("nicht gesendet (Sperre)")), {
-                  name: "SkipError"
-                })) : originalFetch(state.template.url, {
-                  method: state.template.method,
-                  headers: h,
-                  body: JSON.stringify(poolBody),
-                  credentials: "include"
-                }).then(res => {
-                  429 === res.status && (refusedNow = !0);
-                  return res;
-                }, e => {
-                  offline() || e && "AbortError" === e.name || (refusedNow = !0);
-                  throw e;
-                }));
-              } finally {
-                gate.inFlight--;
-                gate._wake.splice(0).forEach(r => r());
-              }
-            }();
+            return gated(() => refusedNow ? Promise.reject(Object.assign(new Error(T("nicht gesendet (Sperre)")), {
+              name: "SkipError"
+            })) : originalFetch(state.template.url, {
+              method: state.template.method,
+              headers: h,
+              body: JSON.stringify(poolBody),
+              credentials: "include"
+            }).then(res => {
+              429 === res.status && (refusedNow = !0);
+              return res;
+            }, e => {
+              offline() || e && "AbortError" === e.name || (refusedNow = !0);
+              throw e;
+            }), () => state.routeKey !== routeAtStart);
           };
           for (const c of centres) {
             poolIt.departureDateTime = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, "0")}-` + `${String(c.getDate()).padStart(2, "0")}T00:00:00.000`;
@@ -6485,7 +6638,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
                 }
                 continue;
               }
-              const json = await res.json();
+              let json = await res.json();
+              if (offersNoDay(json, JSON.stringify(poolBody))) try {
+                const again = await send(!1);
+                const j2 = again.ok ? await again.json() : null;
+                j2 && !offersNoDay(j2, JSON.stringify(poolBody)) && (json = j2);
+              } catch (e) {}
               if (state.routeKey !== routeAtStart) return {
                 stale: !0
               };
@@ -6500,6 +6658,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               okCount++;
               emit();
             } catch (e) {
+              if (e && e.stale) return {
+                stale: !0
+              };
               lastFailed = e && e.message || T("Netzwerkfehler");
               if (!(offline() || e && "AbortError" === e.name)) {
                 refused = !0;
@@ -6518,10 +6679,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
             pool: pool,
             refused: refused
           };
-          pool && state.poolsLoaded.add(poolKey(key, pool));
+          pool && !refused && state.poolsLoaded.add(poolKey(key, pool));
           return {
             ok: !0,
-            pool: pool
+            pool: pool,
+            refused: refused,
+            retryAfter: retryAfter
           };
         };
         let results;
@@ -6599,11 +6762,11 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     };
     state.hasMonth = (year, month) => state.loadedMonths.has(monthKey(year, month)) || isMonthComplete(year, month);
     state.poolsPendingFor = (year, month) => state.allCabins ? poolsMissing(monthKey(year, month)) : null;
-    state.hasAllPools = (year, month) => null === firstLoadableDay(year, month) || 0 === poolsMissing(monthKey(year, month)).length;
+    state.hasAllPools = (year, month) => null === firstLoadableDay(year, month) || (conditioned() ? state.hasMonth(year, month) : 0 === poolsMissing(monthKey(year, month)).length);
   })();
   (() => {
     "use strict";
-    const VERSION = 24;
+    const VERSION = 32;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inherited = window.__mmBBD;
@@ -7358,7 +7521,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 168;
+    const VERSION = 180;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -7567,6 +7730,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     })();
     function activeBoundIdx() {
       try {
+        const j = window.__mmCal && window.__mmCal.journey;
+        if (j && j.flagged && j.legs && j.legs.length > 1) return j.req;
+      } catch (e) {}
+      try {
         const bd = window.__mmBounds;
         const first = bd && bd.bounds && Array.isArray(bd.current) && bd.current.length ? bd.bounds.get(bd.current[0]) : null;
         const its = searchEntity().itineraries || [];
@@ -7656,6 +7823,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       d.setDate(d.getDate() - 7 + Math.max(state.dayOffset, minOffset()));
       return d;
     }
+    function searchFaresOn(cal, dateStr) {
+      return cal && cal.searchFares ? cal.searchFares(cal.faresRoute ? cal.faresRoute() : cal.searchRoute ? cal.searchRoute() : calRoute(cal), dateStr) : null;
+    }
     function cellsFor(days, dateStr, bbdDay, searchDay) {
       const out = {};
       const cabKey = (c, fallback) => c && CABIN_META[c] ? c : fallback;
@@ -7680,7 +7850,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         if (!fare) continue;
         const cab = cabKey(fare.cabin, "eco");
         const prev = out[cab];
-        prev && !prev.blocked && prev.miles <= f.miles || (out[cab] = {
+        prev && "bbd" !== prev.src && prev.miles <= f.miles || (out[cab] = {
           fare: fare,
           miles: f.miles,
           taxes: f.taxes,
@@ -7688,14 +7858,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           src: "cal"
         });
       }
-      const cal = window.__mmCal;
-      const s = void 0 !== searchDay ? searchDay : cal && cal.searchFares ? cal.searchFares(cal.faresRoute ? cal.faresRoute() : cal.searchRoute ? cal.searchRoute() : calRoute(cal), dateStr) : null;
+      const s = void 0 !== searchDay ? searchDay : searchFaresOn(window.__mmCal, dateStr);
       if (s) for (const cab of Object.keys(s)) {
         const x = s[cab];
         const fare = describeFare(x.code, cab);
         if (!fare) continue;
         const k = cabKey(cab, cabKey(fare.cabin, "eco"));
-        out[k] && !out[k].blocked && out[k].miles < x.miles || (out[k] = {
+        out[k] && "bbd" !== out[k].src && out[k].miles < x.miles || (out[k] = {
           fare: fare,
           miles: x.miles,
           taxes: x.taxes,
@@ -7827,7 +7996,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           m: d.getMonth()
         });
       } catch (e) {}
-      const key = (cal.route || "") + "|" + d.getFullYear() + "-" + d.getMonth();
+      const key = autoKey(cal, d.getFullYear() + "-" + d.getMonth());
       const queued = !(!cal.isQueued || !cal.isQueued(d.getFullYear(), d.getMonth()));
       const busy = cal.loading === mk || autoPending.has(key) || queued;
       if (done) return null;
@@ -7887,7 +8056,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const isBest = null != best && x.miles === best && !w.off && !x.blocked;
       const tipText = v.longDate(w.d) + "\n" + meta.full + " " + (x.fare.tier || "") + "\n" + T("{miles} Meilen", {
         miles: fmtMiles(x.miles)
-      }) + tipTax + (isBest ? "\n" + T("Günstigster Tag im Ausschnitt") : "") + (x.blocked ? "\n" + T("Mit gewähltem Hinflug nicht buchbar.") + function(code, cab) {
+      }) + tipTax + (isBest ? "\n" + T("Günstigster Tag im Ausschnitt") : "") + (x.blocked ? "\n" + T("Günstigster Tarif, passt nicht zum gewählten Hinflug. Passende Tarife könnten verfügbar sein.") + function(code, cab) {
         const F = window.__mmFareNames;
         const g = F && F.pairGroup ? F.pairGroup(code) : null;
         return "light" === g ? "\n" + T("Buchbar mit {fare} im Hinflug.", {
@@ -7951,11 +8120,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         for (let i = 0; i < SPAN; i++) {
           const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
           const dateStr = iso(d);
+          const live = searchFaresOn(cal, dateStr);
           win.push({
             d: d,
             dateStr: dateStr,
             cells: cellsFor(days, dateStr),
-            dead: !(!deadDays || !deadDays.has(dateStr)),
+            dead: !(!deadDays || !deadDays.has(dateStr) || live && Object.keys(live).length),
             off: d < range.min || !!range.max && d > range.max
           });
         }
@@ -8039,7 +8209,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }(v);
       const s = function(cal, v) {
         const anchor = anchorMonth();
-        const anchorDone = anchor.length > 0 && anchor.every(m => monthDone(cal, m) || autoTried.has(cal.route + "|" + m.k));
+        const anchorDone = anchor.length > 0 && anchor.every(m => monthDone(cal, m) || autoTried.has(autoKey(cal, m.k)));
         const searching = !cal.loading && cal.searchingSince && !anchorDone && Date.now() - cal.searchingSince < 45e3;
         if (state._searchTimer) {
           clearTimeout(state._searchTimer);
@@ -8059,7 +8229,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           return m ? cap(monthYearFmt().format(new Date(Number(m[1]), Number(m[2]) - 1, 1))) : "";
         })();
         const g = cal.gate;
-        const throttled = !!(g && g.waiting > 0 && g.limits && g.starts && g.starts.length >= g.limits.perWindow);
+        const throttled = !!(g && g.waiting > 0 && (void 0 !== g.throttled ? g.throttled : g.limits && g.starts && g.starts.length >= g.limits.perWindow));
         return {
           blocked: blocked,
           isLoading: isLoading,
@@ -8138,7 +8308,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return html;
       }(cal, v, s);
       const legend = function(v, r) {
-        return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", r.anyBlocked ? '<span><i class="mmcal-lgblk"></i>' + T("nicht mit gewähltem Hinflug buchbar") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
+        return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", r.anyBlocked ? "<span>* " + T("günstigster Tarif, passt nicht zum gewählten Hinflug") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
       }(v, rows);
       const wantAll = !!cal.allCabins;
       paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button>" + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
@@ -8232,6 +8402,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       });
     }
     const autoTried = new Set;
+    function autoKey(cal, monthKey) {
+      return (cal.routeKey || cal.route || "") + "|" + monthKey;
+    }
     const autoPending = new Set;
     const autoFails = new Map;
     const MAX_AUTO_FAILS = 3;
@@ -8252,11 +8425,11 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       let staleSeen = !1;
       try {
         for (const m of anchorMonth()) {
-          const k = cal.route + "|" + m.k;
+          const k = autoKey(cal, m.k);
           autoTried.has(k) || monthDone(cal, m) || autoPending.add(k);
         }
         for (const m of anchorMonth()) {
-          const key = cal.route + "|" + m.k;
+          const key = autoKey(cal, m.k);
           if (autoTried.has(key) || monthDone(cal, m)) continue;
           state.root && render();
           let r;
@@ -8700,11 +8873,7 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-miles { font-size: 14px; font-weight: 700; line-height: 1.1; color: ${INK_primary}; }
 .mmcal-tax { font-size: 11px; color: ${INK_secondary}; line-height: 1.2; }
 .mmcal-c.is-dear { background: color-mix(in oklab, var(--mc) 84%, #000); }
-.mmcal-c.is-blocked { opacity: .5;
-    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.16) 0 3px, transparent 3px 7px); }
-.mmcal-lgblk { display: inline-block; width: 14px; height: 10px; margin-right: 5px; vertical-align: -1px;
-               border-radius: 2px; opacity: .5; background-color: ${INK_secondary};
-               background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.4) 0 2px, transparent 2px 5px); }
+.mmcal-c.is-blocked .mmcal-miles::after { content: '*'; }
 .mmcal-rl.is-thin { font-weight: 400; color: ${INK_muted}; }
 .mmcal-c.is-thin { min-height: 18px; padding: 0 2px; }
 .mmcal-c.is-thin .mmcal-dash { font-size: 10px; line-height: 1; }
@@ -18631,7 +18800,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
