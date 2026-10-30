@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.4 — 2026-10-30
+
+### Geändert
+
+- **Kalender auf Inlands- und Kontinentalstrecken nur mit Economy und Business, mehr Business-Preise**
+
+### Behoben
+
+- **Kabinenwechsel per Klick im Kalender**
+
 ## 1.10.3 — 2026-10-30
 
 ### Geändert
