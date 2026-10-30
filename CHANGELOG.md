@@ -2,6 +2,16 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.4 — 2026-10-30
+
+### Changed
+
+- **Calendar on domestic and continental routes shows only Economy and Business, more Business prices**
+
+### Fixed
+
+- **Changing cabin by clicking in the calendar**
+
 ## 1.10.3 — 2026-10-30
 
 ### Changed

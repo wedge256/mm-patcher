@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.3
+// @version      1.10.4
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -276,7 +276,6 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Alle Kabinen": "All cabins",
         "Nächster Versuch in {time}.": "Next attempt in {time}.",
         "Am {date} gibt es zum gewählten Hinflug keinen Rückflug.": "On {date} there is no return flight for the chosen outbound flight.",
-        "Die Suchmaske der Seite hat die Suche nicht gestartet. Bitte noch einmal klicken.": "The page's search form did not start the search. Please click again.",
         "Die Seite hat den Tag nicht übernommen. Bitte noch einmal klicken.": "The page did not take the day. Please click again.",
         "Monatsübersicht Meilenpreise": "Monthly overview of mile prices",
         "{n} Nacht": {
@@ -727,7 +726,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.3/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.4/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -2213,7 +2212,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 112;
+    const VERSION = 113;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
@@ -2486,6 +2485,30 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         fab.classList[host ? "add" : "remove"]("is-docked");
         (host || document.body).appendChild(fab);
       }
+      queueFit();
+    }
+    let fullWidth = 0;
+    let fitQueued = !1;
+    function queueFit() {
+      if (fitQueued) return;
+      fitQueued = !0;
+      const run = () => {
+        fitQueued = !1;
+        !function() {
+          if (state.superseded || !fab || !fab.isConnected) return;
+          if (!fab.classList.contains("is-docked")) {
+            fab.classList.remove("is-compact");
+            return;
+          }
+          const room = document.documentElement.clientWidth;
+          const r = fab.getBoundingClientRect();
+          if (fab.classList.contains("is-compact")) r.left + fullWidth <= room && fab.classList.remove("is-compact"); else if (r.right > room) {
+            fullWidth = r.width;
+            fab.classList.add("is-compact");
+          }
+        }();
+      };
+      "function" == typeof requestAnimationFrame ? requestAnimationFrame(run) : setTimeout(run, 0);
     }
     function positionPanel() {
       if (!panel || !fab) return;
@@ -2510,6 +2533,9 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmset-fab .mmset-mark { width: 20px; height: 20px; margin-left: -4px; flex: 0 0 auto; }
 .mmset-fab.is-docked { position: static; z-index: auto; box-shadow: none;
                        align-self: center; margin-left: 16px; flex: 0 0 auto; }
+.mmset-fab.is-compact { padding: 4px 7px; }
+.mmset-fab.is-compact > span { display: none; }
+.mmset-fab.is-compact .mmset-mark { margin-left: 0; }
 .mmset-panel { position: fixed; z-index: 2147483001;
                width: ${PANEL_W}px; background: #fff; border: 1px solid ${INK_hairline}; border-radius: 10px;
                box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 10px 14px; line-height: 1.35; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -2753,6 +2779,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         childList: !0,
         subtree: !0
       });
+      window.addEventListener("resize", queueFit);
     }
     const isAuto = v => "auto" === v;
     function originCountry() {
@@ -4145,7 +4172,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.3/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.4/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -5324,7 +5351,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 74;
+    const VERSION = 78;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inheritedCal = window.__mmCal;
@@ -5692,6 +5719,24 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }
     }
     const POOLS = [ "ECONOMY", "PREMIUMECO", "BUSINESS", "FIRST" ];
+    const CONTINENTAL = new Set(("AL DE AD AT BY BE BA BG CY DK DZ ES EE FI FO FR GE GI GR HU IE IS IT LV LI LT LU MK MT " + "MD MC ME NO NL PL PT CZ RO GB RU SM RS SK SI SE CH TR UA VA MA TN LY HR AM XK").split(" "));
+    function countryOf(code) {
+      try {
+        const c = window.__mmIata && window.__mmIata.isoOf && window.__mmIata.isoOf(code);
+        if (c) return c;
+      } catch (e) {}
+      try {
+        const loc = (window.__mmBounds && window.__mmBounds.dictionaries || {}).location || {};
+        return loc[code] && loc[code].countryCode || null;
+      } catch (e) {
+        return null;
+      }
+    }
+    state.shortHaul = () => {
+      const [o, d] = state.baseRoute().split("-");
+      const a = countryOf(o), b = countryOf(d);
+      return !!a && !!b && (a === b || CONTINENTAL.has(a) && CONTINENTAL.has(b));
+    };
     const poolKey = (month, pool) => month + "|" + pool;
     const conditioned = () => {
       try {
@@ -5702,23 +5747,19 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     };
     const poolsMissing = month => conditioned() ? [] : POOLS.filter(p => !state.poolsLoaded.has(poolKey(month, p)));
     const poolsHave = month => POOLS.filter(p => state.poolsLoaded.has(poolKey(month, p)));
-    const b64url = s => btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const JWT_NONE = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.";
-    const sponsorFacts = facts => {
+    function templatePool() {
       try {
-        const s = window.__mmSponsor;
-        if (s && "function" == typeof s.applyFacts) return s.applyFacts(facts);
-      } catch (e) {}
-      return facts;
-    };
-    const b64urlDecode = t => {
-      let x = String(t).replace(/-/g, "+").replace(/_/g, "/");
-      for (;x.length % 4; ) x += "=";
-      return atob(x);
-    };
-    let boundsCabinOnce = null;
-    function setBoundsCabinOnce(apiCabin) {
-      boundsCabinOnce = apiCabin || null;
+        const h = state.template.headers;
+        const k = Object.keys(h).find(x => "ama-client-facts" === x.toLowerCase());
+        return JSON.parse((t => {
+          let x = String(t).replace(/-/g, "+").replace(/_/g, "/");
+          for (;x.length % 4; ) x += "=";
+          return atob(x);
+        })(String(h[k]).split(".")[1])).cabin || null;
+      } catch (e) {
+        return null;
+      }
     }
     const RAW_MAX = 24;
     const RAW_TTL_MS = CACHE_TTL_MS;
@@ -6028,29 +6069,6 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       },
       noteRefusal: noteRefusal,
       clearBlock: clearBlock,
-      setBoundsCabinOnce: setBoundsCabinOnce,
-      cabinizeBounds: function(url, headers) {
-        if (!boundsCabinOnce || !BOUNDS_RE.test(String(url || ""))) return null;
-        const cabin = boundsCabinOnce;
-        boundsCabinOnce = null;
-        let facts = {
-          sub: "fact",
-          cabin: cabin,
-          isCompanion: "true"
-        };
-        const key = Object.keys(headers || {}).find(k => "ama-client-facts" === k.toLowerCase());
-        if (key) try {
-          const cur = JSON.parse(b64urlDecode(String(headers[key]).split(".")[1]));
-          cur && "object" == typeof cur && (facts = {
-            ...cur,
-            cabin: cabin
-          });
-        } catch (e) {}
-        return {
-          name: key || "ama-client-facts",
-          value: JWT_NONE + b64url(JSON.stringify(sponsorFacts(facts))) + "."
-        };
-      },
       noteAppCall: function() {
         const now = Date.now();
         gate.starts = sharedStarts(now);
@@ -6095,25 +6113,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       window.fetch = async function(...args) {
         let url = "string" == typeof args[0] ? args[0] : args[0] && args[0].url || "";
         const isCal = CAL_RE.test(url);
-        if (!isCal) {
-          try {
-            const c = h();
-            c.noteSearch && c.noteSearch(url, (args[1] || {}).body);
-          } catch (e) {}
-          try {
-            const c = h();
-            if (c.cabinizeBounds) {
-              const init = args[1] || {};
-              const hdrs = c.headersToObject(init.headers);
-              const fix = c.cabinizeBounds(url, hdrs);
-              if (fix) {
-                hdrs[fix.name] = fix.value;
-                init.headers = hdrs;
-                args[1] = init;
-              }
-            }
-          } catch (e) {}
-        }
+        if (!isCal) try {
+          const c = h();
+          c.noteSearch && c.noteSearch(url, (args[1] || {}).body);
+        } catch (e) {}
         if (isCal) try {
           const init = args[1] || {};
           if ("string" == typeof init.body) {
@@ -6228,13 +6231,6 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return XO.call(this, method, url, ...rest);
       };
       XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
-        if ("ama-client-facts" === String(name).toLowerCase()) try {
-          const c = h();
-          const fix = c.cabinizeBounds && c.cabinizeBounds(this.__mmCalUrl, {
-            [name]: value
-          });
-          fix && (value = fix.value);
-        } catch (e) {}
         this.__mmCalHeaders && (this.__mmCalHeaders[name] = value);
         return XH.call(this, name, value);
       };
@@ -6465,8 +6461,6 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     };
     loadBlock();
     state.blockedSince && (state.error = refusalText());
-    state.setBoundsCabinOnce = setBoundsCabinOnce;
-    state.boundsCabinArmed = () => !!boundsCabinOnce;
     state.noteRefusal = noteRefusal;
     state.clearBlock = clearBlock;
     state.queue = [];
@@ -6479,7 +6473,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         if (state.template && state.routeKey && routeKeyOf(JSON.parse(state.template.body)) !== state.routeKey) return "stale";
       } catch (e) {}
       const allPools = (void 0 !== opts.allPools ? opts.allPools : state.allCabins) && !conditioned();
-      const named = opts.pools && !conditioned() && state.poolsLacking(year, month, opts.pools);
+      const asked = opts.pools || (!allPools && state.ownPools().length ? state.ownPools() : null);
+      const named = asked && !conditioned() && state.poolsLacking(year, month, asked);
       const pools = named || (allPools ? poolsMissing(key) : [ null ]);
       if (!named && !allPools && state.hasMonth(year, month)) return "cached";
       if (!pools.length) return "cached";
@@ -6576,11 +6571,18 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
             Object.keys(headers).forEach(k => {
               "ama-client-facts" === k.toLowerCase() && delete headers[k];
             });
-            headers["ama-client-facts"] = JWT_NONE + b64url(JSON.stringify(sponsorFacts({
+            headers["ama-client-facts"] = JWT_NONE + (s = JSON.stringify((facts => {
+              try {
+                const s = window.__mmSponsor;
+                if (s && "function" == typeof s.applyFacts) return s.applyFacts(facts);
+              } catch (e) {}
+              return facts;
+            })({
               sub: "fact",
               cabin: pool,
               isCompanion: "true"
-            }))) + ".";
+            })), btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) + ".";
+            var s;
           }(headers, poolBody, pool);
           let okCount = 0, lastStatus = null, lastFailed = null, refused = !1, retryAfter = 0;
           let renewed = !1;
@@ -6747,17 +6749,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         }();
       }
     };
+    state.ownPools = () => !conditioned() && "BUSINESS" === templatePool() && state.shortHaul() ? [ "FIRST" ] : [];
     state.poolsLacking = (year, month, pools) => {
       if (null === firstLoadableDay(year, month)) return [];
-      const key = monthKey(year, month), own = function() {
-        try {
-          const h = state.template.headers;
-          const k = Object.keys(h).find(x => "ama-client-facts" === x.toLowerCase());
-          return JSON.parse(b64urlDecode(String(h[k]).split(".")[1])).cabin || null;
-        } catch (e) {
-          return null;
-        }
-      }();
+      const key = monthKey(year, month), own = templatePool();
       return pools.filter(p => !(state.poolsLoaded.has(poolKey(key, p)) || p === own && state.hasMonth(year, month)));
     };
     state.hasMonth = (year, month) => state.loadedMonths.has(monthKey(year, month)) || isMonthComplete(year, month);
@@ -7521,7 +7516,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 187;
+    const VERSION = 192;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -7982,6 +7977,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }(!state.folded) : b.dataset.nav ? page(Number(b.dataset.nav)) : selectDate(b.dataset.date, b.dataset.cabin);
     }
     const ORDER = [ "eco", "ecoPremium", "business", "first" ];
+    const shownCabins = cal => cal.shortHaul && cal.shortHaul() ? [ "eco", "business" ] : ORDER;
     function monthLoadState(v, i, cols) {
       const cal = v.cal;
       const d = v.win[i].d;
@@ -8150,6 +8146,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           cal: cal,
           win: win,
           searchDate: searchDate,
+          cabins: shownCabins(cal),
           frameDate: state.selectedDate || searchDate,
           atStart: iso(start) === iso(range.min),
           atEnd: win[SPAN - 1].off,
@@ -8173,7 +8170,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         let html = "";
         let anyBest = !1, anyNone = !1, anyBlocked = !1;
         const cabinsPresent = new Set;
-        for (const cab of ORDER) {
+        for (const cab of v.cabins) {
           const meta = CABIN_META[cab];
           const rlWait = v.win.some(w => v.waiting(w.dateStr, cab));
           const thin = !rlWait && !v.win.some(w => w.cells[cab]);
@@ -8238,7 +8235,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         };
       }(cal, v);
       const selIdx = v.win.findIndex(w => w.dateStr === v.searchDate);
-      const selframe = selIdx < 0 ? "" : '<div class="mmcal-selframe" style="grid-column:' + (selIdx + 2) + " / " + (selIdx + 3) + ";grid-row:1 / " + (2 + ORDER.length) + '"></div>';
+      const selframe = selIdx < 0 ? "" : '<div class="mmcal-selframe" style="grid-column:' + (selIdx + 2) + " / " + (selIdx + 3) + ";grid-row:1 / " + (2 + v.cabins.length) + '"></div>';
       const body = '<div class="mmcal-scroll"><div class="mmcal-grid" style="grid-template-columns:92px repeat(' + SPAN + ', minmax(52px, 1fr))">' + function(v) {
         const DOW = window.__mmI18n ? window.__mmI18n.days() : [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" ];
         const todayStr = iso(startOfToday());
@@ -8371,7 +8368,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       } ];
     }
     function monthDone(cal, m) {
-      return cal.allCabins && "function" == typeof cal.hasAllPools ? cal.hasAllPools(m.y, m.m) : cal.hasMonth(m.y, m.m);
+      return cal.allCabins && "function" == typeof cal.hasAllPools ? cal.hasAllPools(m.y, m.m) : cal.hasMonth(m.y, m.m) && !(cal.ownPools && cal.poolsLacking(m.y, m.m, cal.ownPools()).length);
     }
     async function ensureMonthLoaded(opts = {}) {
       const cal = window.__mmCal;
@@ -8511,35 +8508,23 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       });
       return dead;
     }
-    function setCabinForNextSearch(api) {
-      try {
-        const c = window.__mmCal;
-        c && c.setBoundsCabinOnce && c.setBoundsCabinOnce(api);
-      } catch (e) {}
-    }
-    const cabinArmed = () => {
-      try {
-        const c = window.__mmCal;
-        return !!(c && c.boundsCabinArmed && c.boundsCabinArmed());
-      } catch (e) {
-        return !1;
-      }
-    };
-    function setPanelCabin(apiCabin) {
-      let f = null;
-      try {
-        f = window.__mmsuHooks && window.__mmsuHooks.form && window.__mmsuHooks.form();
-      } catch (e) {}
-      const c = f && f.comp.modifySearchForm && f.comp.modifySearchForm.controls.cabin;
-      if (!c || !(f.comp.cabinCffList || []).some(o => o && o.cabinCode === apiCabin)) return !1;
-      if (c.value === apiCabin) return "same";
-      f.zone.run(() => {
-        c.setValue(apiCabin);
-        c.markAsDirty();
-      });
-      return c.value === apiCabin;
-    }
     const DATE_ACTION = "[AirBoundsSearch] update selected bound dates";
+    const UPDATE_ACTION = "[AirBoundsSearch] update entities";
+    function appStore() {
+      try {
+        for (const t of window.getAllAngularTestabilities()) {
+          const recs = t && t._destroyRef && t._destroyRef.records;
+          if (!recs || "function" != typeof recs.forEach) continue;
+          let hit = null;
+          recs.forEach(r => {
+            const v = r && r.value;
+            !hit && v && "function" == typeof v.dispatch && "function" == typeof v.addReducer && "function" == typeof v.subscribe && (hit = v);
+          });
+          if (hit) return hit;
+        }
+      } catch (e) {}
+      return null;
+    }
     function storeSearch(store) {
       let st = null;
       try {
@@ -8552,6 +8537,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const abs = st && st.airBoundsSearch;
       return abs && abs.entities && abs.entities[abs.selectedAirBoundsSearchId] || null;
     }
+    const asksFor = (e, apiCabin, cff) => {
+      const f = e && e.commercialFareFamilies;
+      return Array.isArray(f) && 1 === f.length && f[0] === cff && (!e.cabin || e.cabin === apiCabin);
+    };
     function travellerCount() {
       try {
         return (searchEntity().travelers || []).length || 1;
@@ -8559,7 +8548,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return 1;
       }
     }
-    async function selectDate(dateStr, cabin) {
+    function selectDate(dateStr, cabin) {
       const boundIdx = activeBoundIdx();
       const returnStep = boundIdx > 0;
       const wantCabin = !returnStep && cabin && API_CABIN[cabin] ? API_CABIN[cabin] : null;
@@ -8568,157 +8557,77 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       state.dayOffset = 0;
       state.pickNotice = null;
       render();
-      let path = null;
-      let formFailed = !1;
-      try {
-        wantCabin && setCabinForNextSearch(wantCabin);
-        {
-          const via = currentSearchDate() === dateStr ? "same-day" : returnStep && stripNoOfferDates().has(dateStr) ? "unavailable" : function(dateStr, boundIdx) {
-            const store = function() {
-              try {
-                for (const t of window.getAllAngularTestabilities()) {
-                  const recs = t && t._destroyRef && t._destroyRef.records;
-                  if (!recs || "function" != typeof recs.forEach) continue;
-                  let hit = null;
-                  recs.forEach(r => {
-                    const v = r && r.value;
-                    !hit && v && "function" == typeof v.dispatch && "function" == typeof v.addReducer && "function" == typeof v.subscribe && (hit = v);
-                  });
-                  if (hit) return hit;
-                }
-              } catch (e) {}
-              return null;
-            }();
-            const its = store && (storeSearch(store) || {}).itineraries;
-            if (!(its && its[boundIdx] && its[0].departureDateTime instanceof Date)) return !1;
-            const DT = its[0].departureDateTime.constructor;
-            const d = parseISO(dateStr);
-            const dates = [];
-            dates[boundIdx] = new DT(d.getFullYear(), d.getMonth(), d.getDate());
-            1 === boundIdx && (dates[0] = new DT(its[0].departureDateTime));
-            try {
-              store.dispatch({
-                type: DATE_ACTION,
-                dates: dates
-              });
-            } catch (e) {
-              return !1;
-            }
-            const now = (storeSearch(store) || {}).itineraries;
-            const got = now && now[boundIdx] && now[boundIdx].departureDateTime;
-            return got instanceof Date && iso(got) === dateStr;
-          }(dateStr, boundIdx) ? "store" : null;
-          if ("store" === via) {
-            path = "store";
-            if (wantCabin) {
-              !function(apiCabin) {
-                try {
-                  const cff = cffFor(apiCabin);
-                  if (!cff) return;
-                  const o = JSON.parse(sessionStorage.getItem(SEARCH_KEY));
-                  const e = o.entities[o.selectedAirBoundsSearchId];
-                  if (!e) return;
-                  e.commercialFareFamilies = [ cff ];
-                  sessionStorage.setItem(SEARCH_KEY, JSON.stringify(o));
-                } catch (e) {}
-              }(wantCabin);
-              setPanelCabin(wantCabin);
-            }
-          } else if ("same-day" === via) {
-            if (returnStep) {
-              setCabinForNextSearch(null);
-              const cards = window.__mmCards;
-              cards && cards.showNoOffer && cards.showNoOffer(null);
-              clearNavigating();
-              render();
-              return;
-            }
-            const set = wantCabin ? setPanelCabin(wantCabin) : "same";
-            if ("same" === set) {
-              setCabinForNextSearch(null);
-              clearNavigating();
-              render();
-              return;
-            }
-            set && await async function() {
-              const btn = document.querySelector("button#modify-button");
-              if (!btn || btn.disabled) return !1;
-              let sent = null, off = null;
-              try {
-                const bd = window.__mmBounds;
-                if (bd && bd.onRequest) {
-                  let started;
-                  sent = new Promise(r => {
-                    started = r;
-                  });
-                  off = bd.onRequest(active => {
-                    active && started(!0);
-                  });
-                }
-              } catch (e) {}
-              const wasArmed = cabinArmed();
-              let timer = null;
-              try {
-                btn.click();
-                return !off && !wasArmed || !(!wasArmed || cabinArmed()) || (off ? await Promise.race([ sent, new Promise(r => {
-                  timer = setTimeout(() => r(null), 5e3);
-                }) ]) : await (fn = () => !cabinArmed(), ms = 5e3, new Promise(resolve => {
-                  const first = fn();
-                  if (first) {
-                    resolve(first);
-                    return;
-                  }
-                  let timer = null;
-                  const done = v => {
-                    clearTimeout(timer);
-                    obs.disconnect();
-                    resolve(v);
-                  };
-                  const obs = new MutationObserver(() => {
-                    const v = fn();
-                    v && done(v);
-                  });
-                  timer = setTimeout(() => done(fn() || null), ms);
-                  obs.observe(document, {
-                    subtree: !0,
-                    childList: !0,
-                    attributes: !0,
-                    characterData: !0
-                  });
-                })));
-              } finally {
-                clearTimeout(timer);
-                if (off) try {
-                  off();
-                } catch (e) {}
-              }
-              var fn, ms;
-            }() ? path = "formular" : formFailed = !0;
-          } else if ("unavailable" === via) {
-            clearNavigating();
-            state.selectedDate = dateStr;
-            const msg = T("Am {date} gibt es zum gewählten Hinflug keinen Rückflug.", {
-              date: dtf({
-                weekday: "short",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric"
-              }).format(parseISO(dateStr))
-            });
-            const cards = window.__mmCards;
-            cards && cards.showNoOffer && cards.showNoOffer(msg) || (state.pickNotice = msg);
-            setCabinForNextSearch(null);
-            render();
-            return;
-          }
-        }
-        path || setCabinForNextSearch(null);
-      } finally {
-        path || clearNavigating();
+      let cff = wantCabin ? cffFor(wantCabin) : null;
+      if (cff) {
+        const store = appStore();
+        asksFor(store && storeSearch(store), wantCabin, cff) && (cff = null);
       }
+      if (currentSearchDate() === dateStr && !cff) {
+        if (returnStep) {
+          const cards = window.__mmCards;
+          cards && cards.showNoOffer && cards.showNoOffer(null);
+        }
+        clearNavigating();
+        render();
+        return;
+      }
+      if (returnStep && stripNoOfferDates().has(dateStr)) {
+        clearNavigating();
+        const msg = T("Am {date} gibt es zum gewählten Hinflug keinen Rückflug.", {
+          date: dtf({
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          }).format(parseISO(dateStr))
+        });
+        const cards = window.__mmCards;
+        cards && cards.showNoOffer && cards.showNoOffer(msg) || (state.pickNotice = msg);
+        render();
+        return;
+      }
+      const path = function(dateStr, boundIdx, apiCabin, cff) {
+        const store = appStore();
+        const e = store && storeSearch(store);
+        const its = e && e.itineraries;
+        if (!(its && its[boundIdx] && its[0].departureDateTime instanceof Date)) return !1;
+        const DT = its[0].departureDateTime.constructor;
+        const d = parseISO(dateStr);
+        const day = new DT(d.getFullYear(), d.getMonth(), d.getDate());
+        try {
+          if (cff) {
+            const changes = {
+              id: e.id,
+              cabin: apiCabin,
+              commercialFareFamilies: [ cff ]
+            };
+            iso(its[boundIdx].departureDateTime) !== dateStr && (changes.itineraries = its.map((it, i) => i === boundIdx ? {
+              ...it,
+              departureDateTime: day
+            } : it));
+            store.dispatch({
+              type: UPDATE_ACTION,
+              entities: [ changes ]
+            });
+          } else {
+            const dates = [];
+            dates[boundIdx] = day;
+            1 === boundIdx && (dates[0] = new DT(its[0].departureDateTime));
+            store.dispatch({
+              type: DATE_ACTION,
+              dates: dates
+            });
+          }
+        } catch (err) {
+          return !1;
+        }
+        const now = storeSearch(store);
+        const got = now && now.itineraries && now.itineraries[boundIdx] && now.itineraries[boundIdx].departureDateTime;
+        return got instanceof Date && iso(got) === dateStr && (!cff || asksFor(now, apiCabin, cff));
+      }(dateStr, boundIdx, wantCabin, cff) ? "store" : null;
       state.lastPick = {
         date: dateStr,
-        path: path || null
+        path: path
       };
       if (path) {
         !function() {
@@ -8734,8 +8643,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         render();
       } else {
         clearNavigating();
-        state.selectedDate = dateStr;
-        state.pickNotice = T(formFailed ? "Die Suchmaske der Seite hat die Suche nicht gestartet. Bitte noch einmal klicken." : "Die Seite hat den Tag nicht übernommen. Bitte noch einmal klicken.");
+        state.pickNotice = T("Die Seite hat den Tag nicht übernommen. Bitte noch einmal klicken.");
         render();
       }
     }
@@ -18801,7 +18709,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.4", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
