@@ -2,6 +2,16 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.3 — 2026-10-30
+
+### Changed
+
+- **More compact calendar, colour band instead of a full fill**
+
+### Fixed
+
+- **Seat map of the Thai 777**
+
 ## 1.10.2 — 2026-10-29
 
 ### Fixed

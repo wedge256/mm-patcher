@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.3 — 2026-10-30
+
+### Geändert
+
+- **Kalender kompakter, Band als Farbe statt Vollfläche**
+
+### Behoben
+
+- **Sitzplan der Thai 777**
+
 ## 1.10.2 — 2026-10-29
 
 ### Behoben
