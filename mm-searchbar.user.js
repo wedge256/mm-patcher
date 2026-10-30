@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.2
+// @version      1.10.3
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -727,7 +727,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.2/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.3/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -4145,7 +4145,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.2/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.3/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -7521,7 +7521,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 180;
+    const VERSION = 187;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -7696,9 +7696,6 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     });
     const monthFmt = () => dtf({
       month: "long"
-    });
-    const monthShortFmt = () => dtf({
-      month: "short"
     });
     const fmtMiles = n => "number" == typeof n ? nf().format(n) : null == n ? "" : String(n);
     const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -8071,7 +8068,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         }) : T("Kalender")
       }) + (w.dead ? "\n" + T("Mit dem gewählten Hinflug kein Angebot an diesem Tag.") : "");
       var ts;
-      return '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (x.blocked ? " is-blocked" : isBest ? " is-best" : null != best ? " is-dear" : "") + (w.dead ? " is-deadday" : "") + (busy ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" tabindex="-1"' + (w.off ? " disabled" : "") + ' data-tip="' + esc(tipText) + '" aria-label="' + esc(tipText.replace(/\n/g, ", ")) + '">' + '<span class="mmcal-tier">' + esc(x.fare.tier || "") + (busy ? " · " + esc(T("sucht …")) : "") + "</span>" + '<span class="mmcal-miles">' + esc(fmtMiles(x.miles)) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + esc(null != eurVal ? curFmt(Math.round(eurVal), fx.target(), 0) : curFmt(Math.round(x.taxes), x.currency, 0)) + "</span>" : "") + "</button>";
+      return '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (x.blocked ? " is-blocked" : isBest ? " is-best" : null != best ? " is-dear" : "") + (w.dead ? " is-deadday" : "") + (busy ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" tabindex="-1"' + (w.off ? " disabled" : "") + ' data-tip="' + esc(tipText) + '" aria-label="' + esc(tipText.replace(/\n/g, ", ")) + '">' + '<span class="mmcal-tier">' + esc(busy ? T("sucht …") : x.fare.tier || "") + "</span>" + '<span class="mmcal-miles">' + esc(fmtMiles(x.miles)) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + esc(null != eurVal ? curFmt(Math.round(eurVal), fx.target(), 0) : curFmt(Math.round(x.taxes), x.currency, 0)) + "</span>" : "") + "</button>";
     }
     function paint(html) {
       if (state.root.__mmcalHtml !== html) {
@@ -8241,24 +8238,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         };
       }(cal, v);
       const selIdx = v.win.findIndex(w => w.dateStr === v.searchDate);
-      const selframe = selIdx < 0 ? "" : '<div class="mmcal-selframe" style="grid-column:' + (selIdx + 2) + " / " + (selIdx + 3) + ";grid-row:2 / " + (3 + ORDER.length) + '"></div>';
+      const selframe = selIdx < 0 ? "" : '<div class="mmcal-selframe" style="grid-column:' + (selIdx + 2) + " / " + (selIdx + 3) + ";grid-row:1 / " + (2 + ORDER.length) + '"></div>';
       const body = '<div class="mmcal-scroll"><div class="mmcal-grid" style="grid-template-columns:92px repeat(' + SPAN + ', minmax(52px, 1fr))">' + function(v) {
-        const win = v.win;
-        let band = "<div></div>";
-        for (let i = 0; i < win.length; ) {
-          let j = i + 1;
-          for (;j < win.length && !v.startsMonth[j]; ) j++;
-          const dt = win[i].d;
-          const wide = j - i >= 3;
-          const showYear = 0 === i || dt.getFullYear() !== win[i - 1].d.getFullYear();
-          const full = cap(monthYearFmt().format(dt));
-          const label = wide ? cap(monthFmt().format(dt)) + (showYear ? ' <span class="yr">' + dt.getFullYear() + "</span>" : "") : cap(monthShortFmt().format(dt));
-          const st = monthLoadState(v, i, j - i);
-          band += '<div class="mmcal-mo' + (i > 0 ? " mmcal-newmo" : "") + '" style="grid-column: span ' + (j - i) + '" title="' + esc(full + (st ? ". " + st.status : "")) + '">' + '<span class="mmcal-moname">' + label + "</span>" + (st ? st.button + st.text : "") + "</div>";
-          i = j;
-        }
-        return band;
-      }(v) + function(v) {
         const DOW = window.__mmI18n ? window.__mmI18n.days() : [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So" ];
         const todayStr = iso(startOfToday());
         let heads = "<div></div>";
@@ -8311,7 +8292,22 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", r.anyBlocked ? "<span>* " + T("günstigster Tarif, passt nicht zum gewählten Hinflug") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
       }(v, rows);
       const wantAll = !!cal.allCabins;
-      paint('<div class="mmcal-head">' + '<span class="mmcal-route">' + route + "</span>" + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + '<button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button>" + "</span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
+      paint('<div class="mmcal-head is-open">' + '<span class="mmcal-lead">' + '<span class="mmcal-route">' + route + "</span>" + function(v) {
+        const win = v.win;
+        let out = "";
+        for (let i = 0; i < win.length; ) {
+          let j = i + 1;
+          for (;j < win.length && !v.startsMonth[j]; ) j++;
+          const dt = win[i].d;
+          const showYear = 0 === i || dt.getFullYear() !== win[i - 1].d.getFullYear();
+          const full = cap(monthYearFmt().format(dt));
+          const label = cap(monthFmt().format(dt)) + (showYear ? ' <span class="yr">' + dt.getFullYear() + "</span>" : "");
+          const st = monthLoadState(v, i, j - i);
+          out += '<span class="mmcal-mo" data-days="' + (j - i) + '" title="' + esc(full + (st ? ". " + st.status : "")) + '">' + '<span class="mmcal-moname">' + label + "</span>" + (st ? st.button + st.text : "") + "</span>";
+          i = j;
+        }
+        return '<span class="mmcal-months">' + out + "</span>";
+      }(v) + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + "</span>" + '<span class="mmcal-end"><button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button></span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
       !function(blocked) {
         if (state._blockTick) {
           clearInterval(state._blockTick);
@@ -8754,7 +8750,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       !function() {
         const css = `
 .mmcal { font-family: inherit; background: #fff; border: 1px solid ${INK_hairline};
-         border-radius: 8px; padding: 12px 14px 12px; margin: 0 0 12px;
+         border-radius: 8px; padding: 8px 12px; margin: 0 0 12px;
          width: 100%; box-sizing: border-box; }
 .mmcal-live { position: absolute; width: 1px; height: 1px; overflow: hidden;
               clip: rect(0 0 0 0); white-space: nowrap; }
@@ -8770,7 +8766,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
 body:has(.mmcal) refx-page-title-pres { display: none; }
 
 .mmcal-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
-              margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid ${INK_hairline}; }
+              margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid ${INK_hairline}; }
 .mmcal-route { font-size: 15px; font-weight: 700; color: ${INK_primary}; letter-spacing: .01em; }
 .mmcal-bound { font-weight: 600; color: ${INK_secondary}; margin-right: 6px; }
 .mmcal-nav { margin-left: auto; display: flex; gap: 5px; align-items: center; }
@@ -8784,6 +8780,11 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-btn:disabled { opacity: .35; cursor: default; }
 
 .mmcal-fold { margin-left: 6px; }
+.mmcal-head.is-open { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; container-type: inline-size; }
+.mmcal-lead { flex: 1 1 0; min-width: max-content; display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
+.mmcal-head.is-open .mmcal-nav { margin-left: 0; flex: none; }
+.mmcal-end { flex: 1 1 0; display: flex; justify-content: flex-end; }
+@container (max-width: 1000px) { .mmcal-head .mmcal-loadsub { display: none; } }
 .mmcal.is-folded { padding-top: 9px; padding-bottom: 9px; }
 .mmcal.is-folded .mmcal-head { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
 
@@ -8808,14 +8809,14 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 @media (prefers-reduced-motion: reduce) { .mmcal-loadbtn.is-busy .mmcal-loaddot { animation: none } }
 .mmcal-scroll { overflow-x: auto; }
 
-.mmcal-mo { font-size: 11px; font-weight: 700; color: ${INK_secondary};
-            padding: 0 0 5px 2px; align-self: end; min-width: 0;
-            display: flex; align-items: center; flex-wrap: nowrap; gap: 7px;
-            overflow: hidden; }
+.mmcal-months { display: inline-flex; align-items: center; gap: 10px; }
+.mmcal-mo { font-size: 12px; font-weight: 700; color: ${INK_secondary};
+            display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.mmcal-mo + .mmcal-mo { border-left: 1px solid ${INK_hairline}; padding-left: 10px; }
 .mmcal-moname { white-space: nowrap; flex: 0 0 auto; }
 .mmcal-mo .yr { font-weight: 400; color: ${INK_muted}; }
 
-.mmcal-hd { text-align: center; padding: 3px 2px 5px; border-bottom: 1px solid ${INK_hairline};
+.mmcal-hd { text-align: center; padding: 1px 1px 3px; border-bottom: 1px solid ${INK_hairline};
             background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit;
             cursor: pointer; border-radius: 4px 4px 0 0; }
 .mmcal-hd:hover { background: #f7f8fb; }
@@ -8826,12 +8827,12 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-c.is-deadday { opacity: .4; }
 .mmcal-hd.is-empty { opacity: .4; }
 .mmcal-hd:disabled, .mmcal-c:disabled { opacity: .2; pointer-events: none; }
-.mmcal-dw { display: block; font-size: 9.5px; text-transform: uppercase; color: ${INK_muted};
-            letter-spacing: .04em; line-height: 1.3; }
+.mmcal-dw { font-size: 9px; text-transform: uppercase; color: ${INK_muted};
+            letter-spacing: .04em; line-height: 1.3; margin-right: 3px; }
 .mmcal-hd.is-we:not(.is-sel) { background: #f4f6fa; }
 .mmcal-hd.is-we:not(.is-sel):hover { background: #eceff6; }
 .mmcal-hd.is-today .mmcal-dn { text-decoration: underline 2px ${INK_accent}; text-underline-offset: 3px; }
-.mmcal-dn { display: block; font-size: 14px; font-weight: 600; line-height: 1.15; color: ${INK_primary}; }
+.mmcal-dn { font-size: 12.5px; font-weight: 600; line-height: 1.15; color: ${INK_primary}; }
 
 .mmcal-rl { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
             color: ${INK_secondary}; padding-right: 7px; white-space: nowrap; }
@@ -8841,20 +8842,21 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 @media (prefers-reduced-motion: reduce) {
     .mmcal-rl.is-wait .mmcal-pip { animation: none; opacity: .4; } }
 
-.mmcal-c { border-radius: 3px; padding: 4px 2px; text-align: center; min-height: 46px;
-           display: flex; flex-direction: column; justify-content: center; gap: 1px;
+.mmcal-c { border-radius: 3px; padding: 2px 1px; text-align: center; min-height: 37px;
+           display: flex; flex-direction: column; justify-content: center; gap: 0;
            border: 1px solid transparent; font: inherit; cursor: pointer; overflow: hidden;
            position: relative; }
-.mmcal-c.is-cal, .mmcal-c.is-bbd { background: var(--mc); }
+.mmcal-c.is-cal, .mmcal-c.is-bbd { background: #f4f6f9; justify-content: flex-start; padding-top: 0; }
+.mmcal-c.is-cal .mmcal-tier, .mmcal-c.is-bbd .mmcal-tier { background: var(--mc); color: #fff;
+                                                           margin: 0 -1px 1px; padding: 1px 0; }
 .mmcal-c.is-none { background: #faf9f6; opacity: .45; cursor: pointer; }
 .mmcal-c.is-none:hover { opacity: .8; border-color: var(--mc); }
 .mmcal-selframe { position: absolute; inset: 0; pointer-events: none;
                   border: 2px solid ${INK_primary}; border-radius: 5px; z-index: 1; }
-.mmcal-c:hover:not(.is-none) { border-color: rgba(255,255,255,.65); }
-.mmcal-c.is-busy { border-color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); }
+.mmcal-c:hover:not(.is-none) { border-color: var(--mc); }
 .mmcal-c.is-busy .mmcal-miles, .mmcal-c.is-busy .mmcal-tax { opacity: .35; }
 .mmcal-c.is-busy::after { content: ''; position: absolute; inset: auto 0 0 0; height: 2px;
-                          background: #fff; animation: mmcal-run 1s linear infinite; }
+                          background: var(--mc); animation: mmcal-run 1s linear infinite; }
 @keyframes mmcal-run { 0% { transform: scaleX(.15); transform-origin: left; }
                        50% { transform: scaleX(1); transform-origin: left; }
                        100% { transform: scaleX(.15); transform-origin: right; } }
@@ -8869,17 +8871,15 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 @keyframes mmcal-shim { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @media (prefers-reduced-motion: reduce) {
     .mmcal-c.is-wait::before { animation: none; opacity: .45; } }
-.mmcal-tier { font-size: 9.5px; text-transform: uppercase; font-weight: 700; color: var(--mc); line-height: 1.2; }
-.mmcal-miles { font-size: 14px; font-weight: 700; line-height: 1.1; color: ${INK_primary}; }
-.mmcal-tax { font-size: 11px; color: ${INK_secondary}; line-height: 1.2; }
-.mmcal-c.is-dear { background: color-mix(in oklab, var(--mc) 84%, #000); }
+.mmcal-tier { font-size: 8.5px; text-transform: uppercase; font-weight: 700; color: var(--mc); line-height: 1.1;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mmcal-miles { font-size: 12.5px; font-weight: 700; line-height: 1.1; color: ${INK_primary}; }
+.mmcal-tax { font-size: 9.5px; color: ${INK_secondary}; line-height: 1.1; }
+.mmcal-c.is-dear .mmcal-tier { background: color-mix(in oklab, var(--mc) 80%, #000); }
 .mmcal-c.is-blocked .mmcal-miles::after { content: '*'; }
 .mmcal-rl.is-thin { font-weight: 400; color: ${INK_muted}; }
 .mmcal-c.is-thin { min-height: 18px; padding: 0 2px; }
 .mmcal-c.is-thin .mmcal-dash { font-size: 10px; line-height: 1; }
-.mmcal-c.is-cal .mmcal-tier, .mmcal-c.is-bbd .mmcal-tier { color: rgba(255,255,255,.82); }
-.mmcal-c.is-cal .mmcal-miles, .mmcal-c.is-bbd .mmcal-miles { color: #fff; }
-.mmcal-c.is-cal .mmcal-tax, .mmcal-c.is-bbd .mmcal-tax { color: rgba(255,255,255,.85); }
 .mmcal-dash { color: ${INK_muted}; font-size: 12px; }
 
 .mmcal-newmo { box-shadow: -2px 0 0 0 color-mix(in oklab, ${INK_primary} 25%, #fff); }
@@ -8891,10 +8891,10 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-stdc { text-align: center; font-size: 10.5px; color: ${INK_muted}; padding: 2px 0; }
 
 .mmcal-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
-              margin-top: 11px; font-size: 11.5px; color: ${INK_secondary}; }
+              margin-top: 6px; font-size: 11.5px; color: ${INK_secondary}; }
 .mmcal-legend { display: flex; flex-wrap: wrap; gap: 12px; }
 .mmcal-pool { font: inherit; font-size: 11.5px; border: 1px solid ${INK_hairline}; background: #fff;
-              color: ${INK_primary}; border-radius: 5px; padding: 3px 9px; cursor: pointer; }
+              color: ${INK_primary}; border-radius: 5px; padding: 1px 7px; cursor: pointer; }
 .mmcal-pool[aria-pressed="true"] { background: ${INK_primary}; color: #fff; border-color: ${INK_primary}; }
 .mmcal-linkbtn { font: inherit; font-size: 11.5px; background: none; border: 0; color: ${INK_muted};
                  text-decoration: underline; cursor: pointer; padding: 0; margin-left: auto; }
@@ -8915,10 +8915,9 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 @keyframes mmcal-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mmcal-spinner { animation-duration: 2.4s; } }
 
+html.mm-dark .mmcal-c.is-cal, html.mm-dark .mmcal-c.is-bbd { background: var(--mm-dark-layer); }
 html.mm-dark .mmcal-c:hover:not(.is-none) { border-color: rgba(255,255,255,.65); }
-html.mm-dark .mmcal-c.is-busy { border-color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); }
 html.mm-dark .mmcal-c.is-busy::after { background: #fff; }
-html.mm-dark .mmcal-c.is-none.is-busy { border-color: transparent; box-shadow: none; }
 html.mm-dark .mmcal-c.is-none.is-busy::after { content: none; }
 html.mm-dark .mmcal-newmo { box-shadow: -2px 0 0 0 hsl(222 14% 36%); }
 html.mm-dark .mmcal-c.is-wait { background: color-mix(in oklab, var(--mc) 45%, var(--mm-dark-card)); }
@@ -13150,7 +13149,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
   })();
   (() => {
     "use strict";
-    const VERSION = 135;
+    const VERSION = 136;
     if (window.__mmSeatmap && window.__mmSeatmap.version >= VERSION) return;
     if (window.__mmSeatmap) try {
       window.__mmSeatmap.teardown();
@@ -15175,7 +15174,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         aisleBetween: aisleBetween
       };
     }
-    function gridPlan(deck, leg) {
+    function gridPlan(deck, leg, twoDecks) {
       const answers = deck.answers.slice();
       const firstRow = a => Math.min(...a.seats.map(s => s.row));
       answers.sort((a, b) => firstRow(a) - firstRow(b));
@@ -15205,6 +15204,8 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       answers.forEach((a, ai) => {
         const own = a.seats.filter(s => deck.seats.get(s.nr) && deck.seats.get(s.nr).answer === a);
         if (!own.length) return;
+        const rowX = own.map(s => s.x).filter(x => null != x);
+        const facs = a.facilities.filter(f => twoDecks || "ST" !== f.code || !rowX.length || f.x >= Math.min(...rowX) && f.x <= Math.max(...rowX));
         const mark = [ seats.length, rooms.length, doors.length, fittings.length ];
         let pitch = PITCH[a.cabin] || PITCH.eco;
         let lanes = [ ...new Set(own.map(s => s.y).filter(y => null != y)) ].sort((p, q) => p - q);
@@ -15331,7 +15332,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const map = a === eco || shell ? ecoMap : acrossMap(lanes, F, cw, sameGrid ? ecoAisle : skipped);
         const yAcross = s => perSeat && perSeat.has(s.nr) ? perSeat.get(s.nr) : shell && null != letterLane[s.L] ? letterLane[s.L] : remap && null != remap[s.y] ? remap[s.y] : byLetter && null != byLetter[s.L] ? byLetter[s.L] : s.y ?? 0;
         const FAC = [ "LA", "GN", "BA", "CL", "SO", "ST" ];
-        const xs = [ ...new Set(own.map(s => s.x).concat(a.facilities.filter(f => FAC.indexOf(f.code) >= 0).map(f => f.x)).filter(x => null != x)) ].sort((p, q) => p - q);
+        const xs = [ ...new Set(own.map(s => s.x).concat(facs.filter(f => FAC.indexOf(f.code) >= 0).map(f => f.x)).filter(x => null != x)) ].sort((p, q) => p - q);
         const rowsByNr = [ ...new Set(own.map(s => s.row)) ].sort((p, q) => p - q);
         const slotY = new Map;
         if (xs.length) {
@@ -15494,9 +15495,9 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           return r - l > .5 * cw ? [ l, r ] : blk;
         };
         const cells = {};
-        a.facilities.forEach(f => {
+        facs.forEach(f => {
           const kind = KIND[f.code];
-          !kind || !xs.length || "SO" === f.code && (f => a.facilities.some(g => ("GN" === g.code || "BA" === g.code) && Math.abs(g.x - f.x) <= 1 && Math.abs(g.y - f.y) <= 1))(f) || (cells[kind] = cells[kind] || []).push({
+          !kind || !xs.length || "SO" === f.code && (f => facs.some(g => ("GN" === g.code || "BA" === g.code) && Math.abs(g.x - f.x) <= 1 && Math.abs(g.y - f.y) <= 1))(f) || (cells[kind] = cells[kind] || []).push({
             x: f.x,
             y: f.y
           });
@@ -15985,7 +15986,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         }
         const inType = (p, k0 = key) => k0 && p && ("a321" === k0 ? [ "a321", "a321acf" ] : [ k0 ]).map(k => typed(p, d, 0, k)).filter(Boolean).sort((a, b) => b.plausible - a.plausible || b.fit - a.fit)[0] || null;
         const out = inType(plan) || (() => {
-          const g = gridPlan(d, leg);
+          const g = gridPlan(d, leg, model.decks.length > 1);
           const rows = g && cabinRows(d, leg, key, !TYPE_CODE[model.code]);
           if (rows) {
             g.rowsAt = rows.pts;
@@ -18800,7 +18801,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
