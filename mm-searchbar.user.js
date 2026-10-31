@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.4
+// @version      1.10.5
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -726,7 +726,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.4/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.5/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -4172,7 +4172,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.4/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.5/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -10977,7 +10977,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 386;
+    const VERSION = 388;
     if (window.__mmCards?.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -11718,7 +11718,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         })(leg, i));
         const stops = leg.techStops || [];
         stops.length && (isRail(leg) || isBus(leg)) ? rows.push((stops => {
-          const placeNames = stops.map(techPlace).filter(Boolean);
+          const placeNames = stops.map(t => cityOf(t.airport, t.city)).filter(Boolean);
           const n = stops.length;
           const tip = placeNames.length ? placeNames.join(", ") : T("Halt ohne Umstieg, Sie bleiben sitzen");
           return `<div class="mmrc-row is-lay is-tech">` + `<span class="mmrc-laymeta">` + `<span class="mmrc-lead is-plain" title="${esc(tip)}">` + `${Tn(n, "{n} Zwischenhalt", "{n} Zwischenhalte")}</span>` + `</span></div>`;
@@ -12213,7 +12213,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
             }) : "comfort" === g ? T("Rückflug nur Comfort, jede Kabine") : "plus" === g ? T("Rückflug Comfort +, Flex oder Standard, jede Kabine") : "";
             return text ? `<div class="mmrc-fback-combo">${esc(text)}</div>` : "";
           }(f, cabinMeta) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${servicesHtml(f, base, !0).html}</div>` + `<button type="button" class="mmrc-fchoose">${T("Wählen")}</button>`;
-        }(f, d.meta, d.base);
+        }(f, d.meta, d.prevOf.get(f.code));
         col.querySelector(".mmrc-colflip").appendChild(fp);
         openFareCol = col;
         col.classList.add("is-3d");
@@ -12240,7 +12240,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
             const lead = paxLeadGroup(groups);
             return `<table class="mmrc-ptab">${groups.map(g => `<tr${asTotal(f) || g !== lead ? "" : ' class="is-shown"'}>` + `<td class="mmrc-pw">${g.count} × ${esc(g.companion ? T("Companion") : paxLabel(g.type) || g.type || T("Reisender"))}` + (!g.companion && paxAge(g.type) ? ` <small>${paxAge(g.type)}</small>` : "") + `</td>` + `<td class="mmrc-pm">${null != g.miles ? esc(num(g.miles)) : "–"}</td>` + `<td class="mmrc-pe">${null != g.cash ? esc(cashLabel(g.cash, f.currency)) : ""}</td></tr>`).join("")}` + `<tr class="is-sum${asTotal(f) ? " is-shown" : ""}"><td class="mmrc-pw">${T("Gesamt")}</td>` + `<td class="mmrc-pm">${null != f.totalMiles ? esc(num(f.totalMiles)) : "–"}</td>` + `<td class="mmrc-pe">${null != f.totalCash ? esc(cashLabel(f.totalCash, f.currency)) : ""}</td></tr></table>`;
           }(f)}</div>` : "") + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${svc.html}</div>`;
-        }(f, d.meta, d.base);
+        }(f, d.meta, d.prevOf.get(f.code));
         tile.appendChild(pop);
       }
     }
@@ -12296,7 +12296,6 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const cur = fares.length ? fares[0].currency : null;
         const uniform = fares.every(f => null == shownCash(f) || shownCash(f) === cash);
         const cashWord = fares.some(asTotal) ? T(uniform ? "Zuzahlung gesamt" : "Zuzahlung gesamt ab") : T(uniform ? "Zuzahlung" : "Zuzahlung ab");
-        const base = fares.slice().sort((a, b) => (a.miles ?? 1 / 0) - (b.miles ?? 1 / 0))[0] || null;
         const seatMin = fares.reduce((m, f) => null != f.seatsLeft && (null == m || f.seatsLeft < m) ? f.seatsLeft : m, null);
         let html = `<div class="mmrc-h"><div class="mmrc-nm" data-instead="${T("statt der gesuchten")}">${esc(meta.name)}</div>` + (null != seatMin ? `<span class="mmrc-seats${seatMin <= 3 ? " is-low" : ""}${seatMin >= 9 ? " is-many" : ""}">` + (1 === seatMin ? T("nur noch 1 Platz") : seatMin >= 9 ? T("9+ Plätze") : Tn(seatMin, "{n} Platz übrig", "{n} Plätze übrig")) + `</span>` : fares.length ? `<span class="mmrc-seats is-many" title="${T("Miles &amp; More nennt die genaue Platzzahl erst bei 6 oder weniger.")}">${T("7+ Plätze")}</span>` : "") + (null != cash ? `<div class="mmrc-cash" data-label="${cashWord}">` + `${esc(cashLabel(cash, cur))}</div>` : "") + `</div>`;
         const mixed = fares.find(f => f.mixed);
@@ -12316,10 +12315,17 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           }).join("");
           html += `<div class="mmrc-segs"><span class="mmrc-lbl">${T("Gemischte Kabinen")}</span>${segs}</div>`;
         } else html += `<div class="mmrc-segs"></div>`;
-        html += fares.length ? `<div class="mmrc-body"><div class="mmrc-flist">` + (axis && axis.length ? axis : fares.map(f => f.tier || "")).map(tier => {
-          const f = fares.filter(x => (x.tier || "") === tier).sort((a, b) => a.miles - b.miles)[0];
-          return f ? `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num(shownMiles(f))}</span>` + `</div>` : `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
-        }).join("") + `</div></div>` : `<div class="mmrc-none">${T("kein Angebot")}</div>`;
+        const prevOf = new Map;
+        if (fares.length) {
+          let prev = null;
+          html += `<div class="mmrc-body"><div class="mmrc-flist">` + (axis && axis.length ? axis : fares.map(f => f.tier || "")).map(tier => {
+            const f = fares.filter(x => (x.tier || "") === tier).sort((a, b) => a.miles - b.miles)[0];
+            if (!f) return `<div class="mmrc-f is-gap" aria-hidden="true"></div>`;
+            prevOf.set(f.code, prev);
+            prev = f;
+            return `<div class="mmrc-f" data-code="${esc(f.code)}">` + `<span class="mmrc-ti">${esc(tier)}</span>` + `<span class="mmrc-mi">${num(shownMiles(f))}</span>` + `</div>`;
+          }).join("") + `</div></div>`;
+        } else html += `<div class="mmrc-none">${T("kein Angebot")}</div>`;
         let note = "";
         searched && cabin !== searched && (note = T(fares.length ? "Alle {cabin}-Tarife erscheinen erst bei einer {cabin}-Suche." : "Eine eigene {cabin}-Suche kann weitere Tarife finden.", {
           cabin: esc(meta.name)
@@ -12334,7 +12340,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         col.appendChild(flip);
         colData.set(col, {
           meta: meta,
-          base: base,
+          prevOf: prevOf,
           boundKey: boundKey,
           byCode: new Map(fares.map(f => [ f.code, f ]))
         });
@@ -13057,7 +13063,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
   })();
   (() => {
     "use strict";
-    const VERSION = 136;
+    const VERSION = 137;
     if (window.__mmSeatmap && window.__mmSeatmap.version >= VERSION) return;
     if (window.__mmSeatmap) try {
       window.__mmSeatmap.teardown();
@@ -14337,7 +14343,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           const pitch = pitchOf.get(q);
           if (null == pitch || !isFinite(pitch)) return q;
           const share = "eco" === cab(q) ? 42 / PITCH.eco : .78, suite = {
-            business: 160,
+            business: 120,
             first: 200
           }[cab(q)];
           const h = grid && suite ? Math.min(suite, usual[cab(q)] * ("first" === cab(q) ? .9 : .78)) : grid ? Math.min(q.box.h, pitch * share) : Math.max(q.box.h, Math.min(pitch, usual[cab(q)]) * share);
@@ -15131,10 +15137,14 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           (!i || l - ecoLanes[i - 1] > 1.01) && blocks.push([]);
           blocks[blocks.length - 1].push(l);
         });
-        const half = lanes.every(l => ecoLanes.indexOf(l) >= 0) && blocks.some(b => {
-          const k = b.filter(l => lanes.indexOf(l) >= 0).length;
-          return k > 0 && k <= b.length / 2;
+        const rowLanes = new Map;
+        own.forEach(q => {
+          null != q.y && (rowLanes.get(q.row) || rowLanes.set(q.row, new Set).get(q.row)).add(q.y);
         });
+        const half = lanes.every(l => ecoLanes.indexOf(l) >= 0) && rowLanes.size > 0 && [ ...rowLanes.values() ].every(ls => blocks.some(b => {
+          const k = b.filter(l => ls.has(l)).length;
+          return k > 0 && k <= b.length / 2;
+        }));
         const full = sameGrid && [ ...new Set(own.map(q => q.row)) ].every(r => own.filter(q => q.row === r).length >= ecoLetters.length);
         const shell = sameGrid && aislesOf < 2 && (jump || half || full);
         const midL = ecoLetters.filter(L => blocks.some(b => 3 === b.length && b[1] === letterLane[L]));
@@ -15557,6 +15567,30 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       const back = Math.max(...seats.map(s => s.box.y + s.box.h), ...rooms.map(r => r.box.y + r.box.h)) + 30;
       const half = F / 2 + 14, axis = F / 2;
       const hull = [];
+      if ((leg => !!leg?.ground || /TRAIN|RAIL|\bBUS\b/i.test(String(leg?.aircraftName || "")))(leg)) {
+        const r = .25 * half;
+        for (let k = 0; k <= 6; k++) {
+          const t = k / 12 * Math.PI, w = half - r + r * Math.sin(t);
+          hull.push([ front - r * Math.cos(t), axis - w, axis + w ]);
+        }
+        for (let y = front + 20; y < back; y += 20) hull.push([ y, axis - half, axis + half ]);
+        for (let k = 6; k >= 0; k--) {
+          const t = k / 12 * Math.PI, w = half - r + r * Math.sin(t);
+          hull.push([ back + r * Math.cos(t), axis - w, axis + w ]);
+        }
+        return {
+          source: "grid",
+          W: F,
+          seats: seats,
+          rooms: rooms,
+          walls: [],
+          doors: doors,
+          hull: hull,
+          wing: [],
+          wingSpan: null,
+          glassTip: null
+        };
+      }
       const noseLen = 2 * (glass ? glass.len : Math.min(shape.nose[0], 1.15)) * half;
       const cone = (arr, f) => {
         const n = arr.length - 1, t = Math.max(0, Math.min(1, f)) * (n - 1), i = Math.min(n - 2, Math.floor(t));
@@ -18709,7 +18743,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const VERSION = 13;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.4", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.10.5", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;

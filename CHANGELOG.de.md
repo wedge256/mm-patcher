@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md)
 
+## 1.10.5 — 2026-10-31
+
+### Behoben
+
+- **Verbindungen mit Zug- oder Buszubringer fehlten in den Ergebnissen**
+- **Sitzplan: BC-Sitze bei einigen Airlines korrigiert**
+
 ## 1.10.4 — 2026-10-30
 
 ### Geändert

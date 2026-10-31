@@ -2,6 +2,13 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.10.5 — 2026-10-31
+
+### Fixed
+
+- **Connections with a train or bus feeder missing from the results**
+- **Seat map: business class seats corrected for some airlines**
+
 ## 1.10.4 — 2026-10-30
 
 ### Changed
