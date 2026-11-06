@@ -488,5 +488,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "最安運賃、選択した往路とは組み合わせ不可",
  "Rückflug nur {fare}": "復路は{fare}のみ",
  "Rückflug nur Comfort, jede Kabine": "復路はComfortのみ、キャビン不問",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "復路はComfort +、FlexまたはStandard、キャビン不問"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "復路はComfort +、FlexまたはStandard、キャビン不問",
+ "Suche startet in {left}.": "{left}後に検索を開始します。",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "1分間に9回以上検索すると、IPアドレスが15分間ブロックされます。",
+ "Zu viele Suchen in kurzer Zeit.": "短時間に検索が多すぎます。",
+ "Nächste Suche ab {time} möglich.": "次の検索は{time}から可能です。",
+ "Trotzdem suchen": "それでも検索",
+ "Jetzt suchen": "今すぐ検索",
+ "Nächste Suche ab {time} möglich (noch {left}).": "次の検索は{time}から可能です（残り{left}）。",
+ "Last-Minute-Buchung": "直前予約",
+ "Nur noch über das Callcenter buchbar": "現在はサービスセンターでのみ予約可",
+ "Land": "国"
 }

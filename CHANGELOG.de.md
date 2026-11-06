@@ -2,6 +2,24 @@
 
 [English](CHANGELOG.md)
 
+## 1.11.0 — 2026-11-06
+
+### Neu
+
+- **Countdown statt 15-Minuten-Sperre bei zu vielen Suchen**
+
+### Geändert
+
+- **Kalender-Kopfzeile neu angeordnet**
+- **Kabinenauswahl passt zur Strecke**
+- **Last-Minute-Flüge werden angezeigt statt ausgeblendet**
+- **Generelle Performance-Optimierungen**
+
+### Behoben
+
+- **Fehlende Bestpreise im Kalender auf einigen Strecken**
+- **Zeitüberschreitung wurde als Suchlimit (429) gemeldet**
+
 ## 1.10.5 — 2026-10-31
 
 ### Behoben

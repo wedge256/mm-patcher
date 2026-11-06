@@ -501,5 +501,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "φθηνότερος ναύλος, δεν συνδυάζεται με την επιλεγμένη πτήση αναχώρησης",
  "Rückflug nur {fare}": "Επιστροφή μόνο {fare}",
  "Rückflug nur Comfort, jede Kabine": "Επιστροφή μόνο Comfort, οποιαδήποτε καμπίνα",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Επιστροφή Comfort +, Flex ή Standard, οποιαδήποτε καμπίνα"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Επιστροφή Comfort +, Flex ή Standard, οποιαδήποτε καμπίνα",
+ "Suche startet in {left}.": "Η αναζήτηση ξεκινά σε {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Περισσότερες από οκτώ αναζητήσεις το λεπτό αποκλείουν τη διεύθυνση IP για 15 λεπτά.",
+ "Zu viele Suchen in kurzer Zeit.": "Πάρα πολλές αναζητήσεις σε σύντομο χρόνο.",
+ "Nächste Suche ab {time} möglich.": "Επόμενη αναζήτηση δυνατή από τις {time}.",
+ "Trotzdem suchen": "Αναζήτηση παρ’ όλα αυτά",
+ "Jetzt suchen": "Αναζήτηση τώρα",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Επόμενη αναζήτηση δυνατή από τις {time} (απομένουν {left}).",
+ "Last-Minute-Buchung": "Κράτηση την τελευταία στιγμή",
+ "Nur noch über das Callcenter buchbar": "Πλέον κράτηση μόνο μέσω του τηλεφωνικού κέντρου",
+ "Land": "Χώρα"
 }

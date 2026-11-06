@@ -2,6 +2,24 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.11.0 — 2026-11-06
+
+### Added
+
+- **Countdown instead of a 15-minute block after too many searches**
+
+### Changed
+
+- **Calendar header rearranged**
+- **Cabin selection matches the route**
+- **Last-minute flights shown instead of hidden**
+- **General performance improvements**
+
+### Fixed
+
+- **Missing best prices in the calendar on some routes**
+- **Timeout reported as search limit (429)**
+
 ## 1.10.5 — 2026-10-31
 
 ### Fixed

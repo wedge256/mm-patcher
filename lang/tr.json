@@ -501,5 +501,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "en ucuz tarife, seçilen gidiş uçuşuyla birleştirilemez",
  "Rückflug nur {fare}": "Dönüş yalnızca {fare}",
  "Rückflug nur Comfort, jede Kabine": "Dönüş yalnızca Comfort, her kabin",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Dönüş Comfort +, Flex veya Standard, her kabin"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Dönüş Comfort +, Flex veya Standard, her kabin",
+ "Suche startet in {left}.": "Arama {left} sonra başlıyor.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Dakikada sekizden fazla arama IP adresini 15 dakika engeller.",
+ "Zu viele Suchen in kurzer Zeit.": "Kısa sürede çok fazla arama.",
+ "Nächste Suche ab {time} möglich.": "Sonraki arama {time} itibarıyla mümkün.",
+ "Trotzdem suchen": "Yine de ara",
+ "Jetzt suchen": "Şimdi ara",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Sonraki arama {time} itibarıyla mümkün (kalan {left}).",
+ "Last-Minute-Buchung": "Son dakika rezervasyonu",
+ "Nur noch über das Callcenter buchbar": "Artık yalnızca Hizmet Merkezi aracılığıyla rezerve edilebilir",
+ "Land": "Ülke"
 }

@@ -527,5 +527,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "najtańsza taryfa, nie łączy się z wybranym lotem tam",
  "Rückflug nur {fare}": "Powrót tylko {fare}",
  "Rückflug nur Comfort, jede Kabine": "Powrót tylko Comfort, dowolna kabina",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Powrót Comfort +, Flex lub Standard, dowolna kabina"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Powrót Comfort +, Flex lub Standard, dowolna kabina",
+ "Suche startet in {left}.": "Wyszukiwanie rozpocznie się za {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Ponad osiem wyszukiwań na minutę blokuje adres IP na 15 minut.",
+ "Zu viele Suchen in kurzer Zeit.": "Zbyt wiele wyszukiwań w krótkim czasie.",
+ "Nächste Suche ab {time} möglich.": "Kolejne wyszukiwanie możliwe od {time}.",
+ "Trotzdem suchen": "Szukaj mimo to",
+ "Jetzt suchen": "Szukaj teraz",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Kolejne wyszukiwanie możliwe od {time} (jeszcze {left}).",
+ "Last-Minute-Buchung": "Rezerwacja w ostatniej chwili",
+ "Nur noch über das Callcenter buchbar": "Rezerwacja możliwa już tylko przez centrum obsługi",
+ "Land": "Kraj"
 }

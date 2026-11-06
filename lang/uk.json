@@ -527,5 +527,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "найдешевший тариф, не поєднується з вибраним рейсом туди",
  "Rückflug nur {fare}": "Зворотний рейс лише {fare}",
  "Rückflug nur Comfort, jede Kabine": "Зворотний рейс лише Comfort, будь-який клас",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Зворотний рейс Comfort +, Flex або Standard, будь-який клас"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Зворотний рейс Comfort +, Flex або Standard, будь-який клас",
+ "Suche startet in {left}.": "Пошук почнеться через {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Понад вісім пошуків за хвилину блокують IP-адресу на 15 хвилин.",
+ "Zu viele Suchen in kurzer Zeit.": "Забагато пошуків за короткий час.",
+ "Nächste Suche ab {time} möglich.": "Наступний пошук можливий з {time}.",
+ "Trotzdem suchen": "Все одно шукати",
+ "Jetzt suchen": "Шукати зараз",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Наступний пошук можливий з {time} (залишилося {left}).",
+ "Last-Minute-Buchung": "Бронювання в останню хвилину",
+ "Nur noch über das Callcenter buchbar": "Бронювання тепер лише через кол-центр",
+ "Land": "Країна"
 }

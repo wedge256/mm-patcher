@@ -488,5 +488,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "최저 운임, 선택한 가는 편과 조합 불가",
  "Rückflug nur {fare}": "오는 편 {fare}만",
  "Rückflug nur Comfort, jede Kabine": "오는 편 Comfort만, 캐빈 무관",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "오는 편 Comfort +, Flex 또는 Standard, 캐빈 무관"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "오는 편 Comfort +, Flex 또는 Standard, 캐빈 무관",
+ "Suche startet in {left}.": "{left} 후 검색을 시작합니다.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "1분에 8회를 넘게 검색하면 IP 주소가 15분 동안 차단됩니다.",
+ "Zu viele Suchen in kurzer Zeit.": "짧은 시간에 검색이 너무 많습니다.",
+ "Nächste Suche ab {time} möglich.": "{time}부터 다시 검색할 수 있습니다.",
+ "Trotzdem suchen": "그래도 검색",
+ "Jetzt suchen": "지금 검색",
+ "Nächste Suche ab {time} möglich (noch {left}).": "{time}부터 다시 검색할 수 있습니다(남은 시간 {left}).",
+ "Last-Minute-Buchung": "마감 직전 예약",
+ "Nur noch über das Callcenter buchbar": "이제 서비스 센터를 통해서만 예약 가능",
+ "Land": "국가"
 }

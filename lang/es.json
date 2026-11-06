@@ -514,5 +514,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "tarifa más barata, no combinable con el vuelo de ida elegido",
  "Rückflug nur {fare}": "Vuelta solo {fare}",
  "Rückflug nur Comfort, jede Kabine": "Vuelta solo Comfort, cualquier cabina",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Vuelta Comfort +, Flex o Standard, cualquier cabina"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Vuelta Comfort +, Flex o Standard, cualquier cabina",
+ "Suche startet in {left}.": "La búsqueda empieza en {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Más de ocho búsquedas por minuto bloquean la dirección IP durante 15 minutos.",
+ "Zu viele Suchen in kurzer Zeit.": "Demasiadas búsquedas en poco tiempo.",
+ "Nächste Suche ab {time} möglich.": "Próxima búsqueda posible a partir de las {time}.",
+ "Trotzdem suchen": "Buscar de todos modos",
+ "Jetzt suchen": "Buscar ahora",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Próxima búsqueda posible a partir de las {time} (faltan {left}).",
+ "Last-Minute-Buchung": "Reserva de última hora",
+ "Nur noch über das Callcenter buchbar": "Ya solo se puede reservar a través del centro de llamadas",
+ "Land": "País"
 }

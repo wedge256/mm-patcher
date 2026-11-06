@@ -527,5 +527,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "самый дешёвый тариф, не сочетается с выбранным рейсом туда",
  "Rückflug nur {fare}": "Обратно только {fare}",
  "Rückflug nur Comfort, jede Kabine": "Обратно только Comfort, любая кабина",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Обратно Comfort +, Flex или Standard, любая кабина"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Обратно Comfort +, Flex или Standard, любая кабина",
+ "Suche startet in {left}.": "Поиск начнётся через {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Больше восьми поисков в минуту блокируют IP-адрес на 15 минут.",
+ "Zu viele Suchen in kurzer Zeit.": "Слишком много поисков за короткое время.",
+ "Nächste Suche ab {time} möglich.": "Следующий поиск возможен с {time}.",
+ "Trotzdem suchen": "Всё равно искать",
+ "Jetzt suchen": "Искать сейчас",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Следующий поиск возможен с {time} (осталось {left}).",
+ "Last-Minute-Buchung": "Бронирование в последнюю минуту",
+ "Nur noch über das Callcenter buchbar": "Теперь бронирование только через информационный центр",
+ "Land": "Страна"
 }

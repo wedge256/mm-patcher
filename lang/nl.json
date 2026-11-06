@@ -501,5 +501,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "goedkoopste tarief, niet te combineren met de gekozen heenvlucht",
  "Rückflug nur {fare}": "Terugvlucht alleen {fare}",
  "Rückflug nur Comfort, jede Kabine": "Terugvlucht alleen Comfort, elke cabine",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Terugvlucht Comfort +, Flex of Standard, elke cabine"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Terugvlucht Comfort +, Flex of Standard, elke cabine",
+ "Suche startet in {left}.": "Zoeken start over {left}.",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "Meer dan acht zoekopdrachten per minuut blokkeren het IP-adres 15 minuten lang.",
+ "Zu viele Suchen in kurzer Zeit.": "Te veel zoekopdrachten in korte tijd.",
+ "Nächste Suche ab {time} möglich.": "Volgende zoekopdracht mogelijk vanaf {time}.",
+ "Trotzdem suchen": "Toch zoeken",
+ "Jetzt suchen": "Nu zoeken",
+ "Nächste Suche ab {time} möglich (noch {left}).": "Volgende zoekopdracht mogelijk vanaf {time} (nog {left}).",
+ "Last-Minute-Buchung": "Last minute-boeking",
+ "Nur noch über das Callcenter buchbar": "Nu alleen nog te boeken via het callcenter",
+ "Land": "Land"
 }

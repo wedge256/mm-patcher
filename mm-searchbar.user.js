@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.10.5
+// @version      1.11.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -19,6 +19,7 @@
 // @grant        GM.xmlHttpRequest
 // @grant        unsafeWindow
 // @connect      api.shop.miles-and-more.com
+// @connect      www.miles-and-more.com
 // @noframes
 // ==/UserScript==
 
@@ -27,19 +28,21 @@
 if ("shop.miles-and-more.com" === location.hostname) {
   (() => {
     "use strict";
-    const VERSION = 10;
+    const VERSION = 11;
     if (window.__mmAuth && window.__mmAuth.version >= VERSION) return;
     const state = {
       version: VERSION,
-      code: null,
-      refresh: null,
       repaired: !1,
       seenCodes: 0,
       miles: null,
       tier: null,
-      milesAt: 0,
-      profile: null
+      milesAt: 0
     };
+    [ "code", "refresh", "profile" ].forEach(k => Object.defineProperty(state, k, {
+      value: null,
+      writable: !0,
+      enumerable: !1
+    }));
     try {
       Object.defineProperty(window, "__mmAuth", {
         value: state,
@@ -723,10 +726,20 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "günstigster Tarif, passt nicht zum gewählten Hinflug": "cheapest fare, does not go with the chosen outbound flight",
         "Rückflug nur {fare}": "Return only {fare}",
         "Rückflug nur Comfort, jede Kabine": "Return only Comfort, any cabin",
-        "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin"
+        "Rückflug Comfort +, Flex oder Standard, jede Kabine": "Return Comfort +, Flex or Standard, any cabin",
+        "Suche startet in {left}.": "Search starts in {left}.",
+        "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "More than eight searches a minute block the IP address for 15 minutes.",
+        "Zu viele Suchen in kurzer Zeit.": "Too many searches in a short time.",
+        "Nächste Suche ab {time} möglich.": "Next search possible from {time}.",
+        "Trotzdem suchen": "Search anyway",
+        "Jetzt suchen": "Search now",
+        "Nächste Suche ab {time} möglich (noch {left}).": "Next search possible from {time} ({left} left).",
+        "Last-Minute-Buchung": "Last minute booking",
+        "Nur noch über das Callcenter buchbar": "Now only bookable via the call center",
+        Land: "Country"
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.5/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.11.0/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -1274,7 +1287,7 @@ html.mm-dark .legend-section .seat-button.unavailable { filter: invert(1) bright
   })();
   (() => {
     "use strict";
-    const VERSION = "1.18.23";
+    const VERSION = "1.18.24";
     const vnum = s => String(s || "0").split(".").reduce((a, n) => 1e3 * a + (parseInt(n, 10) || 0), 0);
     if (window.mmSearchUnlock && vnum(window.mmSearchUnlock.version) >= vnum(VERSION)) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
@@ -1571,6 +1584,9 @@ html.mm-dark .legend-section .seat-button.unavailable { filter: invert(1) bright
       redraw: () => {
         recapKey = null;
         try {
+          restyle();
+        } catch (e) {}
+        try {
           showCabinInRecap(null);
         } catch (e) {}
         try {
@@ -1736,27 +1752,10 @@ html.mm-dark .legend-section .seat-button.unavailable { filter: invert(1) bright
     }
     const COLLAPSE_CSS = "refx-modify-search-cont mat-expansion-panel { overflow: hidden !important; }" + "refx-modify-search-cont mat-expansion-panel.collapsed-expansion-panel { height: auto !important; min-height: 4rem !important; }";
     const FORM = "form.modify-search-form";
-    function injectStyle(id, css) {
-      let el = document.getElementById(id);
-      if (!el) {
-        el = document.createElement("style");
-        el.id = id;
-        document.head.appendChild(el);
-      }
-      el.textContent = css;
-    }
-    function injectStyles() {
-      if (document.head) {
-        injectStyle("mmsu-collapse-fix", COLLAPSE_CSS);
-        restyle();
-      }
-    }
-    let styleCss = null;
-    function restyle() {
-      if (!document.head) return;
-      const css = `
+    const cssStr = s => '"' + String(s).replace(/[\\"]/g, "\\$&").replace(/[\r\n]+/g, " ") + '"';
+    const compactCss = () => `
 #modify-button .modify-search-button-label { display: none; }
-#modify-button .mdc-button__label::after { content: '${T("Suchen")}'; }
+#modify-button .mdc-button__label::after { content: ${cssStr(T("Suchen"))}; }
 
 .upsell-link-out.no-availability {
     background: #fff !important; border: 1px solid #e1e0d9; border-left: 4px solid #05164D;
@@ -1765,7 +1764,7 @@ html.mm-dark .legend-section .seat-button.unavailable { filter: invert(1) bright
 .upsell-link-out.no-availability .footer { display: none; }
 .upsell-link-out.no-availability .message { display: none; }
 .upsell-link-out.no-availability .content::before {
-    content: '${T("Ändern Sie oben Datum, Flughäfen oder Kabine.")}';
+    content: ${cssStr(T("Ändern Sie oben Datum, Flughäfen oder Kabine."))};
     color: #52514e; }
 
 .header-option refx-header-language-selector-pres { color: #05164D; margin-right: 1.6rem; }
@@ -1820,6 +1819,25 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmsu-swap svg { transform: rotate(90deg); }
 }
 `;
+    function injectStyle(id, css) {
+      let el = document.getElementById(id);
+      if (!el) {
+        el = document.createElement("style");
+        el.id = id;
+        document.head.appendChild(el);
+      }
+      el.textContent = css;
+    }
+    function injectStyles() {
+      if (document.head) {
+        injectStyle("mmsu-collapse-fix", COLLAPSE_CSS);
+        restyle();
+      }
+    }
+    let styleCss = null;
+    function restyle() {
+      if (!document.head) return;
+      const css = compactCss();
       if (css !== styleCss) {
         styleCss = css;
         injectStyle("mmsu-compact-layout", css);
@@ -1833,30 +1851,41 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     const looksPicked = v => IATA_RE.test(v) && v.replace(IATA_RE, "").trim().length > 0;
     const INVALID_CLASSES = [ [ "mat-form-field-invalid", null ], [ "mdc-text-field--invalid", ".mdc-text-field" ] ];
     let picking = null;
+    let formHit = null, formEl = null;
     function searchForm() {
-      try {
-        for (const t of window.getAllAngularTestabilities()) {
-          let app = null;
-          t?._destroyRef?.records?.forEach(r => {
-            const v = r?.value;
-            !app && v && "function" == typeof v.tick && Array.isArray(v.components) && (app = v);
-          });
-          if (!app) continue;
-          const seen = new Set;
-          const stack = app.components.map(c => c.hostView && c.hostView._lView);
-          for (;stack.length; ) {
-            const view = stack.pop();
-            if (Array.isArray(view) && !seen.has(view)) {
-              seen.add(view);
-              for (const x of view) if (Array.isArray(x)) stack.push(x); else if (x?.modifySearchForm?.controls?.originLocationCode) return {
-                comp: x,
-                zone: t._ngZone
-              };
+      const el = document.querySelector(FORM);
+      if (formHit && el && el === formEl && formHit.comp.modifySearchForm) try {
+        if (window.getAllAngularTestabilities().includes(formHit.t)) return formHit;
+      } catch (e) {}
+      const hit = function() {
+        try {
+          for (const t of window.getAllAngularTestabilities()) {
+            let app = null;
+            t?._destroyRef?.records?.forEach(r => {
+              const v = r?.value;
+              !app && v && "function" == typeof v.tick && Array.isArray(v.components) && (app = v);
+            });
+            if (!app) continue;
+            const seen = new Set;
+            const stack = app.components.map(c => c.hostView && c.hostView._lView);
+            for (;stack.length; ) {
+              const view = stack.pop();
+              if (Array.isArray(view) && !seen.has(view)) {
+                seen.add(view);
+                for (const x of view) if (Array.isArray(x)) stack.push(x); else if (x?.modifySearchForm?.controls?.originLocationCode) return {
+                  comp: x,
+                  zone: t._ngZone,
+                  t: t
+                };
+              }
             }
           }
-        }
-      } catch (e) {}
-      return null;
+        } catch (e) {}
+        return null;
+      }();
+      formHit = hit && el ? hit : null;
+      formEl = formHit ? el : null;
+      return hit;
     }
     function swapFields() {
       const f = searchForm();
@@ -2110,7 +2139,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
     }
     let tripKey = null;
     function onDomChange(records) {
-      restyle();
       try {
         !function() {
           const panel = document.querySelector("refx-modify-search-cont mat-expansion-panel");
@@ -2166,7 +2194,20 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         }
       } catch (e) {}
       document.querySelectorAll(".mmsu-swap").forEach(e => e.remove());
-      const obs = new MutationObserver(onDomChange);
+      let batch = null;
+      const obs = new MutationObserver(records => {
+        if (batch) {
+          batch.push(...records);
+          return;
+        }
+        batch = records.slice();
+        const run = () => {
+          const r = batch;
+          batch = null;
+          onDomChange(r);
+        };
+        "function" == typeof requestAnimationFrame ? requestAnimationFrame(run) : setTimeout(run, 0);
+      });
       obs.observe(document.body, {
         childList: !0,
         subtree: !0
@@ -2212,7 +2253,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 113;
+    const VERSION = 114;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
@@ -2477,6 +2518,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         </div>` + hint;
       }(s.key, s.label)).join("") + `</div>`;
     }
+    let tips = null, tipsFor = null;
     let fab = null;
     function dock() {
       if (state.superseded || !fab || !document.body) return;
@@ -2625,8 +2667,16 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             return;
           }
           tipEl.textContent = (key => {
-            for (const g of groups()) for (const s of g.subs) if (s.key === key) return s.tip;
-            return "";
+            let cur = "";
+            try {
+              cur = window.__mmCurrency?.target?.() || "";
+            } catch (e) {}
+            const now = (window.__mmI18n ? window.__mmI18n.lang() : "de") + "|" + cur;
+            if (!tips || tipsFor !== now) {
+              tips = new Map(groups().flatMap(g => g.subs).filter(s => s.key).map(s => [ s.key, s.tip ]));
+              tipsFor = now;
+            }
+            return tips.get(key) || "";
           })(row.dataset.key);
           const r = row.getBoundingClientRect();
           const w = 252;
@@ -2940,7 +2990,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 32;
+    const VERSION = 33;
     if (window.__mmSponsor && window.__mmSponsor.version >= VERSION) return;
     if (window.__mmSponsor) try {
       window.__mmSponsor.teardown();
@@ -3275,8 +3325,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const on = wanted();
       row.classList.toggle("is-on", on);
       row.setAttribute("aria-checked", on ? "true" : "false");
-      const box = row.querySelector(".mmsp-box");
-      box && (box.textContent = on ? "✓" : "");
+      const box = row.querySelector(".mmsp-box"), mark = on ? "✓" : "";
+      box && box.textContent !== mark && (box.textContent = mark);
       const cb = row.querySelector("input");
       cb && (cb.checked = on);
     }
@@ -3352,7 +3402,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 62;
+    const VERSION = 64;
     if (window.__mmIata && window.__mmIata.version >= VERSION) return;
     const inherited = window.__mmIata;
     if (inherited) {
@@ -3504,6 +3554,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       };
       return atlasMem;
     }
+    const ATLAS_WAIT_MS = 4e3;
+    const soon = p => Promise.race([ p, new Promise(r => setTimeout(() => r(null), ATLAS_WAIT_MS)) ]);
     function atlasData() {
       const hit = atlasStore().s;
       if (hit && hit.v === ATLAS_FORMAT && Array.isArray(hit.codes) && hit.codes.length && hit.lang === placeLocale().lang) {
@@ -3660,39 +3712,48 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       if (p) return p;
       const st = atlasStore();
       noFetch || !namesReady || st.names[up] || function(code) {
-        if (!/^[A-Z]{3}$/.test(code) || placeWanted.has(code)) return;
-        const s = placeStore();
-        if (void 0 !== s.names[code]) return;
-        if (s.gaveUp) return;
-        placeWanted.add(code);
+        if (!/^[A-Z]{3}$/.test(code)) return;
         const loc = placeLocale();
-        placeQueue = placeQueue.then(() => placeStore().gaveUp ? null : originalFetch.call(window, `${PLACE_URL}&site=${loc.site}&lang=${loc.lang}&query=${code}`).then(r => r && r.ok ? r.json() : null).then(j => {
-          if (null === j && placeStore().gaveUp) return;
-          const hit = (j?.items || []).find(i => String(i.code || "").toUpperCase() === code);
-          s.names[code] = hit ? String(hit.airport || "") : "";
-          hit && hit.country && (s.countries[code] = String(hit.country));
-          if (hit) {
-            s.misses = 0;
-            s.hits = (s.hits || 0) + 1;
-          } else if (!s.hits) {
-            s.misses = (s.misses || 0) + 1;
-            s.misses >= MISS_LIMIT && (s.gaveUp = !0);
-          }
-          try {
-            localStorage.setItem(PLACE_STORE, JSON.stringify(s));
-          } catch (e) {}
-          s.names[code] && function() {
-            if (!placeDirty && !state.superseded) {
-              placeDirty = !0;
-              setTimeout(() => {
-                placeDirty = !1;
-                if (!state.superseded) try {
-                  refreshDisplay();
-                } catch (e) {}
-              }, 120);
+        const wanted = loc.lang + ":" + code;
+        if (placeWanted.has(wanted)) return;
+        const s = placeStore();
+        if (void 0 === s.names[code] && !s.gaveUp) {
+          placeWanted.add(wanted);
+          placeQueue = placeQueue.then(() => placeStore().gaveUp || placeStore().lang !== loc.lang ? null : originalFetch.call(window, `${PLACE_URL}&site=${loc.site}&lang=${loc.lang}&query=${code}`).then(r => r && r.ok ? r.json() : null).then(j => {
+            const s = placeStore();
+            if (s.lang !== loc.lang || null === j && s.gaveUp) return;
+            const hit = (j?.items || []).find(i => String(i.code || "").toUpperCase() === code);
+            s.names[code] = hit ? String(hit.airport || "") : "";
+            hit && hit.country && (s.countries[code] = String(hit.country));
+            if (hit) {
+              s.misses = 0;
+              s.hits = (s.hits || 0) + 1;
+            } else if (!s.hits) {
+              s.misses = (s.misses || 0) + 1;
+              s.misses >= MISS_LIMIT && (s.gaveUp = !0);
             }
-          }();
-        }).catch(() => {})).then(() => new Promise(r => setTimeout(r, 250)));
+            try {
+              localStorage.setItem(PLACE_STORE, JSON.stringify(s));
+            } catch (e) {}
+            s.names[code] && function() {
+              if (!placeDirty && !state.superseded) {
+                placeDirty = !0;
+                setTimeout(() => {
+                  placeDirty = !1;
+                  if (!state.superseded) {
+                    labelCache.clear();
+                    try {
+                      refreshDisplay();
+                    } catch (e) {}
+                    try {
+                      window.dispatchEvent(new Event("mmiata:place"));
+                    } catch (e) {}
+                  }
+                }, 120);
+              }
+            }();
+          }).catch(() => {})).then(() => new Promise(r => setTimeout(r, 250)));
+        }
       }(up);
       return names[up] || st.names[up] || st.raw[up] || null;
     }
@@ -3752,9 +3813,17 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       countryMapAsset.value || countryMapAsset.load();
       return atlasStore().cc[up] || placeCountry(up) || null;
     }
+    let baseSet = null, baseSrc = null;
     function isoOf(code) {
       const up = String(code || "").toUpperCase();
-      return atlasStore().iso[up] || countryMapAsset.value?.[up] || null;
+      const map = countryMapAsset.value?.[up], atlas = atlasStore().iso[up];
+      if (baseSrc !== state.baseCodes) {
+        baseSrc = state.baseCodes;
+        baseSet = baseSrc ? new Set(baseSrc) : null;
+      }
+      if (!baseSet || !baseSet.has(up)) return atlas || map || null;
+      countryMapAsset.value || countryMapAsset.load();
+      return map || atlas || null;
     }
     let countryNames = null;
     const LOCALE_RE = /\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
@@ -3775,15 +3844,15 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         };
         if (iataListOn()) {
           try {
-            ((await atlasData())?.codes || []).forEach(add);
+            ((await soon(atlasData()))?.codes || []).forEach(add);
           } catch (e) {}
           RAIL_METRO.forEach(([code]) => add(code));
           EXTRA_AIRPORTS.forEach(([code]) => add(code));
         }
         state.added = added;
         if (smartOn()) try {
-          const cmap = await cityMapAsset.load() || {};
-          const atlas = await atlasData();
+          const cmap = await soon(cityMapAsset.load()) || {};
+          const atlas = await soon(atlasData());
           const atlasSet = atlas && atlas.codes ? new Set(atlas.codes) : null;
           const L = data.defaultAirportList;
           const prim = c => cmap[c] || c;
@@ -4148,7 +4217,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 3;
+    const VERSION = 4;
     if (window.__mmPageLang && window.__mmPageLang.version >= VERSION) return;
     try {
       window.__mmPageLang?._observer?.disconnect();
@@ -4172,7 +4241,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.10.5/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.11.0/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -4200,13 +4269,14 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       } catch (e) {}
       if (!data) try {
         const res = await fetch(url);
-        data = res.ok ? await res.json() : {};
+        if (!res.ok) return {};
+        data = await res.json();
         store_set(key, JSON.stringify({
           url: url,
           texts: data
         }));
       } catch (e) {
-        data = {};
+        return {};
       }
       const flat = {};
       for (const k in data) "@" !== k.charAt(0) && "string" == typeof data[k] && (flat[k] = data[k]);
@@ -4257,6 +4327,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return FILE_RE.test(url) && /\/statics\/reward\/content\//.test(url) ? window.__mmPageLangHooks.file(url, args[1], (u, i) => baseFetch.call(window, u, i)) : ANY_FILE_RE.test(url) ? baseFetch.apply(this, args).then(res => res.ok ? window.__mmPageLangHooks.name(res).catch(() => res) : res) : baseFetch.apply(this, args);
       };
     }
+    const CONFIG_WAIT_MS = 5e3;
     let listened = !1, restored = !1;
     const patched = new WeakSet;
     async function apply() {
@@ -4304,8 +4375,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       }(app);
       if (!comp) return !1;
       if (!patched.has(comp)) {
-        patched.add(comp);
-        const cfg = await (obs = comp.config$, new Promise(res => {
+        const cfg = await Promise.race([ (obs = comp.config$, new Promise(res => {
           let sub = null, done = !1;
           sub = obs.subscribe(v => {
             if (!done) {
@@ -4314,7 +4384,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               setTimeout(() => sub && sub.unsubscribe(), 0);
             }
           });
-        }));
+        })), new Promise((_, no) => setTimeout(() => no(new Error("config$")), CONFIG_WAIT_MS)) ]);
+        patched.add(comp);
         const langs = (cfg.languages || []).filter(l => !EXTRA.includes(l));
         EXTRA.forEach(l => {
           const i = langs.indexOf(BEFORE[l]);
@@ -4335,16 +4406,26 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       return !0;
     }
     let busy = !1, doneFor = null;
+    const tries = new WeakMap;
     const check = () => {
       const el = document.querySelector("refx-header-language-selector-pres");
-      if (el && el !== doneFor && !busy) {
-        busy = !0;
-        apply().then(ok => {
-          ok && (doneFor = el);
-        }).catch(() => {}).finally(() => {
-          busy = !1;
-        });
-      }
+      if (!el || el === doneFor || busy) return;
+      const t = tries.get(el) || {
+        n: 0,
+        next: 0
+      };
+      if (Date.now() < t.next) return;
+      busy = !0;
+      const failed = () => {
+        t.n++;
+        t.next = Date.now() + Math.min(3e4, 250 * 2 ** t.n);
+        tries.set(el, t);
+      };
+      apply().then(ok => {
+        ok ? doneFor = el : failed();
+      }).catch(failed).finally(() => {
+        busy = !1;
+      });
     };
     const mo = new MutationObserver(check);
     state._observer = mo;
@@ -4362,7 +4443,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 41;
+    const VERSION = 42;
     if (window.__mmSuggest && window.__mmSuggest.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     if (window.__mmSuggest) try {
@@ -4582,7 +4663,15 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         }
         const i = first + k;
         const e = current[i];
-        I && I.airportName && I.airportName(e.code);
+        if (I && I.airportName) {
+          I.airportName(e.code);
+          const place = I.airportName(e.code, !0) || "";
+          if (place && place !== e.place) {
+            e.place = place;
+            e.hp = haystack(place);
+            e.hpDe = haystackDe(place);
+          }
+        }
         row.style.display = "";
         row.style.top = i * ROW_H + "px";
         row.dataset.i = i;
@@ -4994,11 +5083,14 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       });
       on(window, "mmiata:list", rebuild);
       on(window, "mmiata:names", rebuild);
+      on(window, "mmiata:place", () => {
+        visible() && draw();
+      });
     }();
   })();
   (() => {
     "use strict";
-    const VERSION = 10;
+    const VERSION = 11;
     if (window.__mmFareNames && window.__mmFareNames.version >= VERSION) return;
     const inherited = window.__mmFareNames;
     const FF_RE = /fare-families\.json/i;
@@ -5070,7 +5162,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         resolve();
       }
     }
-    const originalFetch = window.fetch;
+    const rawFetch = window.__mmIataOrigFetch || window.__mmFareOrigFetch || (window.__mmFareOrigFetch = window.fetch);
     window.__mmFareHooks = {
       takeFamilies: takeFamilies,
       takeLocalisation: takeLocalisation
@@ -5084,10 +5176,11 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           (window.__mmFareHooks || {}).takeLocalisation(e.detail);
         } catch (err) {}
       });
+      const baseFetch = window.fetch;
       window.fetch = async function(...args) {
         const url = "string" == typeof args[0] ? args[0] : args[0]?.url || "";
         const before = handed;
-        const res = await originalFetch.apply(this, args);
+        const res = await baseFetch.apply(this, args);
         try {
           const h = window.__mmFareHooks || {};
           FF_RE.test(url) ? res.clone().json().then(h.takeFamilies).catch(() => {}) : LOC_RE.test(url) && handed === before && res.clone().json().then(h.takeLocalisation).catch(() => {});
@@ -5110,7 +5203,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       for (const u of list) {
         if (done()) return;
         try {
-          take(await (await originalFetch.call(window, u)).json());
+          take(await (await rawFetch.call(window, u)).json());
         } catch (e) {}
       }
     }
@@ -5155,7 +5248,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 11;
+    const VERSION = 12;
     if (window.__mmCurrency && window.__mmCurrency.version >= VERSION) return;
     const inherited = window.__mmCurrency;
     if (inherited) try {
@@ -5232,8 +5325,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         try {
           const res = await fetch(src.url);
           if (!res.ok) throw new Error("HTTP " + res.status);
-          const rates = src.pick(await res.json());
-          if (!rates || !Object.keys(rates).length) throw new Error("leere Antwort");
+          const picked = src.pick(await res.json()) || {};
+          const rates = Object.fromEntries(Object.entries(picked).filter(([, v]) => Number.isFinite(v) && v > 0));
+          if (!Object.keys(rates).length) throw new Error("leere Antwort");
           return {
             rates: rates,
             name: src.name
@@ -5351,7 +5445,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 78;
+    const VERSION = 81;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inheritedCal = window.__mmCal;
@@ -5385,6 +5479,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       noOffer: null,
       journey: inheritedCal && inheritedCal.journey || null
     };
+    if (inheritedCal) {
+      inheritedCal.superseded = !0;
+      try {
+        inheritedCal._listen && inheritedCal._listen.abort();
+      } catch (e) {}
+    }
+    state._listen = new AbortController;
     try {
       Object.defineProperty(window, "__mmCal", {
         value: state,
@@ -5426,6 +5527,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     try {
       window.addEventListener("storage", e => {
         e.key !== CACHE_KEY && null !== e.key || (cacheMem = null);
+      }, {
+        signal: state._listen.signal
       });
     } catch (e) {}
     function readCache() {
@@ -5526,10 +5629,12 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       emit();
     };
     const SEARCH_KEY = "mmcal_search";
+    const plainObject = v => v && "object" == typeof v && !Array.isArray(v) ? v : {};
+    const expired = (now, ts, ttl) => !(now - ts <= ttl);
     let searchMem = null;
     function searchStore() {
       if (!searchMem) try {
-        searchMem = JSON.parse(localStorage.getItem(SEARCH_KEY) || "{}") || {};
+        searchMem = plainObject(JSON.parse(localStorage.getItem(SEARCH_KEY) || "{}"));
       } catch (e) {
         searchMem = {};
       }
@@ -5540,7 +5645,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     let namesMem = null;
     function namesStore() {
       if (!namesMem) try {
-        namesMem = JSON.parse(localStorage.getItem(NAMES_KEY) || "{}") || {};
+        namesMem = plainObject(JSON.parse(localStorage.getItem(NAMES_KEY) || "{}"));
       } catch (e) {
         namesMem = {};
       }
@@ -5549,7 +5654,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     state.fareNamesRev = 0;
     state.faresAt = (route, cabin, miles) => {
       const e = namesStore()[route];
-      return e && Date.now() - e.ts <= NAMES_TTL_MS && e.m[cabin] && e.m[cabin][miles] || [];
+      return e && !expired(Date.now(), e.ts, NAMES_TTL_MS) && e.m && e.m[cabin] && e.m[cabin][miles] || [];
     };
     state.addSearchFares = (bodyText, fares) => {
       let body = null;
@@ -5563,7 +5668,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         const route = first.o + "-" + first.d;
         const store = namesStore();
         const now = Date.now();
-        const e = store[route] && now - store[route].ts <= NAMES_TTL_MS ? store[route] : {
+        const e = store[route] && !expired(now, store[route].ts, NAMES_TTL_MS) && store[route].m ? store[route] : {
           m: {}
         };
         let added = !1;
@@ -5579,7 +5684,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           e.ts = now;
           store[route] = e;
           Object.keys(store).forEach(r => {
-            now - store[r].ts > NAMES_TTL_MS && delete store[r];
+            expired(now, store[r] && store[r].ts, NAMES_TTL_MS) && delete store[r];
           });
           try {
             localStorage.setItem(NAMES_KEY, JSON.stringify(store));
@@ -5610,11 +5715,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         };
       });
       Object.keys(store).forEach(r => {
+        store[r] = plainObject(store[r]);
         Object.keys(store[r]).forEach(d => {
-          Object.keys(store[r][d]).forEach(c => {
-            ts - store[r][d][c].ts > CACHE_TTL_MS && delete store[r][d][c];
+          const dayStore = store[r][d] = plainObject(store[r][d]);
+          Object.keys(dayStore).forEach(c => {
+            expired(ts, dayStore[c] && dayStore[c].ts, CACHE_TTL_MS) && delete dayStore[c];
           });
-          Object.keys(store[r][d]).length || delete store[r][d];
+          Object.keys(dayStore).length || delete store[r][d];
         });
         Object.keys(store[r]).length || delete store[r];
       });
@@ -5628,7 +5735,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       if (!day) return null;
       const now = Date.now(), out = {};
       Object.keys(day).forEach(c => {
-        now - day[c].ts <= CACHE_TTL_MS && (out[c] = day[c]);
+        day[c] && !expired(now, day[c].ts, CACHE_TTL_MS) && (out[c] = day[c]);
       });
       return Object.keys(out).length ? out : null;
     };
@@ -5694,13 +5801,13 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           if (!months) return;
           let restored = 0;
           const byDate = new Map(state.days.map(d => [ d.date, d ]));
-          Object.keys(months).forEach(month => {
+          const valid = Object.keys(months).filter(month => months[month] && Array.isArray(months[month].days));
+          valid.forEach(month => months[month].days.forEach(d => {
+            byDate.has(d.date) || byDate.set(d.date, d);
+          }));
+          state.days = [ ...byDate.values() ].sort((a, b) => a.date.localeCompare(b.date));
+          valid.forEach(month => {
             const entry = months[month];
-            if (!entry || !Array.isArray(entry.days)) return;
-            entry.days.forEach(d => {
-              byDate.has(d.date) || byDate.set(d.date, d);
-            });
-            state.days = [ ...byDate.values() ].sort((a, b) => a.date.localeCompare(b.date));
             const [y, m] = month.split("-").map(Number);
             if (isMonthComplete(y, m - 1)) {
               state.loadedMonths.add(month);
@@ -5737,6 +5844,116 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const a = countryOf(o), b = countryOf(d);
       return !!a && !!b && (a === b || CONTINENTAL.has(a) && CONTINENTAL.has(b));
     };
+    const formCode = id => {
+      const m = /\(([A-Z]{3})\)\s*$/.exec((document.getElementById(id) || {}).value || "");
+      return m ? m[1] : null;
+    };
+    function formShortHaul() {
+      const o = formCode("origin"), d = formCode("destination");
+      const a = o && countryOf(o), b = d && countryOf(d);
+      return a && b ? a === b || CONTINENTAL.has(a) && CONTINENTAL.has(b) : null;
+    }
+    let cabinShared = null;
+    let formRoute = null;
+    const onFormEvent = () => setTimeout(() => {
+      if (state.superseded) return;
+      !function() {
+        if (cabinShared) return;
+        const found = function() {
+          try {
+            for (const t of window.getAllAngularTestabilities()) {
+              const recs = t && t._destroyRef && t._destroyRef.records;
+              if (!recs || "function" != typeof recs.forEach) continue;
+              let hit = null;
+              recs.forEach(r => {
+                const v = r && r.value;
+                !hit && v && v.cabinListConfigurationSubject$ && v.cabinListConfig$ && (hit = v);
+              });
+              if (hit) return {
+                svc: hit,
+                zone: t._ngZone && "function" == typeof t._ngZone.run ? t._ngZone : null
+              };
+            }
+          } catch (e) {}
+          return null;
+        }();
+        if (!found) return;
+        const {svc: svc, zone: zone} = found;
+        if (svc.__mmFormCabins) {
+          cabinShared = svc.__mmFormCabins;
+          return;
+        }
+        const own = svc.cabinListConfig$, full$ = svc.cabinListConfigurationSubject$;
+        const Obs = own && own.constructor;
+        if ("function" != typeof Obs || "function" != typeof full$.subscribe) return;
+        const shared = {
+          flag: !1,
+          pushes: new Set
+        };
+        let flag$ = null;
+        try {
+          flag$ = svc.featureFlagService.isEnabledStream("ACF-56598");
+        } catch (e) {}
+        flag$ && flag$.subscribe(v => {
+          shared.flag = !!v;
+        });
+        svc.cabinListConfig$ = new Obs(sub => {
+          let full = null, app = null, sent = null, decided = null;
+          const push = () => {
+            const flag = shared.flag;
+            let short = flag ? null : formShortHaul();
+            null !== short || flag ? flag || (decided = short) : short = decided;
+            const list = null !== short && full ? short ? full.filter(c => /^(ECONOMY|BUSINESS)$/i.test(c && c.cabinCode)) : full : app;
+            if (!list) return;
+            const key = list.map(c => c && c.cabinCode).join();
+            if (key !== sent) {
+              sent = key;
+              zone ? zone.run(() => sub.next(list)) : sub.next(list);
+            }
+          };
+          const subs = [ own.subscribe(v => {
+            app = v;
+            push();
+          }), full$.subscribe(v => {
+            full = v;
+            push();
+          }) ];
+          flag$ && subs.push(flag$.subscribe(() => push()));
+          shared.pushes.add(push);
+          return () => {
+            subs.forEach(s => s.unsubscribe());
+            shared.pushes.delete(push);
+          };
+        });
+        svc.__mmFormCabins = shared;
+        cabinShared = shared;
+      }();
+      const o = formCode("origin"), d = formCode("destination");
+      if (!o || !d) return;
+      const r = o + "-" + d;
+      if (r !== formRoute && null !== formShortHaul()) {
+        cabinShared && cabinShared.pushes.forEach(p => {
+          try {
+            p();
+          } catch (e) {}
+        });
+        (function() {
+          if (cabinShared && cabinShared.flag || !0 !== formShortHaul()) return !0;
+          const hooks = window.__mmsuHooks;
+          const f = hooks && "function" == typeof hooks.form ? hooks.form() : null;
+          const c = f && f.comp && f.comp.modifySearchForm && f.comp.modifySearchForm.controls.cabin;
+          if (!c) return !1;
+          if ("FIRST" !== c.value && "PREMIUMECO" !== c.value) return !0;
+          const next = "FIRST" === c.value ? "BUSINESS" : "ECONOMY";
+          f.zone ? f.zone.run(() => c.setValue(next)) : c.setValue(next);
+          return !0;
+        })() && (formRoute = r);
+      }
+    }, 0);
+    [ "mousedown", "click", "keyup", "input", "change", "focusin", "focusout" ].forEach(ev => document.addEventListener(ev, onFormEvent, {
+      capture: !0,
+      signal: state._listen.signal
+    }));
     const poolKey = (month, pool) => month + "|" + pool;
     const conditioned = () => {
       try {
@@ -6018,7 +6235,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return out;
       },
       state: state,
-      rawKey: (url, body, headers) => url + "|" + body + "|" + (headers && (headers["ama-client-facts"] || headers["Ama-Client-Facts"]) || ""),
+      rawKey: (url, body, headers) => {
+        const k = headers && Object.keys(headers).find(x => "ama-client-facts" === x.toLowerCase());
+        return url + "|" + body + "|" + (k && headers[k] || "");
+      },
       rememberRaw: function(key, text) {
         if (key && text) {
           rawReplies.delete(key);
@@ -6079,10 +6299,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         } catch (e) {}
       },
       appGate: async function() {
-        gate.starts = sharedStarts(Date.now());
-        const d = minuteWait(Date.now(), gate.limits.appCap);
+        const d = appDelay();
         d > 0 && await new Promise(r => setTimeout(r, d));
       },
+      appDelay: appDelay,
       offersNoDay: offersNoDay,
       gated: fn => gated(fn)
     };
@@ -6140,6 +6360,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           const hit = c.recallRaw ? c.recallRaw(key) : null;
           if (hit) {
             c.state.servedFromCache = (c.state.servedFromCache || 0) + 1;
+            if (c.state.pendingTemplate) {
+              c.state.template = c.state.pendingTemplate;
+              c.state.pendingTemplate = null;
+            }
             try {
               c.searchSettled && c.searchSettled();
             } catch (e) {}
@@ -6287,7 +6511,21 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
                 c2.state.template = c2.state.pendingTemplate;
                 c2.state.pendingTemplate = null;
               }
-            } else c2.state.pendingTemplate = null;
+              try {
+                c2.clearBlock && c2.clearBlock();
+              } catch (e) {}
+            } else {
+              c2.state.pendingTemplate = null;
+              if (429 === this.status && c2.noteRefusal) {
+                let ra = 0;
+                try {
+                  ra = Number(this.getResponseHeader("retry-after")) || 0;
+                } catch (e) {}
+                try {
+                  c2.noteRefusal("HTTP 429", ra);
+                } catch (e) {}
+              }
+            }
             let raw = null;
             try {
               raw = rawText && rawText.get ? rawText.get.call(this) : this.responseText;
@@ -6298,10 +6536,35 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
               h().ingest(JSON.parse(raw), sentBody);
             } catch (e) {}
           });
+          this.addEventListener("error", () => {
+            const c2 = h();
+            try {
+              c2.searchSettled && c2.searchSettled();
+            } catch (e) {}
+            c2.state.pendingTemplate = null;
+            if (("undefined" == typeof navigator || !1 !== navigator.onLine) && c2.noteRefusal) try {
+              c2.noteRefusal("Failed to fetch");
+            } catch (e) {}
+          });
+          const go = () => {
+            if (1 === this.readyState) {
+              try {
+                h().noteAppCall && h().noteAppCall();
+              } catch (e) {}
+              return XS.call(this, body);
+            }
+          };
+          let wait = 0;
           try {
-            h().noteAppCall && h().noteAppCall();
+            wait = c.appDelay ? c.appDelay() : 0;
           } catch (e) {}
-        } else try {
+          if (wait > 0) {
+            setTimeout(go, wait);
+            return;
+          }
+          return go();
+        }
+        try {
           const c = h();
           c.noteSearch && c.noteSearch(this.__mmCalUrl, body);
         } catch (e) {}
@@ -6343,6 +6606,10 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       for (let d = 0; d < 2 * W; d += 250) if (minuteCount(now + d) + 1 <= cap) return d;
       return 2 * W;
     }
+    function appDelay() {
+      gate.starts = sharedStarts(Date.now());
+      return minuteWait(Date.now(), gate.limits.appCap);
+    }
     function gateDelay() {
       const now = Date.now();
       const L = gate.limits;
@@ -6362,15 +6629,22 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
             name: "SkipError",
             stale: !0
           });
+          const wasThrottled = gate.throttled;
           const d = gateDelay();
           if (0 === d) break;
-          d > 500 && emit();
+          gate.throttled !== wasThrottled && emit();
           await new Promise(r => {
-            const t = d > 0 ? setTimeout(r, d) : null;
-            gate._wake.push(() => {
+            let t = null;
+            const wake = () => {
               clearTimeout(t);
               r();
-            });
+            };
+            d > 0 && (t = setTimeout(() => {
+              const i = gate._wake.indexOf(wake);
+              i >= 0 && gate._wake.splice(i, 1);
+              r();
+            }, d));
+            gate._wake.push(wake);
           });
         }
       } finally {
@@ -6389,6 +6663,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         gate._wake.splice(0).forEach(r => r());
       }
     }
+    const CALL_TIMEOUT_MS = 3e4;
+    const aborted = e => !!e && ("AbortError" === e.name || "TimeoutError" === e.name);
     const TOK_KEY = "gateway-auth-tokens";
     function storedBearer() {
       try {
@@ -6508,39 +6784,45 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       emit();
       try {
         const body = JSON.parse(state.template.body);
-        const flex = (body.itineraries || []).length > 1 ? FLEX_ROUNDTRIP : FLEXIBILITY;
-        const span = 2 * flex + 1;
-        const today = new Date;
-        today.setHours(0, 0, 0, 0);
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDay = firstLoadableDay(year, month);
-        const its = body.itineraries || [];
-        const ri = Math.max(0, its.findIndex(x => x && !0 === x.isRequestedBound));
-        const legDay = i => its[i] && its[i].departureDateTime ? new Date(String(its[i].departureDateTime).slice(0, 10) + "T00:00:00") : null;
-        const lo = legDay(ri - 1), hi = legDay(ri + 1);
-        const inMonth = dt => dt && dt.getFullYear() === year && dt.getMonth() === month;
-        const first = lo && lo > new Date(year, month + 1, 0) ? daysInMonth + 1 : inMonth(lo) ? Math.max(firstDay, lo.getDate()) : firstDay;
-        const last = hi && hi < new Date(year, month, 1) ? 0 : inMonth(hi) ? hi.getDate() : daysInMonth;
-        const centres = [];
-        for (let d = first; d <= last; d += span) {
-          let c = new Date(year, month, Math.min(d + flex, last));
-          c < today && (c = today);
-          centres.push(c);
-        }
-        const asked = legDay(ri);
-        asked && centres.sort((a, b) => Math.abs(a - asked) - Math.abs(b - asked));
-        if (conditioned()) {
-          const have = new Set(state.days.map(d => d.date));
-          const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-          const covered = c => {
-            for (let k = -flex; k <= flex; k++) {
-              const dt = new Date(c.getFullYear(), c.getMonth(), c.getDate() + k);
-              if (!(!inMonth(dt) || dt.getDate() < first || dt.getDate() > last || dt < today || have.has(iso(dt)))) return !1;
-            }
-            return !0;
+        const {flex: flex, centres: centres} = function(body, year, month) {
+          const flex = (body.itineraries || []).length > 1 ? FLEX_ROUNDTRIP : FLEXIBILITY;
+          const span = 2 * flex + 1;
+          const today = new Date;
+          today.setHours(0, 0, 0, 0);
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const firstDay = firstLoadableDay(year, month);
+          const its = body.itineraries || [];
+          const ri = Math.max(0, its.findIndex(x => x && !0 === x.isRequestedBound));
+          const legDay = i => its[i] && its[i].departureDateTime ? new Date(String(its[i].departureDateTime).slice(0, 10) + "T00:00:00") : null;
+          const lo = legDay(ri - 1), hi = legDay(ri + 1);
+          const inMonth = dt => dt && dt.getFullYear() === year && dt.getMonth() === month;
+          const first = lo && lo > new Date(year, month + 1, 0) ? daysInMonth + 1 : inMonth(lo) ? Math.max(firstDay, lo.getDate()) : firstDay;
+          const last = hi && hi < new Date(year, month, 1) ? 0 : inMonth(hi) ? hi.getDate() : daysInMonth;
+          const centres = [];
+          for (let d = first; d <= last; d += span) {
+            let c = new Date(year, month, Math.min(d + flex, last));
+            c < today && (c = today);
+            centres.push(c);
+          }
+          const askedDay = legDay(ri);
+          askedDay && centres.sort((a, b) => Math.abs(a - askedDay) - Math.abs(b - askedDay));
+          if (conditioned()) {
+            const have = new Set(state.days.map(d => d.date));
+            const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+            const covered = c => {
+              for (let k = -flex; k <= flex; k++) {
+                const dt = new Date(c.getFullYear(), c.getMonth(), c.getDate() + k);
+                if (!(!inMonth(dt) || dt.getDate() < first || dt.getDate() > last || dt < today || have.has(iso(dt)))) return !1;
+              }
+              return !0;
+            };
+            for (let i = centres.length - 1; i >= 0; i--) covered(centres[i]) && centres.splice(i, 1);
+          }
+          return {
+            flex: flex,
+            centres: centres
           };
-          for (let i = centres.length - 1; i >= 0; i--) covered(centres[i]) && centres.splice(i, 1);
-        }
+        }(body, year, month);
         if (!centres.length) {
           state.loadedMonths.add(key);
           pools.forEach(p => {
@@ -6584,7 +6866,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
             })), btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) + ".";
             var s;
           }(headers, poolBody, pool);
-          let okCount = 0, lastStatus = null, lastFailed = null, refused = !1, retryAfter = 0;
+          let okCount = 0, lastStatus = null, lastFailed = null, refused = !1, skipped = !1, retryAfter = 0;
           let renewed = !1;
           const send = async renew => {
             const h = await async function(base, renew) {
@@ -6592,28 +6874,39 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
                 ...base
               };
               const B = window.__mmBounds;
-              if (B && "function" == typeof B.refreshAuth) try {
-                await B.refreshAuth(!!renew);
-              } catch (e) {}
+              if (B && "function" == typeof B.refreshAuth) {
+                let limit = null;
+                try {
+                  await Promise.race([ B.refreshAuth(!!renew), new Promise(r => {
+                    limit = setTimeout(r, CALL_TIMEOUT_MS);
+                  }) ]);
+                } catch (e) {} finally {
+                  clearTimeout(limit);
+                }
+              }
               const token = storedBearer();
               if (!token) return h;
               h[Object.keys(h).find(x => "authorization" === x.toLowerCase()) || "authorization"] = "Bearer " + token;
               return h;
             }(headers, renew);
-            return gated(() => refusedNow ? Promise.reject(Object.assign(new Error(T("nicht gesendet (Sperre)")), {
-              name: "SkipError"
-            })) : originalFetch(state.template.url, {
-              method: state.template.method,
-              headers: h,
-              body: JSON.stringify(poolBody),
-              credentials: "include"
-            }).then(res => {
-              429 === res.status && (refusedNow = !0);
-              return res;
-            }, e => {
-              offline() || e && "AbortError" === e.name || (refusedNow = !0);
-              throw e;
-            }), () => state.routeKey !== routeAtStart);
+            return gated(() => {
+              return refusedNow ? Promise.reject(Object.assign(new Error(T("nicht gesendet (Sperre)")), {
+                name: "SkipError"
+              })) : originalFetch(state.template.url, {
+                method: state.template.method,
+                headers: h,
+                body: JSON.stringify(poolBody),
+                credentials: "include",
+                signal: (ms = CALL_TIMEOUT_MS, "undefined" != typeof AbortSignal && AbortSignal.timeout ? AbortSignal.timeout(ms) : void 0)
+              }).then(res => {
+                429 === res.status && (refusedNow = !0);
+                return res;
+              }, e => {
+                offline() || aborted(e) || (refusedNow = !0);
+                throw e;
+              });
+              var ms;
+            }, () => state.routeKey !== routeAtStart);
           };
           for (const c of centres) {
             poolIt.departureDateTime = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, "0")}-` + `${String(c.getDate()).padStart(2, "0")}T00:00:00.000`;
@@ -6664,10 +6957,11 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
                 stale: !0
               };
               lastFailed = e && e.message || T("Netzwerkfehler");
-              if (!(offline() || e && "AbortError" === e.name)) {
+              if (!offline() && !aborted(e)) {
                 refused = !0;
                 refusedNow = !0;
               }
+              e && "SkipError" === e.name && (skipped = !0);
               break;
             }
           }
@@ -6679,7 +6973,8 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           } : {
             failed: lastFailed || T("Netzwerkfehler"),
             pool: pool,
-            refused: refused
+            refused: refused,
+            skipped: skipped
           };
           pool && !refused && state.poolsLoaded.add(poolKey(key, pool));
           return {
@@ -6761,7 +7056,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 32;
+    const VERSION = 38;
     if (window.__mmBBD && window.__mmBBD.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inherited = window.__mmBBD;
@@ -6809,7 +7104,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       FDH: "DE",
       FKB: "DE",
       SCN: "DE",
-      XER: "DE",
+      XER: "FR",
       XIT: "DE",
       XIU: "DE",
       ZSB: "AT",
@@ -7018,74 +7313,124 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       PER: "AU",
       AKL: "NZ"
     };
-    const CURRENCY = {
-      CH: "CHF",
-      GB: "GBP",
-      SE: "SEK",
-      DK: "DKK",
-      NO: "NOK",
-      PL: "PLN",
-      CZ: "CZK",
-      HU: "HUF",
-      RO: "RON",
-      BG: "BGN",
-      RS: "RSD",
-      BA: "BAM",
-      MK: "MKD",
-      AL: "ALL",
-      TR: "TRY",
-      IS: "ISK",
-      US: "USD",
-      CA: "CAD",
-      MX: "MXN",
-      BR: "BRL",
-      AR: "ARS",
-      CO: "COP",
-      CL: "CLP",
-      PE: "PEN",
-      ZA: "ZAR",
-      NG: "NGN",
-      AO: "AOA",
-      KE: "KES",
-      MU: "MUR",
-      NA: "NAD",
-      SC: "SCR",
-      GH: "GHS",
-      ET: "ETB",
-      AE: "AED",
-      SA: "SAR",
-      QA: "QAR",
-      IL: "ILS",
-      EG: "EGP",
-      JO: "JOD",
-      IN: "INR",
-      JP: "JPY",
-      TH: "THB",
-      KR: "KRW",
-      KZ: "KZT",
-      CN: "CNY",
-      LK: "LKR",
-      SG: "SGD",
-      HK: "HKD",
-      MY: "MYR",
-      PH: "PHP",
-      ID: "IDR",
-      VN: "VND",
-      TW: "TWD",
-      NP: "NPR",
-      MV: "MVR",
-      AU: "AUD",
-      NZ: "NZD"
+    const CURRENCY_OF = {
+      EUR: "AD AF AG AI AL AM AQ AS AT BE BT BY CC CF CX CY DE DM EE ES FI FK FO FR GD GF GI GL GP GR GY HR HT IE IT KI KN KP LC LS LT LU LV LY MC MD ME MK MQ MS MT NC NF NL NR NU PG PM PT RE RO SB SI SK SM SR SY SZ TJ TV UM VA VC VG VI VU WF WS XK YE YT",
+      USD: "AO BB BM BQ BS CD EC FM GH GM GN GU IL IQ IR KE KH KY LB LR MH MP MV NG PA PE PH PR PW PY SL SO ST SV TC TM TZ UG US UY ZW",
+      XOF: "BF BJ CI GW ML NE SN TG",
+      XAF: "CG CM GA GQ TD",
+      ANG: "CW SX",
+      CHF: "CH LI",
+      NZD: "CK NZ",
+      AED: "AE",
+      ARS: "AR",
+      AUD: "AU",
+      AWG: "AW",
+      AZN: "AZ",
+      BAM: "BA",
+      BDT: "BD",
+      BGN: "BG",
+      BHD: "BH",
+      BIF: "BI",
+      BND: "BN",
+      BOB: "BO",
+      BRL: "BR",
+      BWP: "BW",
+      BZD: "BZ",
+      CAD: "CA",
+      CLP: "CL",
+      CNY: "CN",
+      COP: "CO",
+      CRC: "CR",
+      CUP: "CU",
+      CVE: "CV",
+      CZK: "CZ",
+      DJF: "DJ",
+      DKK: "DK",
+      DOP: "DO",
+      DZD: "DZ",
+      EGP: "EG",
+      ERN: "ER",
+      ETB: "ET",
+      FJD: "FJ",
+      GBP: "GB",
+      GEL: "GE",
+      GTQ: "GT",
+      HKD: "HK",
+      HNL: "HN",
+      HUF: "HU",
+      IDR: "ID",
+      INR: "IN",
+      ISK: "IS",
+      JMD: "JM",
+      JOD: "JO",
+      JPY: "JP",
+      KGS: "KG",
+      KMF: "KM",
+      KRW: "KR",
+      KWD: "KW",
+      KZT: "KZ",
+      LAK: "LA",
+      LKR: "LK",
+      MAD: "MA",
+      MGA: "MG",
+      MMK: "MM",
+      MNT: "MN",
+      MOP: "MO",
+      MRU: "MR",
+      MUR: "MU",
+      MWK: "MW",
+      MXN: "MX",
+      MYR: "MY",
+      MZN: "MZ",
+      NAD: "NA",
+      NIO: "NI",
+      NOK: "NO",
+      NPR: "NP",
+      OMR: "OM",
+      PKR: "PK",
+      PLN: "PL",
+      QAR: "QA",
+      RSD: "RS",
+      RUB: "RU",
+      RWF: "RW",
+      SAR: "SA",
+      SCR: "SC",
+      SDG: "SD",
+      SEK: "SE",
+      SGD: "SG",
+      SSP: "SS",
+      THB: "TH",
+      TND: "TN",
+      TOP: "TO",
+      TRY: "TR",
+      TTD: "TT",
+      TWD: "TW",
+      UAH: "UA",
+      UZS: "UZ",
+      VES: "VE",
+      VND: "VN",
+      XPF: "PF",
+      ZAR: "ZA",
+      ZMW: "ZM"
     };
+    const CURRENCY = {};
+    Object.keys(CURRENCY_OF).forEach(cur => CURRENCY_OF[cur].split(" ").forEach(cc => {
+      CURRENCY[cc] = cur;
+    }));
     const countryOf = iata => {
       for (const h of [ window.__mmBounds, window.__mmCal ]) try {
         const loc = h && h.dictionaries && h.dictionaries.location;
         const c = loc && loc[iata] && loc[iata].countryCode;
         if (c) return c;
       } catch (e) {}
+      try {
+        const c = window.__mmIata && window.__mmIata.isoOf && window.__mmIata.isoOf(iata);
+        if (c) return c;
+      } catch (e) {}
       return COUNTRY[iata] || null;
     };
-    const currencyOfCountry = cc => CURRENCY[cc] || "EUR";
+    const NO_BEST_BY_DAY = new Set([ "MD" ]);
+    const currencyOfCountry = cc => NO_BEST_BY_DAY.has(cc) ? null : CURRENCY[cc] || null;
     const originalFetch = window.fetch;
     const CACHE_KEY = "mmbbd_cache";
     const TTL_MS = 6 * 60 * 60 * 1e3;
@@ -7179,6 +7524,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     };
     const specKey = s => s.origin + "-" + s.dest + ("trip" === s.kind ? "~" + s.duration : "return" === s.kind ? "<" + s.date : "");
+    const askable = s => "trip" !== s.kind || s.duration >= 1 && s.duration <= 30;
     async function fetchRoute(spec, cc, signal) {
       let failed = 0, aborted = !1;
       const reasons = [];
@@ -7315,6 +7661,15 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         emit();
         return;
       }
+      if (!currencyOfCountry(cc)) {
+        state.route = grid;
+        state.days = [];
+        byDate = null;
+        state.loading = !1;
+        state.error = null;
+        emit();
+        return;
+      }
       const ctrl = "undefined" != typeof AbortController ? new AbortController : null;
       inflight = ctrl;
       state.loading = !0;
@@ -7379,6 +7734,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     const index = () => byDate = indexOf(state.days);
     state.forDate = dateStr => (byDate || index()).get(dateStr) || {};
     const others = new Map;
+    const RETRY_MS = 6e4;
     function forSpec(spec) {
       const key = specKey(spec);
       if (others.has(key)) return others.get(key);
@@ -7391,11 +7747,23 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const cc = spec.origin && spec.dest ? countryOf(spec.origin) : null;
       if (!cc) return null;
       others.size >= MAX_ROUTES && others.delete(others.keys().next().value);
+      if (!currencyOfCountry(cc) || !askable(spec)) {
+        others.set(key, new Map);
+        return others.get(key);
+      }
       others.set(key, null);
       fetchRoute(spec, cc).then(r => {
-        others.set(key, indexOf(named(spec, r.days)));
-        r.failed || writeCache(key, r.days);
-        emit();
+        if (null === others.get(key)) {
+          others.set(key, indexOf(named(spec, r.days)));
+          r.failed || writeCache(key, r.days);
+          r.failed === Object.keys(CFF).length && setTimeout(() => {
+            others.has(key) && others.delete(key);
+          }, RETRY_MS);
+          emit();
+        }
+      }).catch(() => {
+        others.set(key, new Map);
+        setTimeout(() => others.delete(key), RETRY_MS);
       });
       return null;
     }
@@ -7457,7 +7825,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           dest: leg.d,
           duration: span
         };
-        span >= 1 && specKey(spec) !== state.route ? load(spec, specKey(spec)) : span < 1 && state.route !== route + "|none" && none(route + "|none");
+        askable(spec) ? specKey(spec) !== state.route && load(spec, specKey(spec)) : state.route !== route + "|none" && none(route + "|none");
         return;
       }
       const outbound = "return" === j.kind && 1 === j.req && j.selectedBoundId ? function(id) {
@@ -7516,7 +7884,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 192;
+    const VERSION = 198;
     if (window.__mmCalUI && window.__mmCalUI.version >= VERSION) return;
     const inherited = window.__mmCalUI;
     if (inherited) {
@@ -7978,7 +8346,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     }
     const ORDER = [ "eco", "ecoPremium", "business", "first" ];
     const shownCabins = cal => cal.shortHaul && cal.shortHaul() ? [ "eco", "business" ] : ORDER;
-    function monthLoadState(v, i, cols) {
+    function monthLoadState(v, i) {
       const cal = v.cal;
       const d = v.win[i].d;
       const mk = v.win[i].dateStr.slice(0, 7);
@@ -8004,14 +8372,14 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       const status = T("Aktuelle Anzeige: {state}", {
         state: T(inCal ? "Kalenderpreise unvollständig" : bbd ? "Nur BBD-Preise" : "Keine Preise")
       });
-      const word = T(queued ? cols >= 4 ? "Kalender wartet …" : "wartet …" : busy ? cols >= 4 ? "Kalender lädt …" : "lädt …" : cols >= 4 ? "Kalender laden" : "Laden");
-      const dot = cols < 2;
+      const short = T(queued ? "wartet …" : busy ? "lädt …" : "Laden");
+      const word = T(queued ? "Kalender wartet …" : busy ? "Kalender lädt …" : "Kalender laden");
       return {
-        button: '<button type="button" class="mmcal-loadbtn' + (busy ? " is-busy" : "") + (dot ? " is-dot" : "") + '"' + (busy ? " disabled" : ' data-loadmonth="' + d.getFullYear() + "-" + d.getMonth() + '"') + (dot ? ' aria-label="' + esc(word) + '"' : "") + ' title="' + esc(T("Holt die Kalenderpreise für {month}.", {
+        button: '<button type="button" class="mmcal-loadbtn' + (busy ? " is-busy" : "") + '"' + (busy ? " disabled" : ' data-loadmonth="' + d.getFullYear() + "-" + d.getMonth() + '"') + ' aria-label="' + esc(word) + '" data-short="' + esc(short) + '"' + ' title="' + esc(T("Holt die Kalenderpreise für {month}.", {
           month: name
-        }) + " " + status + "." + (bbd && !inCal ? " " + T("Können veraltet oder nicht mehr verfügbar sein.") : "")) + '">' + '<span class="mmcal-loaddot"></span>' + (dot ? "" : word) + "</button>",
+        }) + " " + status + "." + (bbd && !inCal ? " " + T("Können veraltet oder nicht mehr verfügbar sein.") : "")) + '">' + '<span class="mmcal-loaddot"></span><span class="mmcal-loadword">' + word + "</span>" + "</button>",
         status: status,
-        text: busy || cols < 7 ? "" : '<span class="mmcal-loadsub">' + esc(status) + "</span>"
+        text: busy ? "" : '<span class="mmcal-loadsub">' + esc(status) + "</span>"
       };
     }
     function emptyCellHtml(v, w, cab, thin, nm) {
@@ -8067,11 +8435,48 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       return '<button type="button" class="mmcal-c ' + (isBbd ? "is-bbd" : "is-cal") + nm + (x.blocked ? " is-blocked" : isBest ? " is-best" : null != best ? " is-dear" : "") + (w.dead ? " is-deadday" : "") + (busy ? " is-busy" : "") + '" style="--mc:' + meta.color + '" data-date="' + w.dateStr + '" data-cabin="' + cab + '" tabindex="-1"' + (w.off ? " disabled" : "") + ' data-tip="' + esc(tipText) + '" aria-label="' + esc(tipText.replace(/\n/g, ", ")) + '">' + '<span class="mmcal-tier">' + esc(busy ? T("sucht …") : x.fare.tier || "") + "</span>" + '<span class="mmcal-miles">' + esc(fmtMiles(x.miles)) + "</span>" + (null != x.taxes ? '<span class="mmcal-tax">+ ' + esc(null != eurVal ? curFmt(Math.round(eurVal), fx.target(), 0) : curFmt(Math.round(x.taxes), x.currency, 0)) + "</span>" : "") + "</button>";
     }
     function paint(html) {
-      if (state.root.__mmcalHtml !== html) {
-        state.root.innerHTML = html;
-        state.root.__mmcalHtml = html;
+      if (state.root.__mmcalHtml === html) return !1;
+      state.root.innerHTML = html;
+      state.root.__mmcalHtml = html;
+      return !0;
+    }
+    const FIT_STEPS = [ [], [ "fit-nosub" ], [ "fit-nosub", "fit-short" ], [ "fit-nosub", "fit-short", "fit-dot" ] ];
+    const FIT_LAYOUTS = [ [], [ "is-stacked" ], [ "is-stacked", "is-narrow" ] ];
+    function fitHead() {
+      const head = state.root && state.root.querySelector(".mmcal-head.is-open");
+      if (!head || !head.clientWidth) return;
+      const q = sel => head.querySelector(sel);
+      const w = el => el ? el.getBoundingClientRect().width : 0;
+      const gap = parseFloat(getComputedStyle(head).columnGap) || 0;
+      const fitsIn = (a, b, room) => () => (a && b ? w(a) + gap + w(b) : w(a) + w(b)) <= room + 1;
+      const route = q(".mmcal-route"), before = q(".mmcal-mo.is-before"), after = q(".mmcal-mo.is-after");
+      const side = (head.clientWidth - w(q(".mmcal-nav"))) / 2 - gap;
+      const shrink = (months, fits) => FIT_STEPS.some(step => {
+        months.forEach(mo => {
+          if (mo) {
+            mo.classList.remove("fit-nosub", "fit-short", "fit-dot");
+            mo.classList.add(...step);
+          }
+        });
+        return fits();
+      });
+      for (const layout of FIT_LAYOUTS) {
+        head.classList.remove("is-stacked", "is-narrow");
+        head.classList.add(...layout);
+        if (layout.includes("is-narrow") ? shrink([ before, after ], fitsIn(before, after, head.clientWidth)) : layout.includes("is-stacked") ? [ shrink([ before ], fitsIn(before, null, side)), shrink([ after ], fitsIn(after, null, side)) ].every(Boolean) : [ shrink([ before ], fitsIn(route, before, side)), shrink([ after ], fitsIn(after, q(".mmcal-end"), side)) ].every(Boolean)) return;
       }
     }
+    let fitWidth = null;
+    let fitRoot = null;
+    let fitFrame = 0;
+    const fitObs = "function" == typeof ResizeObserver ? new ResizeObserver(entries => {
+      const w = Math.round(entries[entries.length - 1].contentRect.width);
+      if (w !== fitWidth) {
+        fitWidth = w;
+        cancelAnimationFrame(fitFrame);
+        fitFrame = requestAnimationFrame(fitHead);
+      }
+    }) : null;
     function render() {
       const cal = window.__mmCal;
       if (!state.root || !cal) return;
@@ -8289,9 +8694,9 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
         return [ v.known && !ORDER.some(c => r.cabinsPresent.has(c)) ? "<span>" + T("keine Verfügbarkeit im Zeitraum") + "</span>" : "", r.anyBest ? "<span>" + T("dunkler: teurer als der günstigste Tag") + "</span>" : "", r.anyNone ? "<span>– " + T("kein bekannter Preis") + "</span>" : "", r.anyBlocked ? "<span>* " + T("günstigster Tarif, passt nicht zum gewählten Hinflug") + "</span>" : "", v.win.some(w => w.dead) ? "<span>" + T("<s>Tag</s> kein Angebot zum Hinflug") + "</span>" : "", travellerCount() > 1 ? "<span>" + T("Preise pro Erwachsener") + "</span>" : "" ].join("");
       }(v, rows);
       const wantAll = !!cal.allCabins;
-      paint('<div class="mmcal-head is-open">' + '<span class="mmcal-lead">' + '<span class="mmcal-route">' + route + "</span>" + function(v) {
+      const months = function(v) {
         const win = v.win;
-        let out = "";
+        const out = [];
         for (let i = 0; i < win.length; ) {
           let j = i + 1;
           for (;j < win.length && !v.startsMonth[j]; ) j++;
@@ -8299,12 +8704,21 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
           const showYear = 0 === i || dt.getFullYear() !== win[i - 1].d.getFullYear();
           const full = cap(monthYearFmt().format(dt));
           const label = cap(monthFmt().format(dt)) + (showYear ? ' <span class="yr">' + dt.getFullYear() + "</span>" : "");
-          const st = monthLoadState(v, i, j - i);
-          out += '<span class="mmcal-mo" data-days="' + (j - i) + '" title="' + esc(full + (st ? ". " + st.status : "")) + '">' + '<span class="mmcal-moname">' + label + "</span>" + (st ? st.button + st.text : "") + "</span>";
+          const st = monthLoadState(v, i);
+          out.push('<span class="mmcal-mo ' + (out.length ? "is-after" : "is-before") + '" data-days="' + (j - i) + '" title="' + esc(full + (st ? ". " + st.status : "")) + '">' + '<span class="mmcal-moname">' + label + "</span>" + (st ? st.button + st.text : "") + "</span>");
           i = j;
         }
-        return '<span class="mmcal-months">' + out + "</span>";
-      }(v) + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + "</span>" + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + "</span>" + '<span class="mmcal-end"><button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button></span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>");
+        return out;
+      }(v);
+      paint('<div class="mmcal-head is-open">' + '<span class="mmcal-route">' + route + (s.isLoading && v.known ? '<span class="mmcal-spinner mmcal-headspin" title="' + esc(s.text) + '"></span>' : "") + "</span>" + (months[0] || "") + '<span class="mmcal-nav">' + '<button type="button" class="mmcal-btn" data-nav="-1"' + (v.atStart ? " disabled" : "") + ' aria-label="' + T("7 Tage zurück") + '">' + chevron("left") + "</button>" + '<button type="button" class="mmcal-btn is-wide" data-nav="0"' + (state.dayOffset ? "" : " disabled") + ">" + T("zum Suchdatum") + "</button>" + '<button type="button" class="mmcal-btn" data-nav="1"' + (v.atEnd ? " disabled" : "") + ' aria-label="' + T("7 Tage weiter") + '">' + chevron("right") + "</button>" + "</span>" + months.slice(1).join("") + '<span class="mmcal-end"><button type="button" class="mmcal-btn mmcal-fold" data-fold="1" aria-expanded="true"' + ' aria-label="' + T("Kalender einklappen") + '" title="' + T("Kalender einklappen") + '">' + chevron("up") + "</button></span>" + "</div>" + '<div class="mmcal-body">' + body + "</div>" + '<div class="mmcal-foot">' + '<button type="button" class="mmcal-pool" data-pools="1" aria-pressed="' + wantAll + '"' + (s.isLoading ? " disabled" : "") + ' title="' + T("Vier Abfragen pro Monat statt einer. Kann Tarife zeigen, die eine einzelne Abfrage nicht findet. Dauert länger.") + '">' + (wantAll ? "☑" : "☐") + " " + T("Alle Kabinen") + "</button>" + (legend ? '<span class="mmcal-legend">' + legend + "</span>" : "") + "</div>") && fitHead();
+      !function(root) {
+        if (fitObs && root !== fitRoot) {
+          fitObs.disconnect();
+          fitRoot = root;
+          fitWidth = null;
+          fitObs.observe(root);
+        }
+      }(state.root);
       !function(blocked) {
         if (state._blockTick) {
           clearInterval(state._blockTick);
@@ -8410,7 +8824,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     let staleRetries = 0;
     async function autoLoad() {
       const cal = window.__mmCal;
-      if (autoRunning || !cal || !cal.loadMonth || !cal.route || cal.loading) return;
+      if (state.superseded || autoRunning || !cal || !cal.loadMonth || !cal.route || cal.loading) return;
       if (!state.selectedDate && !currentSearchDate()) return;
       if (Date.now() < autoBlockedUntil) return;
       if (cal.blocked && cal.blocked()) return;
@@ -8688,11 +9102,23 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 .mmcal-btn:disabled { opacity: .35; cursor: default; }
 
 .mmcal-fold { margin-left: 6px; }
-.mmcal-head.is-open { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; container-type: inline-size; }
-.mmcal-lead { flex: 1 1 0; min-width: max-content; display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
-.mmcal-head.is-open .mmcal-nav { margin-left: 0; flex: none; }
-.mmcal-end { flex: 1 1 0; display: flex; justify-content: flex-end; }
-@container (max-width: 1000px) { .mmcal-head .mmcal-loadsub { display: none; } }
+.mmcal-head.is-open { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+                      grid-template-areas: "a nav b"; align-items: center; gap: 6px 12px; }
+.mmcal-head.is-open .mmcal-route { grid-area: a; justify-self: start; white-space: nowrap; }
+.mmcal-head.is-open .mmcal-mo.is-before { grid-area: a; justify-self: end; }
+.mmcal-head.is-open .mmcal-nav { grid-area: nav; justify-self: center; margin-left: 0; }
+.mmcal-head.is-open .mmcal-mo.is-after { grid-area: b; justify-self: start; }
+.mmcal-head.is-open .mmcal-end { grid-area: b; justify-self: end; }
+.mmcal-head.is-open.is-stacked { grid-template-areas: "r r f" "a nav b"; }
+.mmcal-head.is-open.is-narrow { grid-template-areas: "r r f" "nav nav nav" "a a b"; }
+.mmcal-head.is-stacked .mmcal-route { grid-area: r; }
+.mmcal-head.is-stacked .mmcal-end { grid-area: f; }
+.mmcal-head.is-narrow .mmcal-mo.is-before { justify-self: start; }
+.mmcal-head.is-narrow .mmcal-mo.is-after { justify-self: end; }
+.mmcal-mo.fit-nosub .mmcal-loadsub { display: none; }
+.mmcal-mo.fit-short .mmcal-loadword { display: none; }
+.mmcal-mo.fit-short:not(.fit-dot) .mmcal-loadbtn::after { content: attr(data-short); }
+.mmcal-mo.fit-dot .mmcal-loadbtn { padding: 2px 6px; }
 .mmcal.is-folded { padding-top: 9px; padding-bottom: 9px; }
 .mmcal.is-folded .mmcal-head { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
 
@@ -8704,7 +9130,6 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
                  display: inline-flex; align-items: center; gap: 5px;
                  white-space: nowrap; flex: 0 0 auto; }
 .mmcal-loadbtn:hover { background: #f7f8fb; border-color: ${INK_primary}; }
-.mmcal-loadbtn.is-dot { padding: 2px 6px; }
 .mmcal-loadsub { font-weight: 400; color: ${INK_muted}; white-space: nowrap;
                  overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
 .mmcal-loadbtn .mmcal-loaddot { width: 5px; height: 5px; border-radius: 50%;
@@ -8717,10 +9142,8 @@ body:has(.mmcal) refx-page-title-pres { display: none; }
 @media (prefers-reduced-motion: reduce) { .mmcal-loadbtn.is-busy .mmcal-loaddot { animation: none } }
 .mmcal-scroll { overflow-x: auto; }
 
-.mmcal-months { display: inline-flex; align-items: center; gap: 10px; }
 .mmcal-mo { font-size: 12px; font-weight: 700; color: ${INK_secondary};
             display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-.mmcal-mo + .mmcal-mo { border-left: 1px solid ${INK_hairline}; padding-left: 10px; }
 .mmcal-moname { white-space: nowrap; flex: 0 0 auto; }
 .mmcal-mo .yr { font-weight: 400; color: ${INK_muted}; }
 
@@ -9021,6 +9444,13 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
           } catch (e) {}
           state._observer = null;
         }
+        if (fitObs) try {
+          fitObs.disconnect();
+        } catch (e) {}
+        if (staleRetry) {
+          clearTimeout(staleRetry);
+          staleRetry = null;
+        }
         for (const k of [ "_off", "_offBbd", "_offFx", "_offSettings" ]) if (state[k]) {
           try {
             state[k]();
@@ -9048,7 +9478,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 15;
+    const VERSION = 16;
     if (window.__mmPicker && window.__mmPicker.version >= VERSION) return;
     if (window.__mmPicker) try {
       window.__mmPicker.teardown();
@@ -9319,11 +9749,14 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
       html += '<div class="mmdp-foot"><span class="mmdp-info">' + esc(info(ctx, rs, pr)) + "</span>" + "<span>" + (priced.length ? (null != best ? "★ " + T("günstigster Tag") + " · " : "") + T("Meilen pro Erwachsener") : T("Keine Preise für {cabin} bekannt", {
         cabin: CABIN_NAME[ctx.cabin]
       })) + "</span>" + (busy ? "<span>" + T("Kalender lädt …") + "</span>" : lack.length ? '<button type="button" class="mmdp-load">' + T("Kalender laden") + "</button>" : "") + "</div>";
-      const hadFocus = state.el.contains(document.activeElement);
-      state.rendering = !0;
-      state.el.innerHTML = html;
-      state.rendering = !1;
-      if (hadFocus || open.wantFocus) {
+      if (html !== state.html) {
+        state.el.contains(document.activeElement) && (open.wantFocus = !0);
+        state.rendering = !0;
+        state.el.innerHTML = html;
+        state.rendering = !1;
+        state.html = html;
+      }
+      if (open.wantFocus) {
         open.wantFocus = !1;
         const b = state.el.querySelector('.mmdp-d[tabindex="0"]');
         b && b.focus({
@@ -9485,6 +9918,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
     function close(refocus) {
       const open = state.open;
       state.open = null;
+      state.html = null;
       if (state.el) {
         state.el.remove();
         state.el = null;
@@ -9509,7 +9943,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         const ctx = context(open);
         if (!ctx) return;
         const d = parseISO(ds);
-        ctx.f.zone.run(() => {
+        (ctx.f.zone ? fn => ctx.f.zone.run(fn) : fn => fn())(() => {
           ctx.ctrl.setValue(d);
           ctx.ctrl.markAsDirty();
           "range" === ctx.kind && "dep" === open.stage && ctx.ret && ctx.ret < d && ctx.f.comp.modifySearchForm.controls.returnDate.setValue(null);
@@ -9552,6 +9986,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         render();
         return;
       }
+      state.html = null;
       const [rs, re] = rangeOf(ctx, open);
       const infoEl = state.el.querySelector(".mmdp-info");
       infoEl && (infoEl.textContent = info(ctx, rs, open.pr));
@@ -9657,7 +10092,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 76;
+    const VERSION = 81;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const nf = o => window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o);
@@ -9831,6 +10266,22 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         return null;
       }
     };
+    const requestMeta = body => {
+      try {
+        const b = JSON.parse(body);
+        const meta = {
+          fresh: !b.selectedBoundId,
+          sig: searchSig(b)
+        };
+        state._pendingSig = meta.sig;
+        return meta;
+      } catch (e) {
+        return {
+          fresh: !0,
+          sig: null
+        };
+      }
+    };
     const emitRequest = (active, meta) => state.reqListeners.forEach(fn => {
       try {
         fn(active, meta);
@@ -9882,6 +10333,13 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         return [];
       }
     }
+    function recordCall() {
+      const a = readCalls();
+      a.push(Date.now());
+      try {
+        localStorage.setItem(CALLS_KEY, JSON.stringify(a));
+      } catch (e) {}
+    }
     state.resetBudget = () => {
       try {
         localStorage.removeItem(CALLS_KEY);
@@ -9901,6 +10359,55 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         lastAt: lastAt,
         freeAt: lastAt ? lastAt + BLOCK_MS : null
       };
+    };
+    const BURST_LIMIT = 8;
+    const MINUTE_MS = 6e4;
+    function burstCount(t, calls) {
+      let worst = 0;
+      for (let u = 0; u < MINUTE_MS; u += 500) {
+        const b = t - u;
+        let prev = 0, curr = 0;
+        for (const c of calls) c > t || (c >= b ? curr++ : c >= b - MINUTE_MS && prev++);
+        worst = Math.max(worst, curr + prev * (1 - u / MINUTE_MS));
+      }
+      return worst;
+    }
+    function burstWait(now) {
+      const calls = readCalls().filter(c => now - c < 2 * MINUTE_MS);
+      if (calls.length < BURST_LIMIT) return 0;
+      for (let d = 0; d < 2 * MINUTE_MS; d += 500) if (burstCount(now + d, calls) <= BURST_LIMIT - 1) return d;
+      return 2 * MINUTE_MS;
+    }
+    state.heldUntil = 0;
+    state.burstWait = () => burstWait(Date.now());
+    const HOLD_MAX_MS = 6e4;
+    const heldCalls = [];
+    const replacedInits = new WeakSet;
+    const heldAbort = () => Object.assign(new DOMException("The operation was aborted.", "AbortError"), {
+      mmHeld: !0
+    });
+    function heldOut(body, freeAt) {
+      noList(requestMeta(body).sig);
+      state.lastError = {
+        code: null,
+        http: 0,
+        transport: !0,
+        held: !0,
+        t: Date.now(),
+        freeAt: freeAt,
+        title: T("Zu viele Suchen in kurzer Zeit."),
+        why: T("Nächste Suche ab {time} möglich.", {
+          time: hmsLocal(freeAt)
+        })
+      };
+      emit();
+    }
+    state.sendHeldNow = () => heldCalls.slice().forEach(h => h.force());
+    const BYPASS_KEY = "mm_burst_bypass";
+    state.allowNext = () => {
+      try {
+        localStorage.setItem(BYPASS_KEY, String(Date.now() + 2 * MINUTE_MS));
+      } catch (e) {}
     };
     const hhmmLocal = ms => {
       try {
@@ -9955,11 +10462,11 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         hint: T(b.kind ? "Die IP-Adresse wurde deswegen bis {time} gesperrt (noch {left})." : "Die IP-Adresse ist noch bis {time} gesperrt (noch {left}).", p)
       };
     }
-    function failed(status, detail, sig) {
+    function failed(status, detail, sig, aborted) {
       const http = Number(status) || 0;
       const what = detail ? String(detail).slice(0, 200) : null;
-      const blocked = 429 === http || 0 === http;
-      const title = blocked ? T("Suchlimit erreicht (HTTP 429).") : T("Suche fehlgeschlagen (HTTP {http}).", {
+      const blocked = !aborted && (429 === http || 0 === http);
+      const title = aborted ? T("Suche fehlgeschlagen (keine Antwort vom Server).") : blocked ? T("Suchlimit erreicht (HTTP 429).") : T("Suche fehlgeschlagen (HTTP {http}).", {
         http: http
       });
       const free = blocked ? state.budget().freeAt : null;
@@ -9970,6 +10477,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         code: null,
         http: http,
         transport: !0,
+        aborted: !!aborted,
         title: title,
         why: why,
         detail: what,
@@ -10019,6 +10527,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         }).then(r => {
           probing = null;
           if (!r) return null;
+          recordCall();
           if (429 !== r.status || !(r.retryAfter > 0)) {
             if (!/^\s*[{[]/.test(r.body || "")) return null;
             clearBlock();
@@ -10085,6 +10594,8 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         });
       } catch (e) {}
     }
+    const KEEP_LISTS = 20;
+    const recentLists = [];
     function ingest(json, status, sig) {
       const callSig = void 0 !== sig ? sig : state._pendingSig;
       try {
@@ -10137,211 +10648,214 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
           (g.airBounds || []).forEach(ab => {
             ab && ab.status && ab.status.value && "available" !== ab.status.value && noteUnavailable(ab);
           });
-          const it = function(group, dicts) {
-            const bd = group.boundDetails;
-            if (!bd || !bd.segments || !bd.segments.length) return null;
-            const flightDict = dicts.flight || {};
-            const acDict = dicts.aircraft || {};
-            const locDict = dicts.location || {};
-            const alDict = dicts.airline || {};
-            const legs = [];
-            const layovers = [];
-            let firstDepDT = null, lastArrDT = null;
-            for (let i = 0; i < bd.segments.length; i++) {
-              const seg = bd.segments[i];
-              const f = flightDict[seg.flightId];
-              if (!f) return null;
-              const opCode = f.operatingAirlineCode || f.marketingAirlineCode || null;
-              const acName = variantName(opCode, f.aircraftCode) || String(acDict[f.aircraftCode] || f.aircraftCode).replace(/\bINDUSTRIE\s+/i, "");
-              0 === i && (firstDepDT = f.departure.dateTime);
-              lastArrDT = f.arrival.dateTime;
-              const cityOf = c => {
-                const l = locDict[c];
-                return l && (l.cityName || l.airportName) || null;
-              };
-              legs.push({
-                flightId: seg.flightId,
-                from: f.departure.locationCode,
-                to: f.arrival.locationCode,
-                fromCity: cityOf(f.departure.locationCode),
-                toCity: cityOf(f.arrival.locationCode),
-                dep: hhmm(f.departure.dateTime),
-                arr: hhmm(f.arrival.dateTime),
-                termDep: f.departure.terminal || null,
-                termArr: f.arrival.terminal || null,
-                operating: opCode,
-                operatingName: airlineName(opCode, alDict[opCode]),
-                codeshare: !(!f.operatingAirlineCode || !f.marketingAirlineCode || f.operatingAirlineCode === f.marketingAirlineCode),
-                flightNo: (f.marketingAirlineCode || "") + (f.marketingFlightNumber || ""),
-                mkt: f.marketingAirlineCode || null,
-                mktNo: String(f.marketingFlightNumber || "").replace(/^0+/, ""),
-                depDate: (f.departure.dateTime || "").slice(0, 10) || null,
-                acv: f.aircraftConfigurationVersion || null,
-                aircraftName: acName,
-                widebody: isWidebody(acName, f.aircraftCode),
-                allegris: isAllegris(f.operatingAirlineCode, f.aircraftConfigurationVersion),
-                newBiz: isNewBizA380(f.operatingAirlineCode, f.aircraftConfigurationVersion),
-                premium: premiumCabin(f.operatingAirlineCode, acName, f.aircraftConfigurationVersion),
-                duration: f.duration,
-                ground: GROUND_EQUIPMENT.includes(f.aircraftCode),
-                techStops: (f.stops || []).map(t => ({
-                  airport: t.locationCode,
-                  city: cityOf(t.locationCode) || t.locationCode,
-                  duration: t.duration || null,
-                  changeOfGauge: !!t.isChangeOfGauge
-                }))
-              });
-              if (i < bd.segments.length - 1) {
-                const loc = locDict[f.arrival.locationCode];
-                layovers[legs.length - 1] = seg.connectionTime ? {
-                  airport: f.arrival.locationCode,
-                  city: loc ? loc.cityName || loc.airportName : f.arrival.locationCode,
-                  duration: seg.connectionTime
-                } : null;
-              }
-            }
-            if (!legs.length) return null;
-            const first = legs[0], last = legs[legs.length - 1];
-            const stops = legs.length - 1 + legs.reduce((n, l) => n + (l.ground ? 0 : (l.techStops || []).length), 0);
-            const key = ((origin, dest, dep, arr, stops) => `${origin}|${dest}|${dep}|${arr}|${stops}`)(bd.originLocationCode, bd.destinationLocationCode, first.dep, last.arr, stops);
-            const fares = function(group, dicts, legs) {
-              const fcDict = dicts.fareConditions || {};
-              const ffDict = dicts.fareFamilyWithServices || {};
-              const curDict = dicts.currency || {};
-              const amount = (value, code) => null == value ? null : value / Math.pow(10, curDict[code]?.decimalPlaces ?? 2);
-              return (group.airBounds || []).map(ab => {
-                const m = function(code) {
-                  const s = String(code || "");
-                  let fallback = null;
-                  for (let i = 2; i <= 4 && i < s.length - 2; i++) {
-                    const cabin = FARE_CABIN[s[i]];
-                    if (!cabin) continue;
-                    const rawTier = s.slice(i + 1);
-                    if (FARE_TIER[rawTier]) return {
-                      cabin: cabin,
-                      tier: FARE_TIER[rawTier]
-                    };
-                    fallback = {
-                      cabin: cabin,
-                      tier: rawTier
-                    };
-                  }
-                  return fallback;
-                }(ab.fareFamilyCode);
-                const ff = ffDict[ab.fareFamilyCode] || {};
-                let cabin = m && m.cabin || ff.cabin || null;
-                let tier = m ? m.tier : null;
-                try {
-                  const fn = window.__mmFareNames;
-                  if (fn) {
-                    const t = fn.tierOf(ab.fareFamilyCode);
-                    t && (tier = t);
-                    const c = fn.cabinOf(ab.fareFamilyCode);
-                    c && (cabin = c);
-                  }
-                } catch (e) {}
-                const prices = ab.prices || {};
-                const total = (prices.totalPrices || [])[0] || {};
-                const miles = prices.milesConversion && prices.milesConversion.convertedMiles ? prices.milesConversion.convertedMiles.total : null;
-                const cpIds = new Set;
-                (ab.fareInfos || []).forEach(fi => {
-                  (fi.pricedPassengerTypeCodes || []).includes("CP") && (fi.travelerIds || []).forEach(id => cpIds.add(id));
-                });
-                const units = (prices.unitPrices || []).map(u => {
-                  const p = (u.prices || [])[0] || {};
-                  const cm = u.milesConversion && u.milesConversion.convertedMiles;
-                  const ids = u.travelerIds || [];
-                  return {
-                    type: String(ids[0] || "").replace(/-\d+$/, "") || null,
-                    count: ids.length || 1,
-                    companion: ids.some(id => cpIds.has(id)),
-                    miles: cm ? cm.total : null,
-                    cash: amount(p.totalTaxes, p.currencyCode)
-                  };
-                });
-                const rank = u => 2 * (PAX_ORDER.indexOf(u.type) + 1 || 9) + (u.companion ? 1 : 0);
-                units.sort((a, b) => rank(a) - rank(b) || (b.miles || 0) - (a.miles || 0));
-                const lead = units.reduce((n, u) => n + u.count, 0) > 1 ? units.find(u => "ADT" === u.type && !u.companion) || units.find(u => "ADT" === u.type) || units[0] : null;
-                const details = ab.availabilityDetails || [];
-                const detailOf = new Map(details.filter(a => a.flightId).map(a => [ a.flightId, a ]));
-                const perLeg = legs.map((l, i) => ({
-                  cabin: (detailOf.get(l.flightId) || details[i] || {}).cabin || null,
-                  from: l.from || null,
-                  to: l.to || null,
-                  duration: null != l.duration ? l.duration : null,
-                  operating: l.operating || null
-                }));
-                const cond = {};
-                (ab.fareConditionsCodes || []).forEach(c => {
-                  const x = fcDict[c];
-                  if (!x) return;
-                  const det = (x.details || [])[0] || {};
-                  const prev = cond[x.category];
-                  prev && prev.allowed && !det.isAllowed || (cond[x.category] = {
-                    allowed: !1 !== det.isAllowed,
-                    fee: det.penalty && det.penalty.price ? amount(det.penalty.price.total, det.penalty.price.currencyCode) : null,
-                    currency: det.penalty && det.penalty.price ? det.penalty.price.currencyCode : null
-                  });
-                });
-                const famTexts = (ff.services || []).map(s => function(code, dicts) {
-                  const s = (dicts.service || {})[code];
-                  if (!s) return null;
-                  const long = (s.serviceDescriptions || []).find(x => "longText" === x.type);
-                  if (long) return long.content;
-                  const b = (s.baggagePolicyDescriptions || [])[0];
-                  if (b) {
-                    const c = (b.baggageCharacteristics || [])[0];
-                    const kg = c && /(\d+)\s*KG/i.exec(c.description || "");
-                    return b.quantity + " × " + (kg ? kg[1] + " kg" : c ? c.description : T("Stück"));
-                  }
-                  return null;
-                }(s.serviceCode, dicts)).filter(Boolean);
-                const pick = re => famTexts.find(t => re.test(t)) || null;
-                const checkedBag = pick(/CHECKED BAG/i) || pick(/×/);
-                const quotas = (ab.availabilityDetails || []).map(a => a && a.quota).filter(q => "number" == typeof q);
-                return {
-                  code: ab.fareFamilyCode,
-                  cabin: cabin,
-                  tier: tier,
-                  notOffered: ab.status && ab.status.value && "available" !== ab.status.value ? String(ab.status.value) : null,
-                  seatsLeft: quotas.length ? Math.min(...quotas) : null,
-                  airBoundId: ab.airBoundId || null,
-                  miles: lead ? lead.miles : miles,
-                  cash: lead ? lead.cash : amount(total.totalTaxes, total.currencyCode),
-                  totalMiles: miles,
-                  totalCash: amount(total.totalTaxes, total.currencyCode),
-                  pax: lead ? units : null,
-                  currency: total.currencyCode || null,
-                  perLeg: perLeg,
-                  mixed: perLeg.length > 1 && perLeg.some(l => l.cabin !== cabin),
-                  baggage: checkedBag,
-                  cabinBag: pick(/CABIN BAG/i),
-                  personalItem: !!pick(/PERSONAL ITEM/i),
-                  seatReservation: !!pick(/SEAT RESERVATION/i),
-                  change: cond.change || null,
-                  refund: cond.refund || null
+          let it = null;
+          try {
+            it = function(group, dicts) {
+              const bd = group.boundDetails;
+              if (!bd || !bd.segments || !bd.segments.length) return null;
+              const flightDict = dicts.flight || {};
+              const acDict = dicts.aircraft || {};
+              const locDict = dicts.location || {};
+              const alDict = dicts.airline || {};
+              const legs = [];
+              const layovers = [];
+              let firstDepDT = null, lastArrDT = null;
+              for (let i = 0; i < bd.segments.length; i++) {
+                const seg = bd.segments[i];
+                const f = flightDict[seg.flightId];
+                if (!f) return null;
+                const opCode = f.operatingAirlineCode || f.marketingAirlineCode || null;
+                const acName = variantName(opCode, f.aircraftCode) || String(acDict[f.aircraftCode] || f.aircraftCode).replace(/\bINDUSTRIE\s+/i, "");
+                0 === i && (firstDepDT = f.departure.dateTime);
+                lastArrDT = f.arrival.dateTime;
+                const cityOf = c => {
+                  const l = locDict[c];
+                  return l && (l.cityName || l.airportName) || null;
                 };
-              }).filter(f => null != f.miles);
-            }(group, dicts, legs);
-            const notOffered = fares.length && fares.every(f => f.notOffered) ? fares[0].notOffered : null;
-            return {
-              key: key,
-              origin: bd.originLocationCode,
-              dest: bd.destinationLocationCode,
-              depTime: first.dep,
-              arrTime: last.arr,
-              stops: stops,
-              depDate: (firstDepDT || "").slice(0, 10) || null,
-              daysOffset: dayDiff(firstDepDT, lastArrDT),
-              totalDuration: bd.duration,
-              legs: legs,
-              layovers: layovers,
-              fares: fares,
-              notOffered: notOffered
-            };
-          }(g, state.dictionaries);
+                legs.push({
+                  flightId: seg.flightId,
+                  from: f.departure.locationCode,
+                  to: f.arrival.locationCode,
+                  fromCity: cityOf(f.departure.locationCode),
+                  toCity: cityOf(f.arrival.locationCode),
+                  dep: hhmm(f.departure.dateTime),
+                  arr: hhmm(f.arrival.dateTime),
+                  termDep: f.departure.terminal || null,
+                  termArr: f.arrival.terminal || null,
+                  operating: opCode,
+                  operatingName: airlineName(opCode, alDict[opCode]),
+                  codeshare: !(!f.operatingAirlineCode || !f.marketingAirlineCode || f.operatingAirlineCode === f.marketingAirlineCode),
+                  flightNo: (f.marketingAirlineCode || "") + (f.marketingFlightNumber || ""),
+                  mkt: f.marketingAirlineCode || null,
+                  mktNo: String(f.marketingFlightNumber || "").replace(/^0+/, ""),
+                  depDate: (f.departure.dateTime || "").slice(0, 10) || null,
+                  acv: f.aircraftConfigurationVersion || null,
+                  aircraftName: acName,
+                  widebody: isWidebody(acName, f.aircraftCode),
+                  allegris: isAllegris(f.operatingAirlineCode, f.aircraftConfigurationVersion),
+                  newBiz: isNewBizA380(f.operatingAirlineCode, f.aircraftConfigurationVersion),
+                  premium: premiumCabin(f.operatingAirlineCode, acName, f.aircraftConfigurationVersion),
+                  duration: f.duration,
+                  ground: GROUND_EQUIPMENT.includes(f.aircraftCode),
+                  techStops: (f.stops || []).map(t => ({
+                    airport: t.locationCode,
+                    city: cityOf(t.locationCode) || t.locationCode,
+                    duration: t.duration || null,
+                    changeOfGauge: !!t.isChangeOfGauge
+                  }))
+                });
+                if (i < bd.segments.length - 1) {
+                  const loc = locDict[f.arrival.locationCode];
+                  layovers[legs.length - 1] = seg.connectionTime ? {
+                    airport: f.arrival.locationCode,
+                    city: loc ? loc.cityName || loc.airportName : f.arrival.locationCode,
+                    duration: seg.connectionTime
+                  } : null;
+                }
+              }
+              if (!legs.length) return null;
+              const first = legs[0], last = legs[legs.length - 1];
+              const stops = legs.length - 1 + legs.reduce((n, l) => n + (l.ground ? 0 : (l.techStops || []).length), 0);
+              const key = ((origin, dest, dep, arr, stops) => `${origin}|${dest}|${dep}|${arr}|${stops}`)(bd.originLocationCode, bd.destinationLocationCode, first.dep, last.arr, stops);
+              const fares = function(group, dicts, legs) {
+                const fcDict = dicts.fareConditions || {};
+                const ffDict = dicts.fareFamilyWithServices || {};
+                const curDict = dicts.currency || {};
+                const amount = (value, code) => null == value ? null : value / Math.pow(10, curDict[code]?.decimalPlaces ?? 2);
+                return (group.airBounds || []).map(ab => {
+                  const m = function(code) {
+                    const s = String(code || "");
+                    let fallback = null;
+                    for (let i = 2; i <= 4 && i < s.length - 2; i++) {
+                      const cabin = FARE_CABIN[s[i]];
+                      if (!cabin) continue;
+                      const rawTier = s.slice(i + 1);
+                      if (FARE_TIER[rawTier]) return {
+                        cabin: cabin,
+                        tier: FARE_TIER[rawTier]
+                      };
+                      fallback = {
+                        cabin: cabin,
+                        tier: rawTier
+                      };
+                    }
+                    return fallback;
+                  }(ab.fareFamilyCode);
+                  const ff = ffDict[ab.fareFamilyCode] || {};
+                  let cabin = m && m.cabin || ff.cabin || null;
+                  let tier = m ? m.tier : null;
+                  try {
+                    const fn = window.__mmFareNames;
+                    if (fn) {
+                      const t = fn.tierOf(ab.fareFamilyCode);
+                      t && (tier = t);
+                      const c = fn.cabinOf(ab.fareFamilyCode);
+                      c && (cabin = c);
+                    }
+                  } catch (e) {}
+                  const prices = ab.prices || {};
+                  const total = (prices.totalPrices || [])[0] || {};
+                  const miles = prices.milesConversion && prices.milesConversion.convertedMiles ? prices.milesConversion.convertedMiles.total : null;
+                  const cpIds = new Set;
+                  (ab.fareInfos || []).forEach(fi => {
+                    (fi.pricedPassengerTypeCodes || []).includes("CP") && (fi.travelerIds || []).forEach(id => cpIds.add(id));
+                  });
+                  const units = (prices.unitPrices || []).map(u => {
+                    const p = (u.prices || [])[0] || {};
+                    const cm = u.milesConversion && u.milesConversion.convertedMiles;
+                    const ids = u.travelerIds || [];
+                    return {
+                      type: String(ids[0] || "").replace(/-\d+$/, "") || null,
+                      count: ids.length || 1,
+                      companion: ids.some(id => cpIds.has(id)),
+                      miles: cm ? cm.total : null,
+                      cash: amount(p.totalTaxes, p.currencyCode)
+                    };
+                  });
+                  const rank = u => 2 * (PAX_ORDER.indexOf(u.type) + 1 || 9) + (u.companion ? 1 : 0);
+                  units.sort((a, b) => rank(a) - rank(b) || (b.miles || 0) - (a.miles || 0));
+                  const lead = units.reduce((n, u) => n + u.count, 0) > 1 ? units.find(u => "ADT" === u.type && !u.companion) || units.find(u => "ADT" === u.type) || units[0] : null;
+                  const details = ab.availabilityDetails || [];
+                  const detailOf = new Map(details.filter(a => a && a.flightId).map(a => [ a.flightId, a ]));
+                  const perLeg = legs.map((l, i) => ({
+                    cabin: (detailOf.get(l.flightId) || details[i] || {}).cabin || null,
+                    from: l.from || null,
+                    to: l.to || null,
+                    duration: null != l.duration ? l.duration : null,
+                    operating: l.operating || null
+                  }));
+                  const cond = {};
+                  (ab.fareConditionsCodes || []).forEach(c => {
+                    const x = fcDict[c];
+                    if (!x) return;
+                    const det = (x.details || [])[0] || {};
+                    const prev = cond[x.category];
+                    prev && prev.allowed && !det.isAllowed || (cond[x.category] = {
+                      allowed: !1 !== det.isAllowed,
+                      fee: det.penalty && det.penalty.price ? amount(det.penalty.price.total, det.penalty.price.currencyCode) : null,
+                      currency: det.penalty && det.penalty.price ? det.penalty.price.currencyCode : null
+                    });
+                  });
+                  const famTexts = (ff.services || []).map(s => function(code, dicts) {
+                    const s = (dicts.service || {})[code];
+                    if (!s) return null;
+                    const long = (s.serviceDescriptions || []).find(x => "longText" === x.type);
+                    if (long) return long.content;
+                    const b = (s.baggagePolicyDescriptions || [])[0];
+                    if (b) {
+                      const c = (b.baggageCharacteristics || [])[0];
+                      const kg = c && /(\d+)\s*KG/i.exec(c.description || "");
+                      return b.quantity + " × " + (kg ? kg[1] + " kg" : c ? c.description : T("Stück"));
+                    }
+                    return null;
+                  }(s.serviceCode, dicts)).filter(Boolean);
+                  const pick = re => famTexts.find(t => re.test(t)) || null;
+                  const checkedBag = pick(/CHECKED BAG/i) || pick(/×/);
+                  const quotas = (ab.availabilityDetails || []).map(a => a && a.quota).filter(q => "number" == typeof q);
+                  return {
+                    code: ab.fareFamilyCode,
+                    cabin: cabin,
+                    tier: tier,
+                    notOffered: ab.status && ab.status.value && "available" !== ab.status.value ? String(ab.status.value) : null,
+                    seatsLeft: quotas.length ? Math.min(...quotas) : null,
+                    airBoundId: ab.airBoundId || null,
+                    miles: lead ? lead.miles : miles,
+                    cash: lead ? lead.cash : amount(total.totalTaxes, total.currencyCode),
+                    totalMiles: miles,
+                    totalCash: amount(total.totalTaxes, total.currencyCode),
+                    pax: lead ? units : null,
+                    currency: total.currencyCode || null,
+                    perLeg: perLeg,
+                    mixed: perLeg.length > 1 && perLeg.some(l => l.cabin && l.cabin !== cabin),
+                    baggage: checkedBag,
+                    cabinBag: pick(/CABIN BAG/i),
+                    personalItem: !!pick(/PERSONAL ITEM/i),
+                    seatReservation: !!pick(/SEAT RESERVATION/i),
+                    change: cond.change || null,
+                    refund: cond.refund || null
+                  };
+                }).filter(f => null != f.miles);
+              }(group, dicts, legs);
+              const notOffered = fares.length && fares.every(f => f.notOffered) ? fares[0].notOffered : null;
+              return {
+                key: key,
+                origin: bd.originLocationCode,
+                dest: bd.destinationLocationCode,
+                depTime: first.dep,
+                arrTime: last.arr,
+                stops: stops,
+                depDate: (firstDepDT || "").slice(0, 10) || null,
+                daysOffset: dayDiff(firstDepDT, lastArrDT),
+                totalDuration: bd.duration,
+                legs: legs,
+                layovers: layovers,
+                fares: fares,
+                notOffered: notOffered
+              };
+            }(g, state.dictionaries);
+          } catch (e) {}
           if (!it) return;
-          if (it.notOffered) return;
+          if (it.notOffered && "tooCloseToDeparture" !== it.notOffered) return;
           const n = (dup.get(it.key) || 0) + 1;
           dup.set(it.key, n);
           n > 1 && (it.key += "#" + n);
@@ -10350,6 +10864,12 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         });
         state.unavailable = unavailable;
         state.current = keys;
+        recentLists.push(keys);
+        if (recentLists.length > KEEP_LISTS) {
+          recentLists.shift();
+          const keep = new Set(recentLists.flat());
+          for (const k of state.bounds.keys()) keep.has(k) || state.bounds.delete(k);
+        }
         state.listSig = callSig || null;
         state.responses++;
         !function(keys, sig) {
@@ -10371,10 +10891,13 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
           } catch (e) {}
         }(keys, callSig);
         emit();
-      } catch (e) {}
+      } catch (e) {
+        noList(callSig);
+        emit();
+      }
     }
     state.reingest = () => {
-      state.lastRaw && ingest(state.lastRaw);
+      state.lastRaw && ingest(state.lastRaw, 200, state.listSig);
     };
     try {
       const fn = window.__mmFareNames;
@@ -10804,33 +11327,82 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
           return null;
         }
       }(text),
-      start: body => {
-        !function() {
-          const a = readCalls();
-          a.push(Date.now());
-          try {
-            localStorage.setItem(CALLS_KEY, JSON.stringify(a));
-          } catch (e) {}
-        }();
+      start: (body, wasHeld) => {
+        recordCall();
         state.lastBody = "string" == typeof body ? body : null;
-        const meta = (body => {
-          try {
-            const b = JSON.parse(body);
-            const meta = {
-              fresh: !b.selectedBoundId,
-              sig: searchSig(b)
-            };
-            state._pendingSig = meta.sig;
-            return meta;
-          } catch (e) {
-            return {
-              fresh: !0,
-              sig: null
-            };
-          }
-        })(body);
-        emitRequest(!0, meta);
+        const meta = requestMeta(body);
+        wasHeld || emitRequest(!0, meta);
         return meta.sig;
+      },
+      burstHold: async function(body, init, signal) {
+        const keyed = !!init && "object" == typeof init;
+        if (keyed && replacedInits.has(init)) throw heldAbort();
+        heldCalls.splice(0).forEach(h => h.replace());
+        if (function() {
+          try {
+            const until = Number(localStorage.getItem(BYPASS_KEY) || 0);
+            until && localStorage.removeItem(BYPASS_KEY);
+            return until > Date.now();
+          } catch (e) {
+            return !1;
+          }
+        }()) return !1;
+        let wait = burstWait(Date.now());
+        if (wait <= 0) return !1;
+        if (wait > HOLD_MAX_MS) {
+          heldOut(body, Date.now() + wait);
+          throw heldAbort();
+        }
+        const entry = {
+          replaced: !1,
+          forced: !1,
+          wake: null
+        };
+        entry.replace = () => {
+          entry.replaced = !0;
+          keyed && replacedInits.add(init);
+          entry.wake && entry.wake();
+        };
+        entry.force = () => {
+          entry.forced = !0;
+          entry.wake && entry.wake();
+        };
+        heldCalls.push(entry);
+        const onAbort = () => {
+          entry.wake && entry.wake();
+        };
+        try {
+          signal && signal.addEventListener("abort", onAbort);
+        } catch (e) {}
+        state.heldUntil = Date.now() + wait;
+        emitRequest(!0, requestMeta(body));
+        try {
+          for (;wait > 0; ) {
+            state.heldUntil = Date.now() + wait;
+            await new Promise(r => {
+              entry.wake = r;
+              setTimeout(r, Math.min(wait, 1e3));
+            });
+            if (entry.replaced) throw heldAbort();
+            if (entry.forced) break;
+            if (signal && signal.aborted) {
+              heldOut(body, state.heldUntil);
+              throw heldAbort();
+            }
+            wait = burstWait(Date.now());
+          }
+          return !0;
+        } catch (e) {
+          emitRequest(!1);
+          throw e;
+        } finally {
+          const i = heldCalls.indexOf(entry);
+          i >= 0 && heldCalls.splice(i, 1);
+          try {
+            signal && signal.removeEventListener("abort", onAbort);
+          } catch (e) {}
+          heldCalls.length || (state.heldUntil = 0);
+        }
       },
       end: () => emitRequest(!1)
     };
@@ -10857,19 +11429,26 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         if (watched && "string" != typeof sentBody && args[0] && "object" == typeof args[0] && "function" == typeof args[0].clone && null == args[1]?.body) try {
           sentBody = await args[0].clone().text();
         } catch (e) {}
+        let wasHeld = !1;
+        const holdFn = watched && window.__mmBoundsHooks?.burstHold;
+        if (holdFn) try {
+          wasHeld = await holdFn(sentBody, args[1], args[1]?.signal || args[0]?.signal);
+        } catch (e) {
+          if (e && e.mmHeld) throw e;
+        }
         if (watched && "string" == typeof sentBody) try {
           await (window.__mmBoundsHooks?.followOrigin?.(sentBody));
         } catch (e) {}
         const adjusted = hook("adjustFetch", url, args);
         adjusted && (args = adjusted);
         (watched || API_RE.test(url)) && hook("noteApi", url, hook("headersToObject", args[1]?.headers));
-        watched && (callSig = hook("start", sentBody));
+        watched && (callSig = hook("start", sentBody, wasHeld));
         try {
           let res;
           try {
             res = await originalFetch.apply(this, args);
           } catch (e) {
-            watched && hook("failed", 0, e?.message, callSig);
+            watched && hook("failed", 0, e?.message, callSig, "AbortError" === e?.name || "TimeoutError" === e?.name);
             cartCall && hook("noteCart", 0, null);
             throw e;
           }
@@ -10951,7 +11530,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
             }
           });
           [ "error", "abort", "timeout" ].forEach(ev => this.addEventListener(ev, () => {
-            this.__mmBoundsWatched && hook("failed", 0, ev, this.__mmBoundsSig);
+            this.__mmBoundsWatched && hook("failed", 0, ev, this.__mmBoundsSig, "error" !== ev);
           }));
           this.addEventListener("loadend", () => {
             this.__mmBoundsWatched && hook("end");
@@ -10977,7 +11556,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 388;
+    const VERSION = 401;
     if (window.__mmCards?.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -11133,7 +11712,6 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
       ZAG: 40,
       ZRH: 40
     };
-    const MCT_DEFAULT = 60;
     const RUN_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false">' + '<path fill="currentColor" d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9' + "l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1" + '-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>';
     const LOUNGE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">' + '<path fill="currentColor" d="M5.35 5.64c-.9-.64-1.12-1.88-.49-2.79.63-.9 1.88-1.12 2.79-.49.9.64 1.12' + " 1.88.49 2.79-.64.9-1.89 1.12-2.79.49zM16 19H8.93c-1.48 0-2.74-1.08-2.96-2.54L4 7H2l1.99 9.76A5.01 5.01" + " 0 0 0 8.94 21H16v-2zm.23-4h-4.88l-1.03-4.1c1.58.89 3.28 1.54 5.15 1.22V19h2v-7c-2.5.4-4.9-.85-6.03-2.72" + 'l-.98-1.63c-.42-.71-1.31-1-2.06-.68-.85.36-1.28 1.33-.99 2.21L9.9 15c.3 1.13 1.32 1.94 2.5 1.94h3.83V15z"/></svg>';
     const cashLabel = (amount, currency) => {
@@ -11143,7 +11721,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         const v = c?.convert ? c.convert(amount, currency || "EUR") : null;
         if (null != v) return curFmt(v, c.target(), 2);
       } catch (e) {}
-      return curFmt(amount, currency || "EUR", 2);
+      return curFmt(amount, currency || "EUR");
     };
     const properCase = s => String(null == s ? "" : s).replace(/[A-ZÄÖÜ][A-ZÄÖÜ'’-]+/g, w => w.charAt(0) + w.slice(1).toLowerCase());
     const cityOf = (code, english) => {
@@ -11156,7 +11734,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
     };
     const fmtDur = sec => {
       if (!sec && 0 !== sec) return "";
-      const h = Math.floor(sec / 3600), m = Math.round(sec % 3600 / 60);
+      const all = Math.round(sec / 60), h = Math.floor(all / 60), m = all % 60;
       return h ? `${h}h ${String(m).padStart(2, "0")}min` : `${m}min`;
     };
     const isRail = leg => /TRAIN|RAIL/i.test(String(leg?.aircraftName || ""));
@@ -11608,6 +12186,19 @@ refx-confirm-restart-flight-selection-dialog-pres .refx-dialog-actions button {
 .mmrc-fchoose:hover { background: #1e449c; }
 .mmrc-fchoose:disabled { opacity: .6; cursor: default; }
 .mmrc-fchoose.is-error { background: ${INK_warn}; }
+.mmrc-fnobook { margin: auto 9px 9px; padding: 8px 10px; border: 1px solid ${INK_warn}; border-radius: 6px;
+                color: ${INK_warn}; font-size: 12px; font-weight: 700; text-align: center; }
+.mmrc-sc { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin-top: 5px; }
+.mmrc-scphone { color: inherit; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mmrc-scpick { position: relative; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+.mmrc-scpick::after { content: '▾'; font-size: 9px; }
+.mmrc-scpick:focus-within { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 2px; }
+.mmrc-flag { display: block; width: 21px; height: 15px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.mmrc-flagcode { display: block; font-size: 10px; line-height: 15px; padding: 0 3px; border-radius: 2px;
+                 box-shadow: 0 0 0 1px currentColor; }
+.mmrc-sccountry { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 13px; }
+.mmrc-ctd { font-size: 10.5px; font-weight: 700; line-height: 1.45; padding: 1px 8px; border-radius: 999px;
+            color: ${INK_warn}; background: #f8ecec; white-space: nowrap; }
 .mmrc-note { padding: 4px 6px 5px; border-top: none; font-size: 9.5px;
              line-height: 1.35; text-align: center; color: ${INK_muted}; }
 .mmrc-note:empty { padding: 0; }
@@ -11717,7 +12308,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           return `<div class="mmrc-row is-leg">` + ((leg, extra) => tSpan(leg.from, leg.fromCity, esc(leg.dep)) + `<span class="mmrc-arrow">` + (leg.duration ? `<span>${esc(fmtDur(leg.duration))}</span>` : "") + `</span>` + tSpan(leg.to, leg.toCity, `${esc(leg.arr)}${extra || ""}`))(leg, extraOf(leg, legIdx)) + `<span class="mmrc-legmeta">${parts.join("")}</span></div>`;
         })(leg, i));
         const stops = leg.techStops || [];
-        stops.length && (isRail(leg) || isBus(leg)) ? rows.push((stops => {
+        stops.length && (leg.ground || isRail(leg) || isBus(leg)) ? rows.push((stops => {
           const placeNames = stops.map(t => cityOf(t.airport, t.city)).filter(Boolean);
           const n = stops.length;
           const tip = placeNames.length ? placeNames.join(", ") : T("Halt ohne Umstieg, Sie bleiben sitzen");
@@ -11733,8 +12324,8 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const layHtml = ((lo, leg, next) => {
           const dur = lo ? lo.duration : null;
           const long = null != dur && dur >= 4 * 3600;
-          const mct = MCT[String(leg.to || "").toUpperCase()] || MCT_DEFAULT;
-          const tight = null != dur && dur <= 60 * (mct + 15);
+          const mct = MCT[String(leg.to || "").toUpperCase()] || null;
+          const tight = null != dur && null != mct && dur <= 60 * (mct + 15);
           const airportChanged = leg.to && next && next.from && leg.to !== next.from;
           const changed = !airportChanged && leg.termArr && next && next.termDep && leg.termArr !== next.termDep;
           const place = cityOf(leg.to, leg.toCity);
@@ -11825,6 +12416,261 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         }).join("") + "</ul>",
         ups: ups
       };
+    }
+    const SC_KEY = "mmrc_service_team";
+    const SC_PICK_KEY = "mm_service_country";
+    const SC_TTL_MS = 24 * 3600 * 1e3;
+    const SC_STATUS = {
+      BASE: "base",
+      FTL: "ftl",
+      SEN: "sen",
+      HON: "hon"
+    };
+    const SC_COUNTRIES = ("AD AE AF AG AI AL AM AN AO AR AS AT AU AW AZ BA BB BD BE BF BG BH BI BJ BM BN BO BQ BR BS BT BV BW BY BZ " + "CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA " + "GB GD GE GF GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IN IO IQ IR IS IT JM JO JP KE KG KH KI " + "KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY " + "MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE " + "SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA " + "VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZR ZW").toLowerCase().split(" ");
+    const FLAG_OF = {
+      an: "NL",
+      zr: "CD"
+    };
+    let scAsked = null;
+    function askBootstrap(name, payload, ms = 2e4) {
+      return new Promise(resolve => {
+        const id = name + Date.now() + Math.random();
+        const done = r => {
+          document.removeEventListener("mm:" + name + "-result", onResult);
+          clearTimeout(timer);
+          resolve(r);
+        };
+        const onResult = e => {
+          let r = null;
+          try {
+            r = JSON.parse(String(e.detail));
+          } catch (x) {}
+          r && r.id === id && done(r);
+        };
+        const timer = setTimeout(() => done(null), ms);
+        document.addEventListener("mm:" + name + "-result", onResult);
+        document.dispatchEvent(new CustomEvent("mm:" + name, {
+          detail: JSON.stringify(Object.assign({
+            id: id
+          }, payload))
+        }));
+      });
+    }
+    function serviceCountry() {
+      let pick = null;
+      try {
+        pick = localStorage.getItem(SC_PICK_KEY);
+      } catch (e) {}
+      if (SC_COUNTRIES.includes(pick)) return pick;
+      const A = window.__mmAuth || {};
+      const home = (A.profile && A.profile.contacts || []).find(c => c && "Address" === c.contactType && /^[A-Z]{2}$/i.test(c.countryCode || ""));
+      if (home && SC_COUNTRIES.includes(home.countryCode.toLowerCase())) return home.countryCode.toLowerCase();
+      let market = null;
+      try {
+        market = String(JSON.parse(sessionStorage.getItem("analytics") || "null")?.touchpointInfo?.market || "").toLowerCase();
+      } catch (e) {}
+      return SC_COUNTRIES.includes(market) ? market : "de";
+    }
+    function serviceNumber() {
+      const q = function() {
+        const A = window.__mmAuth || {};
+        return {
+          country: serviceCountry(),
+          cor: "",
+          lang: String(document.documentElement.lang || "de").slice(0, 2).toLowerCase(),
+          status: SC_STATUS[String(A.tier || "").toUpperCase()] || "base"
+        };
+      }();
+      const key = [ q.country, q.lang, q.status ].join("|");
+      try {
+        const c = JSON.parse(localStorage.getItem(SC_KEY) || "null");
+        if (c && c.key === key && Date.now() - c.t < SC_TTL_MS) return c.phone;
+      } catch (e) {}
+      if (scAsked === key) return null;
+      scAsked = key;
+      askBootstrap("service-center", q).then(r => {
+        let phone = null;
+        try {
+          const c = (JSON.parse(r.body).data || {}).country || {};
+          phone = "string" == typeof (c.phones || [])[0] ? c.phones[0] : null;
+        } catch (x) {}
+        scAsked === key && (scAsked = null);
+        if (phone) {
+          try {
+            localStorage.setItem(SC_KEY, JSON.stringify({
+              key: key,
+              t: Date.now(),
+              phone: phone
+            }));
+          } catch (x) {}
+          serviceCountry() === q.country && document.querySelectorAll(".mmrc-scphone").forEach(a => {
+            a.outerHTML = phoneHtml(phone);
+          });
+        }
+      });
+      return null;
+    }
+    const phoneHtml = phone => {
+      if (!phone) return '<a class="mmrc-scphone" hidden></a>';
+      const shown = intlNumber(phone, serviceCountry());
+      return `<a class="mmrc-scphone" href="tel:${esc(shown.replace(/[^\d+]/g, ""))}">${esc(shown)}</a>`;
+    };
+    const API_KEY = "agGBZmuTGwFXWzVDg8ckGKGBytemE1nS";
+    const DIAL_URL = "https://api.miles-and-more.com/v1/references/addresses/";
+    const DIAL_KEY = "mmrc_dialing";
+    const DIAL_TTL_MS = 30 * 24 * 3600 * 1e3;
+    const AS_LISTED = new Set([ "id", "sr" ]);
+    const NUMBER_OF = {
+      gi: "gb"
+    };
+    let dialing = null;
+    const dialAsked = new Set;
+    function dialData() {
+      if (!dialing) {
+        try {
+          dialing = JSON.parse(localStorage.getItem(DIAL_KEY) || "null");
+        } catch (e) {}
+        dialing && Date.now() - dialing.t < DIAL_TTL_MS || (dialing = {
+          t: Date.now(),
+          codes: null,
+          trunk: {}
+        });
+      }
+      return dialing;
+    }
+    const afterDigits = (p, lead) => {
+      let i = 0, n = 0;
+      for (;i < p.length && n < lead.length; ) {
+        if (p[i] === lead[n]) n++; else if (" " !== p[i]) return null;
+        i++;
+      }
+      return n === lead.length ? p.slice(i).trim() : null;
+    };
+    function intlNumber(phone, cc) {
+      const p = String(phone).replace(/^[^+\d]+/, "").replace(/-/g, " ").replace(/\s+/g, " ").replace(/^\+ /, "+").trim();
+      if (p.startsWith("+") || AS_LISTED.has(cc)) return p;
+      const intl = afterDigits(p, "00");
+      if (intl && /^[1-9]/.test(intl)) return "+" + intl;
+      const of = NUMBER_OF[cc] || cc;
+      const d = dialData(), up = of.toUpperCase();
+      const code = d.codes && d.codes[up], trunk = d.trunk[up];
+      if (!d.codes || void 0 === trunk) {
+        !function(cc) {
+          const d = dialData(), up = cc.toUpperCase();
+          const get = (path, take) => {
+            if (!dialAsked.has(path)) {
+              dialAsked.add(path);
+              (window.__mmIataOrigFetch || window.__mmFareOrigFetch || window.fetch).call(window, DIAL_URL + path, {
+                headers: {
+                  "x-api-key": API_KEY,
+                  accept: "application/json"
+                },
+                credentials: "omit"
+              }).then(r => r.ok ? r.json() : null).then(j => {
+                if (!j || !take(j)) return;
+                try {
+                  localStorage.setItem(DIAL_KEY, JSON.stringify(d));
+                } catch (x) {}
+                const phone = serviceNumber();
+                phone && document.querySelectorAll(".mmrc-scphone").forEach(a => {
+                  a.outerHTML = phoneHtml(phone);
+                });
+              }).catch(() => {});
+            }
+          };
+          d.codes || get("countrydialingcodes", j => {
+            if ("object" != typeof j) return !1;
+            d.codes = j;
+            return !0;
+          });
+          up in d.trunk || get("trunkprefix/" + up, j => {
+            const p = j && Array.isArray(j.prefix) ? String(j.prefix[0] || "-") : null;
+            if (null === p) return !1;
+            d.trunk[up] = p;
+            return !0;
+          });
+        }(of);
+        return p;
+      }
+      if (!/^\d+$/.test(code || "")) return p;
+      const rest = (/^\d+$/.test(trunk) ? afterDigits(p, trunk) : null) ?? afterDigits(p, code);
+      return rest ? "+" + code + " " + rest : p;
+    }
+    const FLAGS_KEY = "mmrc_flags";
+    const FLAGS_TTL_MS = 7 * 24 * 3600 * 1e3;
+    let flagMap = null, flagsAsked = !1;
+    function flagSet() {
+      if (flagMap) return flagMap;
+      let text = null;
+      try {
+        const c = JSON.parse(localStorage.getItem(FLAGS_KEY) || "null");
+        c && Date.now() - c.t < FLAGS_TTL_MS && (text = c.svg);
+      } catch (e) {}
+      if (text) {
+        flagMap = parseFlags(text);
+        return flagMap;
+      }
+      if (!flagsAsked) {
+        flagsAsked = !0;
+        askBootstrap("www-file", {
+          name: "flags"
+        }).then(r => {
+          const map = r && 200 === r.status ? parseFlags(r.body) : null;
+          if (map && map.size) {
+            flagMap = map;
+            try {
+              localStorage.setItem(FLAGS_KEY, JSON.stringify({
+                t: Date.now(),
+                svg: r.body
+              }));
+            } catch (x) {}
+            document.querySelectorAll(".mmrc-scflag").forEach(el => {
+              el.innerHTML = flagHtml(serviceCountry());
+            });
+          }
+        });
+      }
+      return null;
+    }
+    function parseFlags(text) {
+      const map = new Map;
+      try {
+        const doc = (new DOMParser).parseFromString(text, "image/svg+xml");
+        doc.querySelectorAll("script, style, foreignObject, image, use, a").forEach(e => e.remove());
+        doc.querySelectorAll("svg svg[id]").forEach(el => {
+          [ el, ...el.querySelectorAll("*") ].forEach(n => [ ...n.attributes ].forEach(a => {
+            (/^on/i.test(a.name) || /href$/i.test(a.name)) && n.removeAttribute(a.name);
+          }));
+          const id = el.getAttribute("id");
+          el.removeAttribute("id");
+          el.setAttribute("class", "mmrc-flag");
+          el.setAttribute("aria-hidden", "true");
+          map.set(id, el.outerHTML);
+        });
+      } catch (e) {}
+      return map;
+    }
+    const flagHtml = cc => {
+      const set = flagSet();
+      return set && set.get(FLAG_OF[cc] || cc.toUpperCase()) || `<span class="mmrc-flagcode">${esc(cc.toUpperCase())}</span>`;
+    };
+    let countryList = null, countryListLang = null;
+    function onServiceCountry(e) {
+      const sel = e.target.closest && e.target.closest(".mmrc-sccountry");
+      if (!sel || !SC_COUNTRIES.includes(sel.value)) return;
+      try {
+        localStorage.setItem(SC_PICK_KEY, sel.value);
+      } catch (x) {}
+      document.querySelectorAll(".mmrc-sccountry").forEach(o => {
+        o.value = sel.value;
+      });
+      document.querySelectorAll(".mmrc-scflag").forEach(el => {
+        el.innerHTML = flagHtml(sel.value);
+      });
+      const phone = serviceNumber();
+      document.querySelectorAll(".mmrc-scphone").forEach(a => {
+        a.outerHTML = phoneHtml(phone);
+      });
     }
     function bagText(s) {
       const m = /(\d+)\s+(?:CHECKED BAGS?|CABIN BAGS?)[^0-9]*(\d+)\s*KG/i.exec(s || "");
@@ -11933,6 +12779,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
     const REFUSAL_FLASH_MS = 8e3;
     function hideShownRefusal() {
       const text = pendingBooking && pendingBooking.refused;
+      if (!text && !document.querySelector(".mmrc-dup-msg")) return;
       const panels = new Map;
       messageNodes().forEach(li => {
         const same = !!text && messageText(li) === text;
@@ -12106,12 +12953,19 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         childList: !0,
         subtree: !0
       });
-      open || card.zone.run(() => card.comp.onFlightCardClick(fare.cabin));
-      check();
-      done || (failTimer = setTimeout(() => {
+      failTimer = setTimeout(() => {
         mo.disconnect();
         fail(T("Tarif nicht wählbar"));
-      }, 2e3));
+      }, 2e3);
+      try {
+        open || card.zone.run(() => card.comp.onFlightCardClick(fare.cabin));
+      } catch (e) {
+        mo.disconnect();
+        clearTimeout(failTimer);
+        fail(T("Tarif nicht wählbar"));
+        return;
+      }
+      check();
     }
     const TIER_ORDER = [ "Basic", "Light", "Classic", "Comfort", "Comfort +", "Flex", "Standard" ];
     let openFareCol = null;
@@ -12212,7 +13066,30 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
               fare: cabinMeta.name + " Light"
             }) : "comfort" === g ? T("Rückflug nur Comfort, jede Kabine") : "plus" === g ? T("Rückflug Comfort +, Flex oder Standard, jede Kabine") : "";
             return text ? `<div class="mmrc-fback-combo">${esc(text)}</div>` : "";
-          }(f, cabinMeta) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${servicesHtml(f, base, !0).html}</div>` + `<button type="button" class="mmrc-fchoose">${T("Wählen")}</button>`;
+          }(f, cabinMeta) + `</div>` + `<div class="mmrc-blk"><div class="mmrc-cap">${T("Leistungen")}</div>${servicesHtml(f, base, !0).html}</div>` + ("tooCloseToDeparture" === f.notOffered ? `<div class="mmrc-fnobook">${T("Nur noch über das Callcenter buchbar")}${function() {
+            const cc = serviceCountry();
+            return '<span class="mmrc-sc">' + `<label class="mmrc-scpick" title="${esc(T("Land"))}"><span class="mmrc-scflag">${flagHtml(cc)}</span>` + `<select class="mmrc-sccountry" aria-label="${esc(T("Land"))}">${function(sel) {
+              const lang = document.documentElement.lang || "de";
+              if (countryListLang !== lang) {
+                let dn = null;
+                try {
+                  dn = new Intl.DisplayNames([ lang ], {
+                    type: "region"
+                  });
+                } catch (e) {}
+                const name = c => {
+                  try {
+                    return dn && dn.of(("zr" === c ? "cd" : c).toUpperCase()) || c.toUpperCase();
+                  } catch (e) {
+                    return c.toUpperCase();
+                  }
+                };
+                countryList = SC_COUNTRIES.map(c => [ c, name(c) ]).sort((a, b) => a[1].localeCompare(b[1], lang));
+                countryListLang = lang;
+              }
+              return countryList.map(([c, n]) => `<option value="${c}"${c === sel ? " selected" : ""}>${esc(n)}</option>`).join("");
+            }(cc)}</select></label>` + phoneHtml(serviceNumber()) + "</span>";
+          }()}</div>` : `<button type="button" class="mmrc-fchoose">${T("Wählen")}</button>`);
         }(f, d.meta, d.prevOf.get(f.code));
         col.querySelector(".mmrc-colflip").appendChild(fp);
         openFareCol = col;
@@ -12263,7 +13140,11 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       const left = document.createElement("div");
       left.className = "mmrc-left";
       const stopsLabel = 0 === it.stops ? T("Direktflug") : Tn(it.stops, "{n} Stopp", "{n} Stopps");
-      left.innerHTML = `<div class="mmrc-meta">` + `<span class="mmrc-dur">${esc(fmtDur(it.totalDuration))}</span>` + `<span class="mmrc-stops">${esc(stopsLabel)}</span>` + `</div>` + timelineHtml(it);
+      left.innerHTML = `<div class="mmrc-meta">` + `<span class="mmrc-dur">${esc(fmtDur(it.totalDuration))}</span>` + `<span class="mmrc-stops">${esc(stopsLabel)}</span>` + ("tooCloseToDeparture" === it.notOffered ? `<span class="mmrc-ctd" title="${esc(T("Nur noch über das Callcenter buchbar"))}">${T("Last-Minute-Buchung")}</span>` : "") + `</div>` + timelineHtml(it);
+      if ("tooCloseToDeparture" === it.notOffered) {
+        serviceNumber();
+        flagSet();
+      }
       const byCabin = {};
       (it.fares || []).forEach(f => {
         f.cabin && (byCabin[f.cabin] = byCabin[f.cabin] || []).push(f);
@@ -12412,11 +13293,18 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       pred: null,
       cabins: null
     };
+    const cardCache = new Map;
+    let reuseCards = !1;
     state.setView = v => {
       view.cmp = v?.cmp || null;
       view.pred = v?.pred || null;
       view.cabins = v?.cabins || null;
-      render();
+      reuseCards = !0;
+      try {
+        render();
+      } finally {
+        reuseCards = !1;
+      }
     };
     state.items = () => {
       const bd = boundsData();
@@ -12424,6 +13312,9 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       return map && Array.isArray(bd.current) ? bd.current.map(k => map.get(k)).filter(Boolean) : [];
     };
     state.priceMode = () => priceMode;
+    state.shownMiles = shownMiles;
+    state.shownCash = shownCash;
+    state.intlNumber = intlNumber;
     state.setPriceMode = m => {
       priceMode = "total" === m ? "total" : "adult";
       try {
@@ -12492,6 +13383,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           e.target.matches?.("img.mmrc-logo") && swapLogo(e.target);
         }, !0);
         list.addEventListener("click", onListClick);
+        list.addEventListener("change", onServiceCountry);
         list.addEventListener("mouseover", onListOver);
         list.addEventListener("mouseenter", onSeatHover, !0);
         list.addEventListener("mouseleave", onSeatHover, !0);
@@ -12541,9 +13433,33 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         return !1;
       }
     }
+    function skelCaption() {
+      const ms = (boundsData()?.heldUntil || 0) - Date.now();
+      if (ms <= 0) return esc(T("Flüge werden gesucht …"));
+      const s = Math.ceil(ms / 1e3);
+      const left = nf({
+        useGrouping: !1
+      }).format(Math.floor(s / 60)) + ":" + nf({
+        minimumIntegerDigits: 2
+      }).format(s % 60);
+      return esc(T("Suche startet in {left}.", {
+        left: left
+      }));
+    }
+    let skelTick = null;
     function skelHtml() {
       const card = '<div class="mmrc-skel-card">' + '<div class="mmrc-skel-tl"><i></i><i></i><i></i></div>' + '<div class="mmrc-skel-col"></div><div class="mmrc-skel-col"></div></div>';
-      return '<div class="mmrc-bar-text">' + T("Flüge werden gesucht …") + "</div>" + '<div class="mmrc-skel">' + card + card + card + "</div>";
+      (boundsData()?.heldUntil || 0) > Date.now() && (skelTick || (skelTick = setInterval(() => {
+        const html = skelCaption();
+        document.querySelectorAll(".mmrc-skel-text").forEach(e => {
+          e.innerHTML !== html && (e.innerHTML = html);
+        });
+        if (state.superseded || !((boundsData()?.heldUntil || 0) > Date.now())) {
+          clearInterval(skelTick);
+          skelTick = null;
+        }
+      }, 1e3)));
+      return '<div class="mmrc-bar-text mmrc-skel-text">' + skelCaption() + "</div>" + '<div class="mmrc-skel">' + card + card + card + "</div>";
     }
     function skeleton(list) {
       list.innerHTML = "<li>" + skelHtml() + "</li>";
@@ -12749,7 +13665,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const expired = "65012" === String(lastErr.code);
         const noFlight = "7959" === String(lastErr.code);
         const transport = !!lastErr.transport;
-        const blocked = transport && (429 === lastErr.http || !lastErr.http);
+        const blocked = transport && !lastErr.aborted && (429 === lastErr.http || !lastErr.http);
         const seg = /SEGMENT (\d)/.exec(lastErr.detail || "");
         const bannerOwned = transport && !(!window.__mmRecovery || !window.__mmRecovery.version);
         const text = expired ? T("Der gewählte Hinflug ist abgelaufen.") : noFlight ? T(seg && "2" === seg[1] ? "Kein Flug für den Rückflug an diesem Tag." : "Kein Flug für den Hinflug an diesem Tag.") : transport && lastErr.title ? lastErr.title + (lastErr.why ? "\n" + lastErr.why : "") : lastErr.code ? T("Suche fehlgeschlagen ({detail}).", {
@@ -12858,11 +13774,27 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         return li;
       }();
       returnNote && list.appendChild(returnNote);
-      if (items.length) items.forEach(it => {
-        try {
-          list.appendChild(cardEl(it, cabins, dicts, searched));
-        } catch (e) {}
-      }); else {
+      if (items.length) {
+        const cabinsKey = cabins.join();
+        reuseCards || cardCache.clear();
+        items.forEach(it => {
+          try {
+            const hit = reuseCards && cardCache.get(it.key);
+            if (hit && hit.it === it && hit.cabins === cabinsKey && hit.searched === searched) {
+              list.appendChild(hit.el);
+              return;
+            }
+            const el = cardEl(it, cabins, dicts, searched);
+            cardCache.set(it.key, {
+              el: el,
+              it: it,
+              cabins: cabinsKey,
+              searched: searched
+            });
+            list.appendChild(el);
+          } catch (e) {}
+        });
+      } else {
         const li = msgLi();
         li.innerHTML = T("Kein Flug entspricht den Filtern.") + '<button type="button" class="mmrc-reset-filter">' + T("Filter zurücksetzen") + "</button>";
         li.querySelector(".mmrc-reset-filter").addEventListener("click", () => {
@@ -12947,14 +13879,14 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
     if (bd) {
       bd.onUpdate && (state._offData = bd.onUpdate(() => {
         noOffer = null;
-        pendingBooking && "outbound" === listSide() && bd.listSig !== pendingBooking.listSig && !bookingInFlight() && (pendingBooking = null);
+        pendingBooking && "outbound" === listSide() && boundsData().listSig !== pendingBooking.listSig && !bookingInFlight() && (pendingBooking = null);
         scheduleRender();
       }));
       bd.onCart && (state._offCart = bd.onCart(onCartAnswer));
       bd.onRequest && (state._offReq = bd.onRequest((active, meta) => {
         searching = Math.max(0, searching + (active ? 1 : -1));
         if (!state.superseded && cardsOn()) if (active) {
-          if ((!meta || meta.fresh && meta.sig !== bd.listSig) && !bookingInFlight()) {
+          if ((!meta || meta.fresh && meta.sig !== boundsData().listSig) && !bookingInFlight()) {
             pendingBooking = null;
             try {
               sessionStorage.removeItem("mmrc_outbound_pick");
@@ -12968,12 +13900,19 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       }));
     }
     window.__mmCurrency?.onUpdate && (state._offFx = window.__mmCurrency.onUpdate(scheduleRender));
+    let passQueued = !1;
     const obs = new MutationObserver(records => {
-      if (state.superseded) return;
-      if (records.every(r => (node => {
+      if (!state.superseded && !passQueued && !records.every(r => (node => {
         const el = 1 === node.nodeType ? node : node.parentElement;
-        return !!el && !!el.closest(".mmrc-list, .mmsm-overlay, .mmsm-peek, #" + FLOAT_ID);
-      })(r.target))) return;
+        return !!el && !!el.closest(".mmrc-list, .mmsm-overlay, .mmsm-peek, #mmsort-bar, #" + FLOAT_ID);
+      })(r.target))) {
+        passQueued = !0;
+        "function" == typeof requestAnimationFrame ? requestAnimationFrame(pass) : setTimeout(pass, 0);
+      }
+    });
+    function pass() {
+      passQueued = !1;
+      if (state.superseded) return;
       pendingBooking && !/\/availability\b/.test(location.pathname) && (pendingBooking = null);
       if (!cardsOn()) return;
       if ((pendingBooking || restartDialogSeen) && document.querySelector("refx-confirm-restart-flight-selection-dialog-pres")) restartDialogSeen = !0; else if (restartDialogSeen) {
@@ -12989,7 +13928,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       hideShownRefusal();
       const host = resultsHost();
       host && !host.querySelector(".mmrc-list") && render();
-    });
+    }
     state._observer = obs;
     state._setPending = p => {
       pendingBooking = p;
@@ -13063,7 +14002,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
   })();
   (() => {
     "use strict";
-    const VERSION = 137;
+    const VERSION = 139;
     if (window.__mmSeatmap && window.__mmSeatmap.version >= VERSION) return;
     if (window.__mmSeatmap) try {
       window.__mmSeatmap.teardown();
@@ -13321,6 +14260,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       g.nose = unpack(g.nose, 1e3);
       g.mirror && (g.panes = g.panes.concat(g.panes.map(p => p.map(([x, y]) => [ x, -y ]))));
     });
+    const ground = leg => !!leg?.ground || /TRAIN|RAIL|\bBUS\b/i.test(String(leg?.aircraftName || ""));
     function shapeKeyFor(leg) {
       const s = String(leg?.aircraftName || "").toUpperCase();
       return /A380/.test(s) ? "a388" : /A35\d/.test(s) ? "a359" : /A34\d/.test(s) ? "a343" : /A3(3\d|10|00)/.test(s) ? "a333" : /A(3(1[89]|2\d)|22\d)/.test(s) ? "a320" : /747|B?74\d/.test(s) ? "b744" : /78\d|DREAMLINER/.test(s) ? "b788" : /77\d/.test(s) ? "b77w" : /7[0-6]\d|MAX/.test(s) ? "b738" : leg?.widebody ? "a333" : "a320";
@@ -14031,10 +14971,14 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         return tl + (y - pl) * s;
       };
     }
+    const overlapX = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+    const overlapY = (a, b) => Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+    const across = (a, b) => overlapX(a, b) > 0;
     function typed(plan, deck, leg, key) {
       const TY = TYPES[key];
       if (!TY || !plan || !plan.seats.length) return null;
       const upper = "upper" === deck.type;
+      const doorsAt = upper ? TY.upper.doors.map(x => [ x, 1 ]) : TY.doors.map(x => [ x, 1 ]).concat(TY.ow.map(x => [ x, .55 ]));
       if (upper && !TY.upper) return null;
       const Fm = upper ? TY.upper.F : TY.F;
       const anchors = (upper ? TY.upper.doors : TY.doors.concat(TY.ow)).slice().sort((p, q) => p - q);
@@ -14268,28 +15212,28 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const out = seats.map(q => Object.assign({}, q, {
           box: Object.assign({}, q.box)
         }));
-        out.forEach((p, i) => out.slice(i + 1).forEach(q => {
-          const a = p.box, b = q.box;
-          const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-          if (ox <= 0 || oy <= 0) return;
+        for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) {
+          const a = out[i].box, b = out[j].box;
+          const ox = overlapX(a, b), oy = overlapY(a, b);
+          if (ox <= 0 || oy <= 0) continue;
           const [k, n] = ox <= oy ? [ "x", "w" ] : [ "y", "h" ];
           const [lo, hi] = a[k] <= b[k] ? [ a, b ] : [ b, a ], cut = Math.min(lo[k] + lo[n], hi[k] + hi[n]) - hi[k];
           lo[n] -= cut / 2;
           hi[k] += cut / 2;
           hi[n] -= cut / 2;
-        }));
+        }
         return out;
       })((seats => {
-        const row = q => parseInt(q.nr, 10), mid = b => b.y + b.h / 2;
-        const across = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const rowNr = new Map(seats.map(q => [ q, parseInt(q.nr, 10) ]));
+        const row = q => rowNr.get(q), mid = b => b.y + b.h / 2;
         const walls = rooms.filter(r => "console" !== r.kind).map(r => r.box);
         const to = new Map;
         seats.forEach(q => {
           const b = q.box;
-          const nest = seats.filter(o => row(o) !== row(q) && across(o.box, b) > 2 && ((a, b) => Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))(o.box, b) > 2);
+          const nest = seats.filter(o => overlapY(o.box, b) > 2 && overlapX(o.box, b) > 2 && row(o) !== row(q));
           if (!nest.length || nest.some(o => mid(o.box) <= mid(b))) return;
           const near = Math.min(...nest.map(o => o.box.y));
-          const ahead = seats.filter(o => o !== q && nest.indexOf(o) < 0).map(o => o.box).concat(walls).filter(o => across(o, b) > 0 && mid(o) < mid(b)).map(o => o.y + o.h);
+          const ahead = seats.filter(o => o !== q && nest.indexOf(o) < 0).map(o => o.box).concat(walls).filter(o => overlapX(o, b) > 0 && mid(o) < mid(b)).map(o => o.y + o.h);
           const y = (near + (ahead.length ? Math.max(...ahead) : near - b.h)) / 2 - b.h / 2;
           y < b.y && to.set(q, y);
         });
@@ -14326,13 +15270,16 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const ecoWs = seats.filter(q => "eco" === sold(q)).map(q => q.box.w).sort((p, q) => p - q), ecoW = ecoWs[ecoWs.length >> 1];
         const cab = q => "eco" === sold(q) || "ecoPremium" === sold(q) ? sold(q) : ecoW && Math.abs(q.box.w - ecoW) < .15 * ecoW ? "eco" : grid ? sold(q) : null;
         const list = seats.filter(q => cab(q));
-        const mid = q => [ q.box.x + q.box.w / 2, q.box.y + q.box.h / 2 ];
+        const midY = new Map(list.map(q => [ q, q.box.y + q.box.h / 2 ])), cabOf = new Map(list.map(q => [ q, cab(q) ]));
         const pitchOf = new Map(list.map(q => {
-          const [cx, cy] = mid(q);
-          return [ q, Math.min(...list.map(o => {
-            const [, oy] = mid(o);
-            return cab(o) === cab(q) && (o => Math.min(o.box.x + o.box.w, q.box.x + q.box.w) - Math.max(o.box.x, q.box.x) > .3 * Math.min(o.box.w, q.box.w))(o) && Math.abs(oy - cy) > q.box.h / 2 ? Math.abs(oy - cy) : 1 / 0;
-          })) ];
+          const cy = midY.get(q), c = cabOf.get(q);
+          const way = o => Math.min(o.box.x + o.box.w, q.box.x + q.box.w) - Math.max(o.box.x, q.box.x) > .3 * Math.min(o.box.w, q.box.w);
+          let best = 1 / 0;
+          for (const o of list) {
+            const d = Math.abs(midY.get(o) - cy);
+            cabOf.get(o) === c && way(o) && d > q.box.h / 2 && d < best && (best = d);
+          }
+          return [ q, best ];
         }));
         const usual = {};
         new Set(list.map(cab)).forEach(c => {
@@ -14357,7 +15304,6 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       })((seats => {
         if (!shifts.length) return seats;
         const out = seats.slice(), rowsOf = new Map;
-        const across = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0;
         out.forEach((s, i) => {
           const r = parseInt(s.nr, 10);
           (rowsOf.get(r) || rowsOf.set(r, []).get(r)).push(i);
@@ -14442,7 +15388,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           prev && !mains.some(([y0, y1]) => (y0 + y1) / 2 > prev.c && (y0 + y1) / 2 < row.c) || blocks.push([]);
           blocks[blocks.length - 1].push(...row.list);
         });
-        const over = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 2;
+        const over = (a, b) => overlapX(a, b) > 2;
         const things = rooms.filter(r => "console" !== r.kind).map(r => r.box);
         const free = (blk, dir) => {
           const mine = new Set(blk);
@@ -14458,7 +15404,10 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
               });
             };
             placed.forEach(o => {
-              o !== q && over(o.box, b) && see(o.box.y, o.box.y + o.box.h, mine.has(o) ? "own" : "seat");
+              o !== q && ((y0, y1) => {
+                const d = dir < 0 ? edge - y1 : y0 - edge;
+                return d >= -1 && d < 400;
+              })(o.box.y, o.box.y + o.box.h) && over(o.box, b) && see(o.box.y, o.box.y + o.box.h, mine.has(o) ? "own" : "seat");
             });
             things.forEach(t => {
               over(t, b) && see(t.y, t.y + t.h, "room");
@@ -14506,7 +15455,6 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           });
         });
       }
-      const across = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0;
       const reach = b => {
         const seat = placed.map(q => q.box).filter(q => across(q, b));
         const wide = {
@@ -14526,7 +15474,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         };
         var l;
       };
-      const doorSpans = (upper ? TY.upper.doors.map(x => [ x, 1 ]) : TY.doors.map(x => [ x, 1 ]).concat(TY.ow.map(x => [ x, .55 ]))).map(([x, w]) => [ (x - w / 2) * C, (x + w / 2) * C ]);
+      const doorSpans = doorsAt.map(([x, w]) => [ (x - w / 2) * C, (x + w / 2) * C ]);
       const was = new Map(rooms.map(r => [ r, r.box.y ]));
       grid && rooms.forEach(r => {
         if ("console" === r.kind) return;
@@ -14540,7 +15488,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         ga <= gb && !aft && near(ga, ahead, b.y) && roomAhead < ahead ? b.y = ahead + 2 : gb < ga && !fore && near(gb, b.y + b.h, behind) && roomBehind > behind && (b.y = behind - 2 - b.h);
       });
       if (grid) {
-        const fronts = (upper ? TY.upper.doors.map(x => [ x, 1 ]) : TY.doors.map(x => [ x, 1 ]).concat(TY.ow.map(x => [ x, .55 ]))).map(([x, w]) => (x - w / 2) * C);
+        const fronts = doorsAt.map(([x, w]) => (x - w / 2) * C);
         rooms.forEach(r => {
           if ("console" === r.kind) return;
           const b = r.box, end = b.y + b.h;
@@ -14584,7 +15532,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         });
       }
       if (grid) {
-        const ways = (upper ? TY.upper.doors.map(x => [ x, 1 ]) : TY.doors.map(x => [ x, 1 ]).concat(TY.ow.map(x => [ x, .55 ]))).map(([x, w]) => [ (x - w / 2 - .1) * C, (x + w / 2 + .1) * C ]);
+        const ways = doorsAt.map(([x, w]) => [ (x - w / 2 - .1) * C, (x + w / 2 + .1) * C ]);
         const wall = .2 * Fm * C;
         rooms.forEach(r => {
           const b = r.box;
@@ -14662,7 +15610,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       }
       const wing = upper ? [] : TY.wing.map(([d, le, te]) => [ axis - F / 2 - d * C, le * C, te * C ]);
       const doors = [];
-      (upper ? TY.upper.doors.map(x => [ x, 1 ]) : TY.doors.map(x => [ x, 1 ]).concat(TY.ow.map(x => [ x, .55 ]))).forEach(([x, w]) => [ "L", "R" ].forEach(side => doors.push({
+      doorsAt.forEach(([x, w]) => [ "L", "R" ].forEach(side => doors.push({
         side: side,
         y0: (x - w / 2) * C,
         y1: (x + w / 2) * C
@@ -14677,16 +15625,17 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           const out = seats.map(q => Object.assign({}, q, {
             box: Object.assign({}, q.box)
           }));
-          const across = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0;
           out.forEach(q => {
-            const b = q.box, others = out.filter(o => o !== q && across(o.box, b)).map(o => o.box);
+            const b = q.box;
+            let lanes = null;
+            const others = () => lanes || (lanes = out.filter(o => o !== q && across(o.box, b)).map(o => o.box));
             rooms.forEach(({box: r}) => {
               if (across(r, b)) if (r.y < b.y + b.h && r.y + r.h > b.y + b.h && b.y + b.h - r.y < .4 * b.h) {
-                const o = b.y + b.h - r.y, free = Math.min(o, ...others.filter(z => z.y + z.h <= b.y).map(z => b.y - z.y - z.h));
+                const o = b.y + b.h - r.y, free = Math.min(o, ...others().filter(z => z.y + z.h <= b.y).map(z => b.y - z.y - z.h));
                 b.y -= Math.max(0, free);
                 b.h -= o - Math.max(0, free);
               } else if (r.y + r.h > b.y && r.y < b.y && r.y + r.h - b.y < .4 * b.h) {
-                const o = r.y + r.h - b.y, free = Math.min(o, ...others.filter(z => z.y >= b.y + b.h).map(z => z.y - b.y - b.h));
+                const o = r.y + r.h - b.y, free = Math.min(o, ...others().filter(z => z.y >= b.y + b.h).map(z => z.y - b.y - b.h));
                 b.y += o;
                 b.h -= o - Math.max(0, free);
               }
@@ -14920,6 +15869,9 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         const svg = (new DOMParser).parseFromString(text, "image/svg+xml").documentElement;
         if (!svg || "svg" !== svg.nodeName.toLowerCase()) throw new Error("kein SVG");
         svg.querySelectorAll("script, foreignObject, iframe, image, use, a").forEach(e => e.remove());
+        svg.querySelectorAll("style").forEach(e => {
+          e.textContent = e.textContent.replace(/@import[^;]*;?/gi, "").replace(/url\((?!\s*['"]?#)[^)]*\)/gi, "none");
+        });
         svg.querySelectorAll("*").forEach(e => [ ...e.attributes ].forEach(a => {
           (/^on/i.test(a.name) || /href$/i.test(a.name)) && e.removeAttribute(a.name);
         }));
@@ -14931,7 +15883,9 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       svg.setAttribute("width", W);
       svg.setAttribute("height", H);
       svg.style.cssText = `display:block;width:${W}px;height:${H}px`;
-      host.appendChild(svg);
+      (host.attachShadow ? host.attachShadow({
+        mode: "open"
+      }) : host).appendChild(svg);
       document.body.appendChild(host);
       try {
         return planOf(svg, W);
@@ -14967,7 +15921,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           box: b
         });
       });
-      const overlaps = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 4 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 4;
+      const overlaps = (a, b) => overlapX(a, b) > 4 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 4;
       const rooms = [];
       svg.querySelectorAll('[id^="Galley_Toilet_"], [class^="Galley_Toilet_"]').forEach(e => {
         if (e.parentElement && /Galley_Toilet_/.test(name(e.parentElement))) return;
@@ -15146,7 +16100,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
           return k > 0 && k <= b.length / 2;
         }));
         const full = sameGrid && [ ...new Set(own.map(q => q.row)) ].every(r => own.filter(q => q.row === r).length >= ecoLetters.length);
-        const shell = sameGrid && aislesOf < 2 && (jump || half || full);
+        const shell = !ground(leg) && sameGrid && aislesOf < 2 && (jump || half || full);
         const midL = ecoLetters.filter(L => blocks.some(b => 3 === b.length && b[1] === letterLane[L]));
         const isMid = q => midL.indexOf(q.L) >= 0;
         const blocked = full && own.some(isMid) && !own.some(q => q.free && isMid(q)) && own.some(q => q.free && !isMid(q));
@@ -15567,7 +16521,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       const back = Math.max(...seats.map(s => s.box.y + s.box.h), ...rooms.map(r => r.box.y + r.box.h)) + 30;
       const half = F / 2 + 14, axis = F / 2;
       const hull = [];
-      if ((leg => !!leg?.ground || /TRAIN|RAIL|\bBUS\b/i.test(String(leg?.aircraftName || "")))(leg)) {
+      if (ground(leg)) {
         const r = .25 * half;
         for (let k = 0; k <= 6; k++) {
           const t = k / 12 * Math.PI, w = half - r + r * Math.sin(t);
@@ -16002,6 +16956,20 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         airline: esc(leg.operatingName)
       }) : T("Die Airline meldet keine Preise für Sitzplatzreservierungen an das Buchungssystem.")) + "</div>" : "");
     }
+    const htmlOf = new WeakMap;
+    function shownHtml(model, leg) {
+      const k = (document.documentElement.lang || "") + "|" + legKey(leg);
+      let m = htmlOf.get(model);
+      m || htmlOf.set(model, m = new Map);
+      if (!m.has(k)) {
+        const p = bodyHtml(model, leg);
+        m.set(k, p);
+        p.catch(() => {
+          m.get(k) === p && m.delete(k);
+        });
+      }
+      return m.get(k);
+    }
     const MODAL_MAX = 1e3, MODAL_PAD = 22, FULL_MIN = .6, FULL_MAX = .85, ZOOM_KEY = "mmSeatmapZoom";
     const setZoom = (body, z) => {
       try {
@@ -16055,11 +17023,16 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       box.scrollLeft = W > B ? W - noseX : 0;
       box.style.minHeight = Math.max(box.offsetHeight, ...svgs.map(s => top - axisOf(s) + hOf(s))) + "px";
     }
+    let opener = null;
     function close() {
       const ov = document.querySelector(".mmsm-overlay");
-      if (ov) {
+      if (ov && ov.classList.contains("is-open")) {
         ov.classList.remove("is-open");
         ov.dataset.legKey = "";
+        opener && opener.isConnected && opener.focus({
+          preventScroll: !0
+        });
+        opener = null;
       }
     }
     document.addEventListener("keydown", e => {
@@ -16204,7 +17177,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
         if (ov) return ov;
         ov = document.createElement("div");
         ov.className = "mmsm-overlay";
-        ov.innerHTML = '<div class="mmsm-modal"><button type="button" class="mmsm-close" title="' + T("Schließen") + '">✕</button>' + '<div class="mmsm-tabs"></div><div class="mmsm-panel"></div></div>';
+        ov.innerHTML = '<div class="mmsm-modal" role="dialog" aria-modal="true"><button type="button" class="mmsm-close" title="' + T("Schließen") + '" aria-label="' + T("Schließen") + '">✕</button>' + '<div class="mmsm-tabs"></div><div class="mmsm-panel"></div></div>';
         ov.addEventListener("click", e => {
           e.target === ov && close();
         });
@@ -16216,8 +17189,18 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
         close();
         return;
       }
+      ov.classList.contains("is-open") || (opener = document.activeElement);
       ov.classList.add("is-open");
       ov.dataset.legKey = legKey(leg);
+      ov.querySelector(".mmsm-modal").setAttribute("aria-label", T("Sitzplan {flight} · {from} → {to}", {
+        flight: leg.flightNo || "",
+        from: leg.from || "",
+        to: leg.to || ""
+      }));
+      const closeBtn = ov.querySelector(".mmsm-close");
+      ov.contains(document.activeElement) || closeBtn.focus({
+        preventScroll: !0
+      });
       const addressable = legs.map((l, i) => ({
         l: l,
         i: i
@@ -16230,7 +17213,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
       }));
       const panel = ov.querySelector(".mmsm-panel");
       panel.innerHTML = '<div class="mmsm-msg">' + T("Sitzplan wird geladen …") + "</div>";
-      loadAll(leg).then(model => bodyHtml(model, leg)).then(html => {
+      loadAll(leg).then(model => shownHtml(model, leg)).then(html => {
         if (ov.dataset.legKey !== legKey(leg)) return;
         panel.innerHTML = html;
         !function(panel) {
@@ -16279,7 +17262,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
       peekBtn = btn;
       const cached = cache.has(legKey(leg) + "|all");
       peekTimer = setTimeout(() => {
-        peekBtn === btn && loadAll(leg).then(model => bodyHtml(model, leg)).then(html => {
+        peekBtn === btn && loadAll(leg).then(model => shownHtml(model, leg)).then(html => {
           if (peekBtn !== btn || !btn.isConnected) return;
           const pk = document.createElement("div");
           pk.className = "mmsm-peek";
@@ -16321,7 +17304,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
   })();
   (() => {
     "use strict";
-    const VERSION = 57;
+    const VERSION = 58;
     if (window.__mmSort && window.__mmSort.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -16382,7 +17365,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
     }
     function shown(f, field) {
       const c = cards();
-      return f.pax && c && c.priceMode && "total" === c.priceMode() ? "miles" === field ? f.totalMiles : "cash" === field ? f.totalCash : f[field] : f[field];
+      return "miles" === field && c && c.shownMiles ? c.shownMiles(f) : "cash" === field && c && c.shownCash ? c.shownCash(f) : f[field];
     }
     const inCabin = (f, cabin) => !cabin || (cabin instanceof Set ? cabin.has(f.cabin) : f.cabin === cabin);
     function cheapest(item, field, cabin, convert) {
@@ -16538,23 +17521,21 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
     } ];
     const CABINS = [ {
       key: "eco",
-      label: "Economy"
+      label: "Economy",
+      name: "Economy"
     }, {
       key: "ecoPremium",
-      label: "Prem. Eco"
+      label: "Prem. Eco",
+      name: "Premium Economy"
     }, {
       key: "business",
-      label: "Business"
+      label: "Business",
+      name: "Business"
     }, {
       key: "first",
-      label: "First"
+      label: "First",
+      name: "First"
     } ];
-    const CABIN_NAMES = {
-      eco: "Economy",
-      ecoPremium: "Premium Economy",
-      business: "Business",
-      first: "First"
-    };
     const SETS = {
       cab: "cabins",
       air: "airlines",
@@ -16674,8 +17655,19 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
     function buildCmp() {
       const order = orderById(state.sort);
       const cabin = effectiveCabin(listedItems());
+      let memo = null;
+      const value = x => {
+        if (!memo) {
+          memo = new Map;
+          Promise.resolve().then(() => {
+            memo = null;
+          });
+        }
+        memo.has(x) || memo.set(x, order.value(x, cabin));
+        return memo.get(x);
+      };
       return (a, b) => {
-        const va = order.value(a, cabin), vb = order.value(b, cabin);
+        const va = value(a), vb = value(b);
         const ea = null == va;
         return ea !== (null == vb) ? ea ? 1 : -1 : ea ? 0 : order.desc ? vb - va : va - vb;
       };
@@ -16973,7 +17965,9 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
       if (!bar) return;
       const html = function() {
         const cabin = effectiveCabin(listedItems());
-        const name = cabin instanceof Set ? CABINS.filter(c => cabin.has(c.key)).map(c => CABIN_NAMES[c.key]).join(" + ") || null : CABIN_NAMES[cabin] || null;
+        const name = cabin instanceof Set ? CABINS.filter(c => cabin.has(c.key)).map(c => c.name).join(" + ") || null : (key = cabin, 
+        (CABINS.find(c => c.key === key) || {}).name || null);
+        var key;
         const activeOrder = orderById(state.sort);
         const opts = ORDERS.map(o => {
           const isCurrent = o.id === state.sort;
@@ -17507,19 +18501,21 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
   })();
   (() => {
     "use strict";
-    const VERSION = 68;
+    const VERSION = 71;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
       n: n
     }, p));
+    const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
+    const nf = o => window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o);
     const inherited = window.__mmRecovery;
     if (inherited) {
       inherited.superseded = !0;
       try {
         inherited._observer?.disconnect();
       } catch (e) {}
-      for (const k of [ "_offSettings", "_offBounds", "_abort", "restore" ]) try {
+      for (const k of [ "_offSettings", "_offBounds", "_offHold", "_abort", "restore" ]) try {
         inherited[k]?.();
       } catch (e) {}
     }
@@ -17651,6 +18647,7 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
       }(search) : location.href = flightSearch();
     }
     let ticker = null;
+    let gaveUpOn = null;
     function every(fn, ms) {
       const t = setInterval(fn, ms);
       t && "function" == typeof t.unref && t.unref();
@@ -17711,6 +18708,7 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
       return el;
     };
     function ownLine(n, block) {
+      null == n.dataset.mmrecLine && (n.dataset.mmrecLine = n.textContent);
       n.textContent = "";
       n.appendChild(block);
       const panel = n.closest(".messages-panel");
@@ -17733,12 +18731,9 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
       eco: "Economy"
     };
     const PRICE_CHANGED_RE = pageMessage([ "error.DAPI/36806" ], /Die Flugpreise haben sich geändert|The flight prices changed/);
-    const fmtNum = v => {
-      return (o = {
-        maximumFractionDigits: 2
-      }, window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o)).format(Number(v));
-      var o;
-    };
+    const fmtNum = v => nf({
+      maximumFractionDigits: 2
+    }).format(Number(v));
     function rewriteBanners() {
       const leaves = [ ...document.querySelectorAll(".messages-list .message-title *") ].filter(n => !n.childElementCount && !n.dataset.mmrecDone);
       if (leaves.length) {
@@ -17931,6 +18926,9 @@ lhg-loading-screen { display: none !important; }
 }
 .mmrec-wait-label { font-size: 15px; color: ${INK_primary}; font-weight: 600; letter-spacing: .01em; }
 .mmrec-wait-sub { font-size: 12.5px; color: ${INK_muted}; margin-top: -8px; }
+.mmrec-wait-go { background: ${INK_primary}; color: #fff; border: 1px solid ${INK_primary}; border-radius: 6px;
+                 padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.mmrec-wait-go:hover { background: #0a2470; border-color: #0a2470; }
 @media (prefers-reduced-motion: reduce) { .mmrec-wait-ring { animation-duration: 2.4s; } }
 
 .generic-error-panel-image-container { display: none !important; }
@@ -18117,7 +19115,8 @@ html.mmrec-own-back refx-recovery .action-button-container { display: none !impo
             signout.textContent = T("Abmeldung läuft …");
             fetch("https://api.miles-and-more.com/oauth2/logout" + "?redirect_uri=" + encodeURIComponent(portalBase() + ".html"), {
               method: "POST",
-              credentials: "include"
+              credentials: "include",
+              signal: AbortSignal.timeout(1e4)
             }).then(r => r.json()).then(data => {
               const target = data && data.target;
               if (!(u => {
@@ -18162,12 +19161,12 @@ html.mmrec-own-back refx-recovery .action-button-container { display: none !impo
         state._offResume = () => {
           listeners.abort();
           onLoginClosed === onReturn && (onLoginClosed = null);
-          if (loginPoll) {
-            clearInterval(loginPoll);
-            loginPoll = null;
-          }
           state._offResume = null;
         };
+        if (loginPoll) {
+          const w = box.querySelector(".mmrec-waiting");
+          w && (w.hidden = !1);
+        }
         anchor.parentElement.insertBefore(box, anchor.nextSibling);
         state.patched++;
         return !0;
@@ -18248,7 +19247,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       }
       const dead = RECOVERY_RE.test(location.pathname);
       const visible = document.querySelector(CONTENT_SEL);
-      if (dead || visible || !inFlight.size || !waitingOn()) {
+      if (dead || visible || !inFlight.size || !waitingOn() || gaveUpOn === location.href) {
         document.querySelectorAll(".mmrec-wait").forEach(e => e.remove());
         return;
       }
@@ -18258,7 +19257,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       const label = shown(keys.find(k => WATCHED_BY_LABEL.has(k)) || keys[0]);
       const waited = secsSince(Math.min(...[ ...inFlight.values() ].map(v => v.since)));
       let sub = "";
-      if (waited > 12) {
+      const heldMs = (window.__mmBounds && window.__mmBounds.heldUntil || 0) - Date.now();
+      if (heldMs > 0) sub = T("Suche startet in {left}.", {
+        left: leftText(heldMs)
+      }) + " " + T("Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten."); else if (waited > 12) {
         const list = [ ...inFlight.entries() ].filter(([label]) => WATCHED_BY_LABEL.has(label)).map(([label, v]) => T("{name} ({secs} s)", {
           name: shown(WATCHED_BY_LABEL.get(label)[2]),
           secs: secsSince(v.since)
@@ -18279,6 +19281,152 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       const s = el.querySelector && el.querySelector(".mmrec-wait-sub");
       l && l.textContent !== label && (l.textContent = label);
       s && s.textContent !== (sub || "") && (s.textContent = sub || "");
+      let go = el.querySelector && el.querySelector(".mmrec-wait-go");
+      if (!go && heldMs > 0) {
+        go = document.createElement("button");
+        go.type = "button";
+        go.className = "mmrec-wait-go";
+        go.addEventListener("click", () => {
+          try {
+            window.__mmBounds.sendHeldNow();
+          } catch (e) {}
+        });
+        el.appendChild(go);
+      }
+      if (go) {
+        go.hidden !== !(heldMs > 0) && (go.hidden = !(heldMs > 0));
+        const t = T("Trotzdem suchen");
+        go.textContent !== t && (go.textContent = t);
+      }
+    }
+    function leftText(ms) {
+      const s = Math.max(0, Math.ceil(ms / 1e3));
+      return nf({
+        useGrouping: !1
+      }).format(Math.floor(s / 60)) + ":" + nf({
+        minimumIntegerDigits: 2
+      }).format(s % 60);
+    }
+    const HOLD_ID = "mmrec-hold";
+    let holdTick = null, holdAct = null, holdError = null, holdDismissed = null;
+    function holdNotice() {
+      if (state.superseded) {
+        if (holdTick) {
+          clearInterval(holdTick);
+          holdTick = null;
+        }
+        return;
+      }
+      const s = function() {
+        const B = window.__mmBounds;
+        if (!B) return null;
+        const held = (B.heldUntil || 0) - Date.now();
+        if (held > 0) return {
+          head: T("Suche startet in {left}.", {
+            left: leftText(held)
+          }),
+          sub: T("Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten."),
+          go: T("Trotzdem suchen"),
+          act: () => B.sendHeldNow()
+        };
+        const e = B.lastError;
+        if (!e || !e.held || !e.freeAt || e === holdDismissed) return null;
+        const left = e.freeAt - Date.now();
+        const time = dtf({
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        }).format(new Date(e.freeAt));
+        return {
+          head: T("Zu viele Suchen in kurzer Zeit."),
+          error: e,
+          sub: left > 0 ? T("Nächste Suche ab {time} möglich (noch {left}).", {
+            time: time,
+            left: leftText(left)
+          }) : T("Nächste Suche ab {time} möglich.", {
+            time: time
+          }),
+          go: T(left > 0 ? "Trotzdem suchen" : "Jetzt suchen"),
+          act: () => {
+            left > 0 && B.allowNext();
+            backToSearch();
+          }
+        };
+      }();
+      let el = document.getElementById(HOLD_ID);
+      if (el && el.mmOwner !== state) {
+        el.remove();
+        el = null;
+      }
+      if (!s || document.querySelector(".mmrec-wait")) {
+        el && el.remove();
+        if (!s && holdTick) {
+          clearInterval(holdTick);
+          holdTick = null;
+        }
+        return;
+      }
+      if (!el) {
+        !function() {
+          if (document.getElementById("mmrec-hold-styles")) return;
+          const el = document.createElement("style");
+          el.id = "mmrec-hold-styles";
+          el.textContent = `
+.mmrec-hold {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483001;
+    display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: max-content;
+    max-width: calc(100vw - 32px); padding: 12px 12px 12px 16px; font-family: inherit;
+    background: #fff; border: 1px solid ${INK_hairline}; border-left: 4px solid ${WARN}; border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(5, 22, 77, .22);
+}
+.mmrec-hold-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mmrec-hold-head { font-size: 16px; font-weight: 700; color: ${INK_primary}; font-variant-numeric: tabular-nums; }
+.mmrec-hold-sub { font-size: 13px; line-height: 1.4; color: ${INK_secondary}; font-variant-numeric: tabular-nums; }
+.mmrec-hold-go {
+    flex: none; background: ${INK_primary}; color: #fff; border: 1px solid ${INK_primary}; border-radius: 6px;
+    padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.mmrec-hold-go:hover { background: #0a2470; border-color: #0a2470; }
+.mmrec-hold-x { flex: none; align-self: flex-start; background: none; border: 0; padding: 0 4px;
+                font: inherit; font-size: 20px; line-height: 1; color: ${INK_muted}; cursor: pointer; }
+.mmrec-hold-x:hover { color: ${INK_primary}; }
+@media (max-width: 600px) { .mmrec-hold { top: 8px; flex-wrap: wrap; } .mmrec-hold-text { flex: 1 1 100%; } }
+`;
+          (document.head || document.documentElement).appendChild(el);
+        }();
+        el = document.createElement("div");
+        el.id = HOLD_ID;
+        el.className = "mmrec-hold";
+        el.mmOwner = state;
+        el.innerHTML = '<div class="mmrec-hold-text"><span class="mmrec-hold-head"></span><span class="mmrec-hold-sub"></span></div>' + '<button type="button" class="mmrec-hold-go"></button><button type="button" class="mmrec-hold-x">×</button>';
+        el.querySelector(".mmrec-hold-go").addEventListener("click", () => {
+          try {
+            holdAct && holdAct();
+          } catch (e) {}
+          setTimeout(holdNotice, 0);
+        });
+        el.querySelector(".mmrec-hold-x").addEventListener("click", () => {
+          holdDismissed = holdError;
+          holdNotice();
+        });
+        (document.body || document.documentElement).appendChild(el);
+      }
+      holdAct = s.act;
+      holdError = s.error || null;
+      const put = (sel, text) => {
+        const n = el.querySelector(sel);
+        n.textContent !== text && (n.textContent = text);
+      };
+      put(".mmrec-hold-head", s.head);
+      put(".mmrec-hold-sub", s.sub);
+      put(".mmrec-hold-go", s.go);
+      const x = el.querySelector(".mmrec-hold-x");
+      x.hidden !== !s.error && (x.hidden = !s.error);
+      if (x.title !== T("Schließen")) {
+        x.title = T("Schließen");
+        x.setAttribute("aria-label", x.title);
+      }
+      holdTick || (holdTick = every(holdNotice, 1e3));
     }
     const FAIL_KEY = "mm_last_fail";
     function recordOutcome(key, status, ms, apiError) {
@@ -18333,13 +19481,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       }
     }
     const SEARCH_RE = /air-bounds|air-calendars/i;
-    const timeOfDay = ms => {
-      return (o = {
-        hour: "2-digit",
-        minute: "2-digit"
-      }, window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o)).format(ms);
-      var o;
-    };
+    const timeOfDay = ms => dtf({
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(ms);
     const gagSession = () => T("Auf vielfachen Kundenwunsch haben wir die Session an dieser Stelle für Sie beendet.");
     function diagnose() {
       let f = null;
@@ -18539,7 +19684,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       window.fetch = function(...args) {
         let key = null, url = "";
         try {
-          url = "string" == typeof args[0] ? args[0] : args[0] && args[0].url || "";
+          url = "string" == typeof args[0] ? args[0] : args[0] && args[0].url || String(args[0] || "");
           key = window.__mmRecTrack.start(url);
         } catch (e) {
           key = null;
@@ -18567,7 +19712,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
             return resp;
           }, err => {
             try {
-              window.__mmRecTrack.end(key, 0);
+              window.__mmRecTrack.end(key, err && err.mmHeld ? void 0 : 0);
             } catch (e) {}
             throw err;
           });
@@ -18603,7 +19748,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     }
     let entrySince = 0;
     function coverEntry() {
-      if (AVAIL_RE.test(location.pathname) && !RECOVERY_RE.test(location.pathname)) if (document.querySelector(CONTENT_SEL)) {
+      if (gaveUpOn !== location.href) if (AVAIL_RE.test(location.pathname) && !RECOVERY_RE.test(location.pathname)) if (document.querySelector(CONTENT_SEL)) {
         entrySince = 0;
         inFlight.delete(ENTRY_LABEL);
         waitOverlay();
@@ -18620,7 +19765,12 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       if (ticker) return;
       let ticks = 0;
       ticker = every(() => {
-        if (state.superseded || !waitingOn() || ++ticks > 600) {
+        const giveUp = ++ticks > 600;
+        if (giveUp) {
+          gaveUpOn = location.href;
+          inFlight.delete(ENTRY_LABEL);
+        }
+        if (state.superseded || !waitingOn() || giveUp) {
           clearInterval(ticker);
           ticker = null;
           document.querySelectorAll(".mmrec-wait").forEach(e => e.remove());
@@ -18654,6 +19804,22 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     function restore() {
       document.querySelectorAll(".mmrec").forEach(e => e.remove());
       document.querySelectorAll(".mmrec-hidden").forEach(e => e.classList.remove("mmrec-hidden"));
+      document.querySelectorAll("[data-mmrec-orig]").forEach(e => {
+        e.textContent = e.dataset.mmrecOrig;
+        delete e.dataset.mmrecOrig;
+      });
+      document.querySelectorAll("[data-mmrec-line]").forEach(e => {
+        e.textContent = e.dataset.mmrecLine;
+        delete e.dataset.mmrecLine;
+      });
+      document.querySelectorAll("[data-mmrec-done]").forEach(e => {
+        delete e.dataset.mmrecDone;
+      });
+      document.querySelectorAll(".mmrec-own").forEach(e => e.classList.remove("mmrec-own", "mmrec-own-only"));
+      if (loginPoll) {
+        clearInterval(loginPoll);
+        loginPoll = null;
+      }
       document.querySelectorAll(".mmrec-wait").forEach(e => e.remove());
       document.documentElement.classList.remove("mmrec-own-back");
       document.documentElement.classList.remove("mmrec-page");
@@ -18663,7 +19829,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       const st = document.getElementById("mmrec-styles");
       st && (st.textContent = "");
     }
-    const OWN_UI = ".mm-results, .mmrec, .mmrec-wait, .mmcal";
+    const OWN_UI = ".mm-results, .mmrec, .mmrec-wait, .mmrec-hold, .mmcal";
     function boot() {
       run();
       rememberSearch();
@@ -18672,7 +19838,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
         if (waitingOn()) try {
           rewriteBanners();
         } catch (e) {}
+        holdNotice();
       }));
+      !state._offHold && window.__mmBounds && window.__mmBounds.onRequest && (state._offHold = window.__mmBounds.onRequest(() => holdNotice()));
+      holdNotice();
       if (waitingOn()) try {
         rewriteBanners();
       } catch (e) {}
@@ -18722,6 +19891,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
           clearInterval(ticker);
           ticker = null;
         }
+        if (holdTick) {
+          clearInterval(holdTick);
+          holdTick = null;
+        }
       }
     }, {
       signal: ac.signal
@@ -18740,10 +19913,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
   })();
   (() => {
     "use strict";
-    const VERSION = 13;
+    const VERSION = 14;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.10.5", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.11.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -18760,6 +19933,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     const START_DELAY = 3e3;
     const MAX_NOTES = 8;
     const NOTES_TIMEOUT = 4e3;
+    const META_TIMEOUT = 8e3;
     const INK_primary = "#05164D", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_muted = "#898781", INK_secondary = "#52514e";
     const DONATE_URL = "https://buymeacoffee.com/wedge_mm";
     const MUG = `<svg class="mmupd-don-mug" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
@@ -18949,7 +20123,8 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
         const r = await fetch(DIST_meta, {
           method: "GET",
           cache: "no-store",
-          credentials: "omit"
+          credentials: "omit",
+          signal: AbortSignal.timeout(META_TIMEOUT)
         });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const latest = function(text) {
@@ -19234,6 +20409,46 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
                     ontimeout: function () { answer(q.id, { status: 0 }); }
                 });
             } catch (x) { answer(q.id, { status: 0 }); }
+        });
+        var SC_URL = 'https://www.miles-and-more.com/content/mam/web/gc/imported/weltweittabelle/_jcr_content.contactservicecenter.json/';
+        var SC_STATUS = ['inst', 'base', 'ftl', 'sen', 'hon'];
+        document.addEventListener('mm:service-center', function (e) {
+            var q = null;
+            try { q = JSON.parse(String(e.detail)); } catch (x) { }
+            var code = function (v) { return typeof v === 'string' && /^([a-z]{2})?$/.test(v); };
+            if (!q || !code(q.country) || !q.country || !code(q.cor) || !code(q.lang) || !q.lang || SC_STATUS.indexOf(q.status) < 0) return;
+            var reply = function (r) {
+                r.id = q.id;
+                document.dispatchEvent(new CustomEvent('mm:service-center-result', { detail: JSON.stringify(r) }));
+            };
+            try {
+                gmXhr({
+                    method: 'GET', anonymous: true, timeout: 15000,
+                    url: SC_URL + 'countryCode=' + q.country + '/countryCodeCOR=' + q.cor + '/languageCode=' + q.lang + '/memberStatus=' + q.status,
+                    onload: function (r) { reply({ status: r.status, body: String(r.responseText || '').slice(0, 20000) }); },
+                    onerror: function () { reply({ status: 0 }); },
+                    ontimeout: function () { reply({ status: 0 }); }
+                });
+            } catch (x) { reply({ status: 0 }); }
+        });
+        var WWW_FILES = { flags: 'https://www.miles-and-more.com/etc.clientlibs/settings/wcm/designs/mam/web/publish/resources/icons/flags-defs-2-0-0.svg' };
+        document.addEventListener('mm:www-file', function (e) {
+            var q = null;
+            try { q = JSON.parse(String(e.detail)); } catch (x) { }
+            var url = q && Object.prototype.hasOwnProperty.call(WWW_FILES, q.name) ? WWW_FILES[q.name] : null;
+            if (!url) return;
+            var reply = function (r) {
+                r.id = q.id;
+                document.dispatchEvent(new CustomEvent('mm:www-file-result', { detail: JSON.stringify(r) }));
+            };
+            try {
+                gmXhr({
+                    method: 'GET', url: url, anonymous: true, timeout: 20000,
+                    onload: function (r) { reply({ status: r.status, body: String(r.responseText || '').slice(0, 1000000) }); },
+                    onerror: function () { reply({ status: 0 }); },
+                    ontimeout: function () { reply({ status: 0 }); }
+                });
+            } catch (x) { reply({ status: 0 }); }
         });
     }
 

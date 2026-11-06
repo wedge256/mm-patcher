@@ -488,5 +488,15 @@
  "günstigster Tarif, passt nicht zum gewählten Hinflug": "最低票价，无法与所选去程组合",
  "Rückflug nur {fare}": "返程仅限{fare}",
  "Rückflug nur Comfort, jede Kabine": "返程仅限Comfort，舱位不限",
- "Rückflug Comfort +, Flex oder Standard, jede Kabine": "返程限Comfort +、Flex或Standard，舱位不限"
+ "Rückflug Comfort +, Flex oder Standard, jede Kabine": "返程限Comfort +、Flex或Standard，舱位不限",
+ "Suche startet in {left}.": "{left}后开始搜索。",
+ "Mehr als acht Suchen pro Minute sperren die IP-Adresse für 15 Minuten.": "每分钟搜索超过八次，IP地址将被封锁15分钟。",
+ "Zu viele Suchen in kurzer Zeit.": "短时间内搜索次数过多。",
+ "Nächste Suche ab {time} möglich.": "{time}起可再次搜索。",
+ "Trotzdem suchen": "仍然搜索",
+ "Jetzt suchen": "立即搜索",
+ "Nächste Suche ab {time} möglich (noch {left}).": "{time}起可再次搜索（还剩{left}）。",
+ "Last-Minute-Buchung": "最后时刻预订",
+ "Nur noch über das Callcenter buchbar": "现在仅可通过呼叫中心预订",
+ "Land": "国家"
 }
