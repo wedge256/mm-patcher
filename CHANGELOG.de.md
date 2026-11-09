@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md)
 
+## 1.12.0 — 2026-11-09
+
+### Neu
+
+- **Fehler können direkt aus dem Einstellungspanel gemeldet werden**
+
+### Behoben
+
+- **Sitzplan: fehlende oder falsch benannte Kabinen bei einigen Airlines**
+- **Keine Ladeanzeige bei neuer Suche mit nativen Ergebniskarten**
+
 ## 1.11.0 — 2026-11-06
 
 ### Neu

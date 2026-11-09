@@ -2,6 +2,17 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.12.0 — 2026-11-09
+
+### Added
+
+- **Bugs can be reported straight from the settings panel**
+
+### Fixed
+
+- **Seat map: missing or mislabelled cabins on some airlines**
+- **No loading indicator for a new search with native result cards**
+
 ## 1.11.0 — 2026-11-06
 
 ### Added

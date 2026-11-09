@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.11.0
+// @version      1.12.0
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -487,6 +487,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Sitzplan wird geladen …": "Loading seat map …",
         frei: "free",
         Gesamt: "Total",
+        Abbrechen: "Cancel",
         kostenlos: "free",
         ausverkauft: "sold out",
         "zu kurz vor Abflug": "too close to departure",
@@ -736,10 +737,25 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Nächste Suche ab {time} möglich (noch {left}).": "Next search possible from {time} ({left} left).",
         "Last-Minute-Buchung": "Last minute booking",
         "Nur noch über das Callcenter buchbar": "Now only bookable via the call center",
-        Land: "Country"
+        Land: "Country",
+        "🐞 Fehler melden": "🐞 Report a bug",
+        "Meldung an den Entwickler, anonym. Name und Kontakt optional.": "Report to the developer, anonymous. Name and contact optional.",
+        "Fehler melden": "Report a bug",
+        "Was ist passiert, was wurde erwartet?": "What happened, what was expected?",
+        "Name (optional)": "Name (optional)",
+        "Kontakt für Rückfragen (optional)": "Contact for questions (optional)",
+        "Technische Angaben anhängen": "Attach technical details",
+        "Technische Angaben ansehen": "View technical details",
+        "Anonym. Die IP-Adresse wird nicht gespeichert.": "Anonymous. The IP address is not stored.",
+        Senden: "Send",
+        "Mindestens {n} Zeichen.": "At least {n} characters.",
+        "Wird gesendet …": "Sending …",
+        "Danke, die Meldung ist angekommen.": "Thank you, the report has been received.",
+        "Zu viele Meldungen. In einer Minute erneut versuchen.": "Too many reports. Try again in a minute.",
+        "Senden fehlgeschlagen. Später erneut versuchen.": "Sending failed. Try again later."
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.11.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.0/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -2253,7 +2269,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 114;
+    const VERSION = 117;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
@@ -2593,6 +2609,11 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
 .mmset-don-mug { display: block; width: 18px; height: 18px; }
 .mmset-don-cta { font-size: 11.5px; font-weight: 600; color: #8A5A00; white-space: nowrap; }
 .mmset-don:hover .mmset-don-cta { text-decoration: underline; }
+.mmset-report { display: block; width: 100%; margin: 8px 0 4px; box-sizing: border-box; font: inherit; font-size: 12px;
+                font-weight: 600; color: ${INK_primary}; background: #f3f6fc; border: 1px solid #b9c6e0; border-radius: 6px;
+                padding: 5px 10px; cursor: pointer; text-align: center; }
+.mmset-report:hover { background: #e6edf8; }
+.mmset-row.mmset-report-row { display: block; margin: 0; padding: 0; border: 0; }
 .mmset-grp { padding: 1px 0 3px; }
 .mmset-grp + .mmset-grp { border-top: 1px solid ${INK_hairline}; }
 .mmset-head { font-size: 12px; font-weight: 700; color: ${INK_muted};
@@ -2674,6 +2695,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             const now = (window.__mmI18n ? window.__mmI18n.lang() : "de") + "|" + cur;
             if (!tips || tipsFor !== now) {
               tips = new Map(groups().flatMap(g => g.subs).filter(s => s.key).map(s => [ s.key, s.tip ]));
+              tips.set("report", T("Meldung an den Entwickler, anonym. Name und Kontakt optional."));
               tipsFor = now;
             }
             return tips.get(key) || "";
@@ -2699,6 +2721,8 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             <div class="mmset-top"><div class="mmset-title">${MARK}M&amp;M Patcher</div>
                 <a class="mmset-don" href="${DONATE_URL}" target="_blank" rel="noopener"
                    title="${T("M&amp;M Patcher unterstützen")}">${MUG}<span class="mmset-don-cta">${T("Bier spendieren")}</span></a></div>
+            <div class="mmset-row mmset-report-row" data-key="report">
+                <button type="button" class="mmset-report" data-action="report">${T("🐞 Fehler melden")}</button></div>
             ${groups().map(groupHtml).join("")}
             <div class="mmset-foot mmset-verline"><span class="mmset-ver"></span> ·
                 <a href="#" class="mmset-upd">${T("Auf Updates prüfen")}</a>
@@ -2820,7 +2844,12 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
         const act = e.target.closest && e.target.closest("[data-action]");
         if (act && "calCache" === act.dataset.action) try {
           window.__mmCalUI && window.__mmCalUI.clearCache && window.__mmCalUI.clearCache();
-        } catch (err) {} else e.target.closest && e.target.closest(".mmset-reload-link") && location.reload();
+        } catch (err) {} else if (act && "report" === act.dataset.action) {
+          panel.classList.remove("is-open");
+          try {
+            window.__mmReport && window.__mmReport.open();
+          } catch (err) {}
+        } else e.target.closest && e.target.closest(".mmset-reload-link") && location.reload();
       });
       dock();
       const obs = new MutationObserver(dock);
@@ -4241,7 +4270,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.11.0/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.0/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -10092,7 +10121,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 81;
+    const VERSION = 82;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const nf = o => window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o);
@@ -10714,6 +10743,10 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
                 }
               }
               if (!legs.length) return null;
+              (group.airBounds || []).forEach(ab => (ab.availabilityDetails || []).forEach(a => {
+                const l = a && a.cabin && a.bookingClass && legs.find(x => x.flightId === a.flightId);
+                !l || l.classes && l.classes[a.cabin] || ((l.classes = l.classes || {})[a.cabin] = a.bookingClass);
+              }));
               const first = legs[0], last = legs[legs.length - 1];
               const stops = legs.length - 1 + legs.reduce((n, l) => n + (l.ground ? 0 : (l.techStops || []).length), 0);
               const key = ((origin, dest, dep, arr, stops) => `${origin}|${dest}|${dep}|${arr}|${stops}`)(bd.originLocationCode, bd.destinationLocationCode, first.dep, last.arr, stops);
@@ -14002,7 +14035,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
   })();
   (() => {
     "use strict";
-    const VERSION = 139;
+    const VERSION = 142;
     if (window.__mmSeatmap && window.__mmSeatmap.version >= VERSION) return;
     if (window.__mmSeatmap) try {
       window.__mmSeatmap.teardown();
@@ -15665,6 +15698,26 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       business: "I",
       first: "O"
     };
+    const CARRIER_BC = {
+      AC: {
+        ecoPremium: "E"
+      },
+      BR: {
+        ecoPremium: "E"
+      },
+      CA: {
+        ecoPremium: "E"
+      },
+      NZ: {
+        ecoPremium: "E"
+      },
+      ZH: {
+        ecoPremium: "E"
+      },
+      CX: {
+        first: "F"
+      }
+    };
     const LAYOUT_KEY = "mmrc_seat_layouts";
     const LAYOUT_TTL = 30 * 24 * 3600 * 1e3;
     const cache = new Map;
@@ -15833,9 +15886,10 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
       }(leg).then(layout => {
         const cabins = layout && layout.cabins && layout.cabins.length ? layout.cabins : ORDER.slice();
         return Promise.allSettled(cabins.map(c => function(leg, cabin) {
-          const key = legKey(leg) + "|" + cabin;
+          const bc = ((leg, cabin) => leg.classes && leg.classes[cabin] || CARRIER_BC[leg.mkt] && CARRIER_BC[leg.mkt][cabin] || SEAT_BC[cabin])(leg, cabin);
+          const key = legKey(leg) + "|" + cabin + "|" + bc;
           if (cache.has(key)) return cache.get(key);
-          const p = apiGet("/shopping/seatmaps" + "?originLocationCode=" + encodeURIComponent(leg.from) + "&destinationLocationCode=" + encodeURIComponent(leg.to) + "&departureDate=" + encodeURIComponent(leg.depDate) + "&marketingAirlineCode=" + encodeURIComponent(leg.mkt) + "&marketingFlightNumber=" + encodeURIComponent(leg.mktNo) + "&bookingClass=" + SEAT_BC[cabin]).then(j => normalise(j, cabin));
+          const p = apiGet("/shopping/seatmaps" + "?originLocationCode=" + encodeURIComponent(leg.from) + "&destinationLocationCode=" + encodeURIComponent(leg.to) + "&departureDate=" + encodeURIComponent(leg.depDate) + "&marketingAirlineCode=" + encodeURIComponent(leg.mkt) + "&marketingFlightNumber=" + encodeURIComponent(leg.mktNo) + "&bookingClass=" + bc).then(j => normalise(j, cabin));
           p.catch(() => {
             cache.get(key) === p && cache.delete(key);
           });
@@ -15844,15 +15898,44 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         }(leg, c))).then(results => {
           const parts = results.filter(r => "fulfilled" === r.status).map(r => r.value);
           const failed = cabins.filter((c, i) => {
-            if ("rejected" !== results[i].status) return !1;
-            const e = results[i].reason || {};
-            return !(String(e.apiCode || "").split(",").indexOf("85") >= 0 || e.status >= 400 && e.status < 500);
+            return "rejected" === results[i].status && (e = results[i].reason, String((e || {}).apiCode || "").split(",").indexOf("85") < 0 && !(e && e.status >= 400 && e.status < 500));
+            var e;
           });
-          const model = merge(parts, failed);
+          let model = merge(parts, failed);
           if (!model.decks.length) {
             const firstErr = results.find(r => "rejected" === r.status);
             if (firstErr) throw firstErr.reason;
           }
+          const expected = layout && layout.cabins ? new Set(layout.cabins) : function(model, leg) {
+            const rows = new Map, want = new Set;
+            model.decks.forEach(d => d.seats.forEach(s => rows.set(s.row, s.cabin)));
+            const list = (fitOuts(leg.operating || leg.mkt) || []).filter(v => v[0] === model.code).map(v => {
+              const blocks = [];
+              for (let i = 1; i < v.length && "m" !== v[i]; i += 5) CABIN_LETTER[v[i]] && blocks.push([ CABIN_LETTER[v[i]], v[i + 1], v[i + 3] ]);
+              return blocks;
+            });
+            const empty = ([, r0, r1]) => {
+              for (let r = r0; r <= r1; r++) if (rows.has(r)) return !1;
+              return !0;
+            };
+            const placed = list.filter(bs => bs.some(b => !empty(b)) && bs.every(b => empty(b) || rows.has(b[1]) && rows.has(b[2])));
+            placed.forEach(bs => bs.forEach(b => {
+              empty(b) && want.add(b[0]);
+            }));
+            if (!placed.length) {
+              const seq = cs => cs.filter((c, i) => c !== cs[i - 1]).join();
+              const mine = seq([ ...rows.keys() ].sort((p, q) => p - q).map(r => rows.get(r)));
+              const theirs = list.map(bs => bs.map(b => b[0]));
+              theirs.some(cs => seq(cs) === mine) || theirs.forEach(cs => {
+                const gone = ORDER.filter(c => cs.indexOf(c) >= 0 && mine.split(",").indexOf(c) < 0);
+                gone.length && seq(cs.filter(c => gone.indexOf(c) < 0)) === mine && gone.forEach(c => want.add(c));
+              });
+            }
+            return want;
+          }(model, leg);
+          const missing = ORDER.filter(c => expected.has(c) && failed.indexOf(c) < 0 && !(c => model.decks.some(d => [ ...d.seats.values() ].some(s => s.cabin === c)))(c));
+          missing.length && (model = merge(parts, ORDER.filter(c => failed.indexOf(c) >= 0 || missing.indexOf(c) >= 0)));
+          model.outage = failed.length > 0;
           failed.length && cache.get(key) === p && cache.delete(key);
           return model;
         });
@@ -16952,7 +17035,7 @@ html.mm-dark img.mmrc-logo { background: #fff; border-radius: 3px; box-shadow: 0
         }).join("");
       }(model, nameOf) + "</div>" + '<div class="mmsm-legend"><span><i class="is-free"></i>' + T("frei") + '</span><span><i class="is-taken"></i>' + T("belegt") + "</span>" + '<span><i class="is-held"></i>' + T("nicht buchbar") + '</span><span class="is-exit">' + T("EXIT = Notausstiegsreihe") + "</span>" + (lopa ? '<a class="mmsm-lopa" href="https://www.aerolopa.com/' + encodeURIComponent(lopa) + '" target="_blank" rel="noopener noreferrer" ' + 'title="' + T("Kabinenvorlage dieser Variante") + '">aeroLOPA ↗</a>' : "") + '<span class="mmsm-zoom" data-body="' + body + '" title="' + T("wide" === body ? "Größe für Großraumflugzeuge; ein Klick auf den Wert stellt wieder automatisch ein" : "Größe für Schmalrumpfflugzeuge; ein Klick auf den Wert stellt wieder automatisch ein") + '">' + T("Größe") + ' <button type="button" data-z="-1">−</button><b></b>' + '<button type="button" data-z="1">+</button></span></div>' + (model.decks.length > 1 ? '<div class="mmsm-decktabs">' + model.decks.map((d, i) => '<button type="button" class="mmsm-decktab' + (i === main ? " is-on" : "") + '" data-deck="' + i + '">' + esc(deckName(d.type)) + "</button>").join("") + "</div>" : "") + '<div class="mmsm-planes">' + model.decks.map((d, i) => '<div class="mmsm-deck' + (i !== main ? " is-off" : "") + ("upper" === d.type ? " is-upper" : "") + '" data-deck="' + i + '"' + (model.decks.length > 1 ? ' data-name="' + esc(deckName(d.type)) + '"' : "") + ">" + (plans[i] ? deckSvg(plans[i], d, leg, nameOf, 0, frame) : '<div class="mmsm-msg">' + T("Kein Plan für dieses Deck.") + "</div>") + "</div>").join("") + "</div>" + (failed.length ? '<div class="mmsm-note">' + T("Nicht geladen: {cabins}.", {
         cabins: failed.map(c => esc(nameOf(c))).join(", ")
-      }) + " " + '<button type="button" class="mmsm-retry">' + T("Erneut laden") + "</button></div>" : "") + (noPrice ? '<div class="mmsm-note">' + (leg.operatingName ? T("{airline} meldet keine Preise für Sitzplatzreservierungen an das Buchungssystem.", {
+      }) + (model.outage ? ' <button type="button" class="mmsm-retry">' + T("Erneut laden") + "</button>" : "") + "</div>" : "") + (noPrice ? '<div class="mmsm-note">' + (leg.operatingName ? T("{airline} meldet keine Preise für Sitzplatzreservierungen an das Buchungssystem.", {
         airline: esc(leg.operatingName)
       }) : T("Die Airline meldet keine Preise für Sitzplatzreservierungen an das Buchungssystem.")) + "</div>" : "");
     }
@@ -17290,6 +17373,7 @@ html.mm-dark .mmsm-legend i.is-taken { background: hsl(222 8% 33%); border-color
     };
     state._normalise = normalise;
     state._merge = merge;
+    state._loadAll = loadAll;
     state._gridPlan = gridPlan;
     state._planOf = planOf;
     state._measure = measure;
@@ -18501,7 +18585,7 @@ html.mm-dark .mmchip-opt:not(.is-on) .mmchip-box { border-color: hsl(222 15% 60%
   })();
   (() => {
     "use strict";
-    const VERSION = 71;
+    const VERSION = 73;
     if (window.__mmRecovery && window.__mmRecovery.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const Tn = (n, one, other, p) => window.__mmI18n ? window.__mmI18n.tn(n, one, other, p) : T(1 === n ? one : other, Object.assign({
@@ -19309,6 +19393,42 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
     }
     const HOLD_ID = "mmrec-hold";
     let holdTick = null, holdAct = null, holdError = null, holdDismissed = null;
+    let searches = 0, searchSince = 0;
+    const SEARCH_MAX_MS = 9e4;
+    function holdStyles() {
+      if (document.getElementById("mmrec-hold-styles")) return;
+      const el = document.createElement("style");
+      el.id = "mmrec-hold-styles";
+      el.textContent = `
+.mmrec-hold {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483001;
+    display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: max-content;
+    max-width: calc(100vw - 32px); padding: 12px 12px 12px 16px; font-family: inherit;
+    background: #fff; border: 1px solid ${INK_hairline}; border-left: 4px solid ${WARN}; border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(5, 22, 77, .22);
+}
+.mmrec-hold-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mmrec-hold-head { font-size: 16px; font-weight: 700; color: ${INK_primary}; font-variant-numeric: tabular-nums; }
+.mmrec-hold-sub { font-size: 13px; line-height: 1.4; color: ${INK_secondary}; font-variant-numeric: tabular-nums; }
+.mmrec-hold-go {
+    flex: none; background: ${INK_primary}; color: #fff; border: 1px solid ${INK_primary}; border-radius: 6px;
+    padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.mmrec-hold-go:hover { background: #0a2470; border-color: #0a2470; }
+.mmrec-hold-x { flex: none; align-self: flex-start; background: none; border: 0; padding: 0 4px;
+                font: inherit; font-size: 20px; line-height: 1; color: ${INK_muted}; cursor: pointer; }
+.mmrec-hold-x:hover { color: ${INK_primary}; }
+.mmrec-busy { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; padding: 40px 16px;
+              background: #fff; border: 1px solid ${INK_hairline}; border-radius: 4px; font-family: inherit;
+              font-size: 16px; color: ${INK_primary}; }
+.mmrec-busy-spin { flex: none; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%;
+                   border: 2px solid ${INK_hairline}; border-top-color: ${INK_accent}; animation: mmrec-busy-spin .9s linear infinite; }
+@keyframes mmrec-busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mmrec-busy-spin { animation-duration: 2.4s; } }
+@media (max-width: 600px) { .mmrec-hold { top: 8px; flex-wrap: wrap; } .mmrec-hold-text { flex: 1 1 100%; } }
+`;
+      (document.head || document.documentElement).appendChild(el);
+    }
     function holdNotice() {
       if (state.superseded) {
         if (holdTick) {
@@ -19367,33 +19487,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
         return;
       }
       if (!el) {
-        !function() {
-          if (document.getElementById("mmrec-hold-styles")) return;
-          const el = document.createElement("style");
-          el.id = "mmrec-hold-styles";
-          el.textContent = `
-.mmrec-hold {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483001;
-    display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: max-content;
-    max-width: calc(100vw - 32px); padding: 12px 12px 12px 16px; font-family: inherit;
-    background: #fff; border: 1px solid ${INK_hairline}; border-left: 4px solid ${WARN}; border-radius: 8px;
-    box-shadow: 0 8px 28px rgba(5, 22, 77, .22);
-}
-.mmrec-hold-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.mmrec-hold-head { font-size: 16px; font-weight: 700; color: ${INK_primary}; font-variant-numeric: tabular-nums; }
-.mmrec-hold-sub { font-size: 13px; line-height: 1.4; color: ${INK_secondary}; font-variant-numeric: tabular-nums; }
-.mmrec-hold-go {
-    flex: none; background: ${INK_primary}; color: #fff; border: 1px solid ${INK_primary}; border-radius: 6px;
-    padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.mmrec-hold-go:hover { background: #0a2470; border-color: #0a2470; }
-.mmrec-hold-x { flex: none; align-self: flex-start; background: none; border: 0; padding: 0 4px;
-                font: inherit; font-size: 20px; line-height: 1; color: ${INK_muted}; cursor: pointer; }
-.mmrec-hold-x:hover { color: ${INK_primary}; }
-@media (max-width: 600px) { .mmrec-hold { top: 8px; flex-wrap: wrap; } .mmrec-hold-text { flex: 1 1 100%; } }
-`;
-          (document.head || document.documentElement).appendChild(el);
-        }();
+        holdStyles();
         el = document.createElement("div");
         el.id = HOLD_ID;
         el.className = "mmrec-hold";
@@ -19427,6 +19521,35 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
         x.setAttribute("aria-label", x.title);
       }
       holdTick || (holdTick = every(holdNotice, 1e3));
+    }
+    const BUSY_ID = "mmrec-busy";
+    let busyTick = null;
+    function busyNote() {
+      const B = window.__mmBounds;
+      Date.now() - searchSince >= SEARCH_MAX_MS && (searches = 0);
+      const strip = document.querySelector("refx-calendar-cont");
+      const show = !state.superseded && searches > 0 && strip && strip.parentElement && !RECOVERY_RE.test(location.pathname) && !((B && B.heldUntil || 0) > Date.now()) && !document.documentElement.classList.contains("mmrc-active");
+      let el = document.getElementById(BUSY_ID);
+      if (!show) {
+        el && el.remove();
+        if (busyTick) {
+          clearInterval(busyTick);
+          busyTick = null;
+        }
+        return;
+      }
+      if (!el) {
+        holdStyles();
+        el = document.createElement("div");
+        el.id = BUSY_ID;
+        el.className = "mmrec-busy";
+        el.setAttribute("role", "status");
+        el.innerHTML = '<span class="mmrec-busy-spin"></span><span class="mmrec-busy-text"></span>';
+      }
+      el.previousElementSibling !== strip && strip.after(el);
+      const text = el.querySelector(".mmrec-busy-text"), label = T("Prämienflüge werden gesucht …");
+      text.textContent !== label && (text.textContent = label);
+      busyTick || (busyTick = every(busyNote, 1e3));
     }
     const FAIL_KEY = "mm_last_fail";
     function recordOutcome(key, status, ms, apiError) {
@@ -19840,7 +19963,12 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
         } catch (e) {}
         holdNotice();
       }));
-      !state._offHold && window.__mmBounds && window.__mmBounds.onRequest && (state._offHold = window.__mmBounds.onRequest(() => holdNotice()));
+      !state._offHold && window.__mmBounds && window.__mmBounds.onRequest && (state._offHold = window.__mmBounds.onRequest(active => {
+        searches = active ? searches + 1 : Math.max(0, searches - 1);
+        active && (searchSince = Date.now());
+        holdNotice();
+        busyNote();
+      }));
       holdNotice();
       if (waitingOn()) try {
         rewriteBanners();
@@ -19895,6 +20023,10 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
           clearInterval(holdTick);
           holdTick = null;
         }
+        if (busyTick) {
+          clearInterval(busyTick);
+          busyTick = null;
+        }
       }
     }, {
       signal: ac.signal
@@ -19913,10 +20045,258 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
   })();
   (() => {
     "use strict";
+    const VERSION = 3;
+    if (window.__mmReport && window.__mmReport.version >= VERSION) return;
+    const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
+    const ENDPOINT = "https://mm-patcher-report.wedge-b4e.workers.dev";
+    const MIN_TEXT = 10, MAX_TEXT = 4e3, MAX_NAME = 25, MAX_CONTACT = 200;
+    const INK_primary = "#05164D", INK_secondary = "#52514e", INK_muted = "#898781", INK_hairline = "#e1e0d9", INK_accent = "#1c5cab", INK_error = "#b3261e", INK_ok = "#1a6b2f";
+    const MODULES = [ "__mmI18n", "__mmDark", "__mmSettings", "__mmIata", "__mmFareNames", "__mmCurrency", "__mmCal", "__mmBBD", "__mmCalUI", "__mmBounds", "__mmCards", "__mmSort", "__mmSeatmap", "__mmRecovery", "__mmUpdate" ];
+    const prev = window.__mmReport;
+    if (prev) {
+      prev.superseded = !0;
+      try {
+        prev.close();
+      } catch (e) {}
+    }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[c]));
+    function scriptVersion() {
+      try {
+        const s = window.__mmUpdate && window.__mmUpdate.status();
+        if (s && /^\d+\.\d+\.\d+$/.test(s.current)) return s.current;
+      } catch (e) {}
+      return "0.0.0";
+    }
+    function search() {
+      let b = null;
+      try {
+        b = window.__mmBounds && window.__mmBounds.lastBody ? JSON.parse(window.__mmBounds.lastBody) : null;
+      } catch (e) {}
+      if (!b) return null;
+      const travelers = {};
+      (b.travelers || []).forEach(t => {
+        const k = String(t && t.passengerTypeCode || "?");
+        travelers[k] = (travelers[k] || 0) + 1;
+      });
+      return {
+        legs: (b.itineraries || []).map(i => [ i.originLocationCode, i.destinationLocationCode, String(i.departureDateTime || "").slice(0, 10) ].join(" ")),
+        fareFamilies: (b.commercialFareFamilies || []).map(String),
+        travelers: travelers,
+        returnStep: !!b.selectedBoundId
+      };
+    }
+    function diagnostics() {
+      const modules = {};
+      MODULES.forEach(n => {
+        try {
+          window[n] && null != window[n].version && (modules[n.slice(4)] = window[n].version);
+        } catch (e) {}
+      });
+      let settings = null, error = null, results = null;
+      try {
+        settings = window.__mmSettings ? window.__mmSettings.all() : null;
+      } catch (e) {}
+      try {
+        const e = window.__mmBounds && window.__mmBounds.lastError;
+        e && (error = {
+          code: e.code || null,
+          http: e.http || null,
+          title: e.title || null,
+          transport: !!e.transport,
+          at: new Date(e.t).toISOString()
+        });
+      } catch (e) {}
+      try {
+        results = window.__mmBounds ? window.__mmBounds.current.length : null;
+      } catch (e) {}
+      return {
+        page: location.host + location.pathname,
+        lang: document.documentElement.lang || null,
+        browser: navigator.userAgent,
+        window: window.innerWidth + "×" + window.innerHeight,
+        dark: document.documentElement.classList.contains("mm-dark"),
+        modules: modules,
+        settings: settings,
+        search: search(),
+        results: results,
+        error: error
+      };
+    }
+    let back = null;
+    const draft = {
+      text: "",
+      name: "",
+      contact: "",
+      diag: !0
+    };
+    function close() {
+      if (back) {
+        back.remove();
+        back = null;
+      }
+      document.removeEventListener("keydown", onKey, !0);
+    }
+    function onKey(e) {
+      if ("Escape" === e.key && back) {
+        e.stopPropagation();
+        close();
+      }
+    }
+    const state = {
+      version: VERSION,
+      open: function() {
+        if (state.superseded) return;
+        close();
+        !function() {
+          const css = `
+.mmrep-back { position: fixed; inset: 0; z-index: 2147483003; background: rgba(5,22,77,.35);
+              display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+.mmrep { width: 440px; max-width: 100%; max-height: 100%; overflow-y: auto; box-sizing: border-box;
+         background: #fff; color: ${INK_primary}; border: 1px solid ${INK_hairline}; border-radius: 10px;
+         box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 14px 16px;
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13px; line-height: 1.4; }
+.mmrep-title { font-size: 15px; font-weight: 700; line-height: 1.3; margin: 0 0 10px; }
+.mmrep-lbl { display: block; font-size: 12px; color: ${INK_secondary}; margin: 8px 0 3px; }
+.mmrep-in { display: block; width: 100%; box-sizing: border-box; font: inherit; color: ${INK_primary}; background: #fff;
+            border: 1px solid ${INK_hairline}; border-radius: 5px; padding: 5px 7px; }
+.mmrep-in:focus { outline: 2px solid ${INK_accent}; outline-offset: -1px; }
+textarea.mmrep-in { min-height: 120px; resize: vertical; }
+.mmrep-check { display: flex; align-items: center; gap: 6px; margin: 10px 0 2px; font-size: 12px; color: ${INK_secondary}; }
+.mmrep-diag summary { font-size: 12px; color: ${INK_accent}; cursor: pointer; }
+.mmrep-diag pre { max-height: 160px; overflow: auto; margin: 4px 0 0; padding: 6px; font-size: 10.5px; line-height: 1.35;
+                  background: #f6f7f9; border: 1px solid ${INK_hairline}; border-radius: 5px; white-space: pre-wrap; word-break: break-word; }
+.mmrep-note { margin: 10px 0 0; font-size: 11.5px; color: ${INK_muted}; }
+.mmrep-msg { margin: 6px 0 0; font-size: 12px; min-height: 1.4em; }
+.mmrep-msg.is-error { color: ${INK_error}; }
+.mmrep-msg.is-ok { color: ${INK_ok}; font-weight: 600; }
+.mmrep-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.mmrep-btn { font: inherit; font-size: 12.5px; border: 1px solid ${INK_hairline}; background: #fff; color: ${INK_primary};
+             border-radius: 5px; padding: 4px 12px; cursor: pointer; }
+.mmrep-btn:hover { background: #f3f6fc; border-color: #b9c6e0; }
+.mmrep-btn.is-primary { background: ${INK_accent}; border-color: ${INK_accent}; color: #fff; font-weight: 600; }
+.mmrep-btn.is-primary:hover { background: #164c8f; }
+.mmrep-btn:disabled { opacity: .5; cursor: default; }
+`;
+          let el = document.getElementById("mmrep-styles");
+          if (!el) {
+            el = document.createElement("style");
+            el.id = "mmrep-styles";
+            document.head.appendChild(el);
+          }
+          el.textContent !== css && (el.textContent = css);
+        }();
+        back = document.createElement("div");
+        back.className = "mmrep-back";
+        back.innerHTML = `
+            <div class="mmrep" role="dialog" aria-modal="true" aria-labelledby="mmrep-title">
+                <div class="mmrep-title" id="mmrep-title">${esc(T("Fehler melden"))}</div>
+                <label class="mmrep-lbl" for="mmrep-text">${esc(T("Was ist passiert, was wurde erwartet?"))}</label>
+                <textarea class="mmrep-in" id="mmrep-text" maxlength="${MAX_TEXT}"></textarea>
+                <label class="mmrep-lbl" for="mmrep-name">${esc(T("Name (optional)"))}</label>
+                <input class="mmrep-in" id="mmrep-name" type="text" maxlength="${MAX_NAME}" autocomplete="off">
+                <label class="mmrep-lbl" for="mmrep-contact">${esc(T("Kontakt für Rückfragen (optional)"))}</label>
+                <input class="mmrep-in" id="mmrep-contact" type="text" maxlength="${MAX_CONTACT}" autocomplete="off">
+                <label class="mmrep-check"><input type="checkbox" id="mmrep-diag">${esc(T("Technische Angaben anhängen"))}</label>
+                <details class="mmrep-diag"><summary>${esc(T("Technische Angaben ansehen"))}</summary><pre></pre></details>
+                <div class="mmrep-note">${esc(T("Anonym. Die IP-Adresse wird nicht gespeichert."))}</div>
+                <div class="mmrep-msg" role="status"></div>
+                <div class="mmrep-btns">
+                    <button type="button" class="mmrep-btn" data-act="cancel">${esc(T("Abbrechen"))}</button>
+                    <button type="button" class="mmrep-btn is-primary" data-act="send">${esc(T("Senden"))}</button>
+                </div>
+            </div>`;
+        document.body.appendChild(back);
+        const $ = s => back.querySelector(s);
+        const text = $("#mmrep-text"), name = $("#mmrep-name"), contact = $("#mmrep-contact"), diag = $("#mmrep-diag");
+        const msg = $(".mmrep-msg"), send = $('[data-act="send"]'), cancel = $('[data-act="cancel"]');
+        const details = diagnostics();
+        $(".mmrep-diag pre").textContent = JSON.stringify(details, null, 2);
+        text.value = draft.text;
+        name.value = draft.name;
+        contact.value = draft.contact;
+        diag.checked = draft.diag;
+        const keep = () => {
+          draft.text = text.value;
+          draft.name = name.value;
+          draft.contact = contact.value;
+          draft.diag = diag.checked;
+        };
+        [ text, name, contact, diag ].forEach(el => el.addEventListener("input", keep));
+        diag.addEventListener("change", keep);
+        const say = (s, cls) => {
+          msg.textContent = s;
+          msg.className = "mmrep-msg" + (cls ? " " + cls : "");
+        };
+        cancel.addEventListener("click", close);
+        document.addEventListener("keydown", onKey, !0);
+        send.addEventListener("click", async () => {
+          keep();
+          if (draft.text.trim().length < MIN_TEXT) {
+            say(T("Mindestens {n} Zeichen.", {
+              n: MIN_TEXT
+            }), "is-error");
+            text.focus();
+            return;
+          }
+          send.disabled = !0;
+          say(T("Wird gesendet …"));
+          const body = {
+            text: draft.text.trim(),
+            version: scriptVersion()
+          };
+          draft.name.trim() && (body.name = draft.name.trim());
+          draft.contact.trim() && (body.contact = draft.contact.trim());
+          draft.diag && (body.diag = details);
+          let status = 0;
+          try {
+            status = (await fetch(ENDPOINT, {
+              method: "POST",
+              headers: {
+                "content-type": "application/json"
+              },
+              body: JSON.stringify(body),
+              credentials: "omit"
+            })).status;
+          } catch (e) {}
+          if (back) if (201 !== status) {
+            send.disabled = !1;
+            say(T(429 === status ? "Zu viele Meldungen. In einer Minute erneut versuchen." : "Senden fehlgeschlagen. Später erneut versuchen."), "is-error");
+          } else {
+            draft.text = draft.name = draft.contact = "";
+            say(T("Danke, die Meldung ist angekommen."), "is-ok");
+            send.hidden = !0;
+            cancel.textContent = T("Schließen");
+          }
+        });
+        text.focus();
+      },
+      close: close,
+      _diagnostics: diagnostics
+    };
+    try {
+      Object.defineProperty(window, "__mmReport", {
+        value: state,
+        enumerable: !1,
+        configurable: !0
+      });
+    } catch (e) {
+      try {
+        window.__mmReport = state;
+      } catch (e2) {}
+    }
+  })();
+  (() => {
+    "use strict";
     const VERSION = 14;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.11.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.12.0", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
