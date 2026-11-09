@@ -739,7 +739,6 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Nur noch über das Callcenter buchbar": "Now only bookable via the call center",
         Land: "Country",
         "🐞 Fehler melden": "🐞 Report a bug",
-        "Meldung an den Entwickler, anonym. Name und Kontakt optional.": "Report to the developer, anonymous. Name and contact optional.",
         "Fehler melden": "Report a bug",
         "Was ist passiert, was wurde erwartet?": "What happened, what was expected?",
         "Name (optional)": "Name (optional)",
@@ -2269,7 +2268,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 117;
+    const VERSION = 118;
     if (window.__mmSettings && window.__mmSettings.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const dtf = o => window.__mmI18n ? window.__mmI18n.dtf(o) : new Intl.DateTimeFormat("de-DE", o);
@@ -2613,7 +2612,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
                 font-weight: 600; color: ${INK_primary}; background: #f3f6fc; border: 1px solid #b9c6e0; border-radius: 6px;
                 padding: 5px 10px; cursor: pointer; text-align: center; }
 .mmset-report:hover { background: #e6edf8; }
-.mmset-row.mmset-report-row { display: block; margin: 0; padding: 0; border: 0; }
 .mmset-grp { padding: 1px 0 3px; }
 .mmset-grp + .mmset-grp { border-top: 1px solid ${INK_hairline}; }
 .mmset-head { font-size: 12px; font-weight: 700; color: ${INK_muted};
@@ -2695,7 +2693,6 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             const now = (window.__mmI18n ? window.__mmI18n.lang() : "de") + "|" + cur;
             if (!tips || tipsFor !== now) {
               tips = new Map(groups().flatMap(g => g.subs).filter(s => s.key).map(s => [ s.key, s.tip ]));
-              tips.set("report", T("Meldung an den Entwickler, anonym. Name und Kontakt optional."));
               tipsFor = now;
             }
             return tips.get(key) || "";
@@ -2721,7 +2718,7 @@ ${FORM} .modify-search-button #modify-button { margin-bottom: 0 !important; }
             <div class="mmset-top"><div class="mmset-title">${MARK}M&amp;M Patcher</div>
                 <a class="mmset-don" href="${DONATE_URL}" target="_blank" rel="noopener"
                    title="${T("M&amp;M Patcher unterstützen")}">${MUG}<span class="mmset-don-cta">${T("Bier spendieren")}</span></a></div>
-            <div class="mmset-row mmset-report-row" data-key="report">
+            <div class="mmset-report-row">
                 <button type="button" class="mmset-report" data-action="report">${T("🐞 Fehler melden")}</button></div>
             ${groups().map(groupHtml).join("")}
             <div class="mmset-foot mmset-verline"><span class="mmset-ver"></span> ·
