@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md)
 
+## 1.12.1 — 2026-11-18
+
+### Behoben
+
+- **Eingabe von Start und Ziel war nach Update bei M&M kaputt**
+
 ## 1.12.0 — 2026-11-09
 
 ### Neu

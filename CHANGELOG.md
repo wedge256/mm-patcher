@@ -2,6 +2,12 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.12.1 — 2026-11-18
+
+### Fixed
+
+- **Entering origin and destination was broken after an update by M&M**
+
 ## 1.12.0 — 2026-11-09
 
 ### Added
