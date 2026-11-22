@@ -539,5 +539,7 @@
  "Wird gesendet …": "Envoi …",
  "Danke, die Meldung ist angekommen.": "Merci, le signalement a bien été reçu.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Trop de signalements. Réessayer dans une minute.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Échec de l’envoi. Réessayer plus tard."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Échec de l’envoi. Réessayer plus tard.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Échec de la recherche (contrôle de sécurité de Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Requête du calendrier refusée : contrôle de sécurité de Cloudflare (HTTP {http})."
 }

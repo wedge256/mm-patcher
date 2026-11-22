@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.12.2
+// @version      1.12.3
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -751,10 +751,12 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Wird gesendet …": "Sending …",
         "Danke, die Meldung ist angekommen.": "Thank you, the report has been received.",
         "Zu viele Meldungen. In einer Minute erneut versuchen.": "Too many reports. Try again in a minute.",
-        "Senden fehlgeschlagen. Später erneut versuchen.": "Sending failed. Try again later."
+        "Senden fehlgeschlagen. Später erneut versuchen.": "Sending failed. Try again later.",
+        "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Search failed (Cloudflare security check, HTTP {http}).",
+        "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Calendar request refused: Cloudflare security check (HTTP {http})."
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.2/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.3/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -4264,7 +4266,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.2/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.3/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -5468,7 +5470,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
   })();
   (() => {
     "use strict";
-    const VERSION = 81;
+    const VERSION = 82;
     if (window.__mmCal && window.__mmCal.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const inheritedCal = window.__mmCal;
@@ -6761,6 +6763,15 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
     loadBlock();
     state.blockedSince && (state.error = refusalText());
     state.noteRefusal = noteRefusal;
+    state.noteChallenge = function(http) {
+      if (state.blockedSince || state.blockedUntil) {
+        clearBlock();
+        state.error = T("Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).", {
+          http: http
+        });
+        emit();
+      }
+    };
     state.clearBlock = clearBlock;
     state.queue = [];
     const inQueue = key => state.queue.some(q => q.key === key);
@@ -10115,7 +10126,7 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
   })();
   (() => {
     "use strict";
-    const VERSION = 82;
+    const VERSION = 84;
     if (window.__mmBounds && window.__mmBounds.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const nf = o => window.__mmI18n ? window.__mmI18n.nf(o) : new Intl.NumberFormat("de-DE", o);
@@ -10550,6 +10561,10 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         }).then(r => {
           probing = null;
           if (!r) return null;
+          if (r.challenge) return {
+            status: r.status,
+            challenge: !0
+          };
           recordCall();
           if (429 !== r.status || !(r.retryAfter > 0)) {
             if (!/^\s*[{[]/.test(r.body || "")) return null;
@@ -10594,6 +10609,16 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
               configurable: !0
             });
             err.block = b;
+          } else if (b.challenge) {
+            err.http = b.status;
+            err.title = T("Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).", {
+              http: b.status
+            });
+            err.why = "";
+            try {
+              const cal = window.__mmCal;
+              cal && cal.noteChallenge && cal.noteChallenge(b.status);
+            } catch (e) {}
           } else if (b.status) {
             err.title = T("Suche fehlgeschlagen (keine Antwort vom Server).");
             err.why = "";
@@ -11068,8 +11093,8 @@ html.mm-dark .mmcal-c.is-wait::before { content: none; }
         if (!raw) return null;
         const cfg = JSON.parse(raw);
         const base = cfg.MAM_BASE_URL, id = cfg.LATE_LOGIN_CLIENT_ID;
-        const ctx = "oip" === cfg.tokenFormat ? cfg.oipContextPath : cfg.oneBookingContextPath;
-        if (!base || !id || !ctx) return null;
+        const ctx = cfg.contextPath || "";
+        if (!base || !id) return null;
         const {language: language, country: country} = portalLocale();
         return base.replace(/\/$/, "") + "/oauth2/userAuthorize?client_id=" + encodeURIComponent(id) + "&redirect_uri=" + encodeURIComponent(location.origin) + "&response_type=code&state=" + encodeURIComponent((ctx.startsWith("/") ? "" : "/") + ctx) + "&scope=" + AUTHZ_SCOPE + "&country=" + country + "&language=" + language;
       } catch (e) {
@@ -20039,7 +20064,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
   })();
   (() => {
     "use strict";
-    const VERSION = 3;
+    const VERSION = 4;
     if (window.__mmReport && window.__mmReport.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
     const ENDPOINT = "https://mm-patcher-report.wedge-b4e.workers.dev";
@@ -20067,6 +20092,14 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       } catch (e) {}
       return "0.0.0";
     }
+    function fareFamilies() {
+      try {
+        const o = JSON.parse(sessionStorage.getItem("airBoundsSearch"));
+        return (o.entities[o.selectedAirBoundsSearchId].commercialFareFamilies || []).map(String);
+      } catch (e) {
+        return [];
+      }
+    }
     function search() {
       let b = null;
       try {
@@ -20080,7 +20113,7 @@ ${showLogin ? `<p class="mmrec-p mmrec-waiting" hidden>${T("Die Anmeldung läuft
       });
       return {
         legs: (b.itineraries || []).map(i => [ i.originLocationCode, i.destinationLocationCode, String(i.departureDateTime || "").slice(0, 10) ].join(" ")),
-        fareFamilies: (b.commercialFareFamilies || []).map(String),
+        fareFamilies: fareFamilies(),
         travelers: travelers,
         returnStep: !!b.selectedBoundId
       };
@@ -20290,7 +20323,7 @@ textarea.mmrep-in { min-height: 120px; resize: vertical; }
     const VERSION = 14;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.12.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.12.3", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -20777,6 +20810,7 @@ textarea.mmrep-in { min-height: 120px; resize: vertical; }
                     onload: function (r) {
                         var m = /^retry-after:\s*(\d+)/im.exec(r.responseHeaders || '');
                         answer(q.id, { status: r.status, retryAfter: m ? Number(m[1]) : null,
+                            challenge: /^cf-mitigated:\s*challenge/im.test(r.responseHeaders || ''),
                             body: String(r.responseText || '').slice(0, 300) });
                     },
                     onerror: function () { answer(q.id, { status: 0 }); },

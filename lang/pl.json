@@ -552,5 +552,7 @@
  "Wird gesendet …": "Wysyłanie …",
  "Danke, die Meldung ist angekommen.": "Dziękujemy, zgłoszenie dotarło.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Zbyt wiele zgłoszeń. Spróbuj ponownie za minutę.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Wysyłanie nie powiodło się. Spróbuj ponownie później."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Wysyłanie nie powiodło się. Spróbuj ponownie później.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Wyszukiwanie nie powiodło się (kontrola bezpieczeństwa Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Zapytanie o kalendarz odrzucone: kontrola bezpieczeństwa Cloudflare (HTTP {http})."
 }

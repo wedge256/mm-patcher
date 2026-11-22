@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md)
 
+## 1.12.3 — 2026-11-22
+
+### Behoben
+
+- **Wechsel des Buchungsbüros schlug nach Update bei M&M teils fehl**
+- **Sicherheitsprüfung von Cloudflare wurde als Suchlimit gemeldet**
+
 ## 1.12.2 — 2026-11-22
 
 ### Behoben

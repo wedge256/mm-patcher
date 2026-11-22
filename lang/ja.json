@@ -513,5 +513,7 @@
  "Wird gesendet …": "送信中 …",
  "Danke, die Meldung ist angekommen.": "ありがとうございます。報告を受け付けました。",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "報告が多すぎます。1 分後にもう一度お試しください。",
- "Senden fehlgeschlagen. Später erneut versuchen.": "送信に失敗しました。後でもう一度お試しください。"
+ "Senden fehlgeschlagen. Später erneut versuchen.": "送信に失敗しました。後でもう一度お試しください。",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "検索に失敗しました（Cloudflareのセキュリティチェック、HTTP {http}）。",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "カレンダーの照会が拒否されました：Cloudflareのセキュリティチェック（HTTP {http}）。"
 }

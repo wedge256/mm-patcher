@@ -526,5 +526,7 @@
  "Wird gesendet …": "Gönderiliyor …",
  "Danke, die Meldung ist angekommen.": "Teşekkürler, bildirim ulaştı.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Çok fazla bildirim. Bir dakika sonra tekrar deneyin.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Gönderilemedi. Daha sonra tekrar deneyin."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Gönderilemedi. Daha sonra tekrar deneyin.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Arama başarısız (Cloudflare güvenlik kontrolü, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Takvim isteği reddedildi: Cloudflare güvenlik kontrolü (HTTP {http})."
 }

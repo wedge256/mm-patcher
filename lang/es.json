@@ -539,5 +539,7 @@
  "Wird gesendet …": "Enviando …",
  "Danke, die Meldung ist angekommen.": "Gracias, el aviso se ha recibido.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Demasiados avisos. Inténtelo de nuevo en un minuto.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Error al enviar. Inténtelo de nuevo más tarde."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Error al enviar. Inténtelo de nuevo más tarde.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "La búsqueda ha fallado (comprobación de seguridad de Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Consulta del calendario rechazada: comprobación de seguridad de Cloudflare (HTTP {http})."
 }

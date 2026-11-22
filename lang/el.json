@@ -526,5 +526,7 @@
  "Wird gesendet …": "Αποστολή …",
  "Danke, die Meldung ist angekommen.": "Ευχαριστούμε, η αναφορά ελήφθη.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Πάρα πολλές αναφορές. Δοκιμάστε ξανά σε ένα λεπτό.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Η αποστολή απέτυχε. Δοκιμάστε ξανά αργότερα."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Η αποστολή απέτυχε. Δοκιμάστε ξανά αργότερα.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Η αναζήτηση απέτυχε (έλεγχος ασφαλείας του Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Το αίτημα ημερολογίου απορρίφθηκε: έλεγχος ασφαλείας του Cloudflare (HTTP {http})."
 }

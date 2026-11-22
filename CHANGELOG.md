@@ -2,6 +2,13 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.12.3 — 2026-11-22
+
+### Fixed
+
+- **Switching the booking office partly failed after an update at M&M**
+- **A Cloudflare security check was reported as the search limit**
+
 ## 1.12.2 — 2026-11-22
 
 ### Fixed

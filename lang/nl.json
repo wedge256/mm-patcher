@@ -526,5 +526,7 @@
  "Wird gesendet …": "Wordt verzonden …",
  "Danke, die Meldung ist angekommen.": "Bedankt, de melding is ontvangen.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Te veel meldingen. Probeer het over een minuut opnieuw.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Verzenden mislukt. Probeer het later opnieuw."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Verzenden mislukt. Probeer het later opnieuw.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Zoeken mislukt (beveiligingscontrole van Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Kalenderaanvraag geweigerd: beveiligingscontrole van Cloudflare (HTTP {http})."
 }

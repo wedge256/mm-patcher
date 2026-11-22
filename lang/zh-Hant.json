@@ -513,5 +513,7 @@
  "Wird gesendet …": "傳送中 …",
  "Danke, die Meldung ist angekommen.": "謝謝，已收到回報。",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "回報次數過多。請一分鐘後再試。",
- "Senden fehlgeschlagen. Später erneut versuchen.": "傳送失敗。請稍後再試。"
+ "Senden fehlgeschlagen. Später erneut versuchen.": "傳送失敗。請稍後再試。",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "搜尋失敗（Cloudflare 安全檢查，HTTP {http}）。",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "日曆查詢遭拒：Cloudflare 安全檢查（HTTP {http}）。"
 }

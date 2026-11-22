@@ -513,5 +513,7 @@
  "Wird gesendet …": "보내는 중 …",
  "Danke, die Meldung ist angekommen.": "감사합니다. 신고가 접수되었습니다.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "신고가 너무 많습니다. 1분 후 다시 시도하세요.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "보내지 못했습니다. 나중에 다시 시도하세요."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "보내지 못했습니다. 나중에 다시 시도하세요.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "검색에 실패했습니다(Cloudflare 보안 확인, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "캘린더 조회가 거부되었습니다: Cloudflare 보안 확인(HTTP {http})."
 }

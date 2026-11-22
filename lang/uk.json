@@ -552,5 +552,7 @@
  "Wird gesendet …": "Надсилання …",
  "Danke, die Meldung ist angekommen.": "Дякуємо, повідомлення отримано.",
  "Zu viele Meldungen. In einer Minute erneut versuchen.": "Забагато повідомлень. Спробуйте ще раз за хвилину.",
- "Senden fehlgeschlagen. Später erneut versuchen.": "Не вдалося надіслати. Спробуйте пізніше."
+ "Senden fehlgeschlagen. Später erneut versuchen.": "Не вдалося надіслати. Спробуйте пізніше.",
+ "Suche fehlgeschlagen (Sicherheitsprüfung von Cloudflare, HTTP {http}).": "Пошук не вдався (перевірка безпеки Cloudflare, HTTP {http}).",
+ "Kalender-Abfrage abgewiesen: Sicherheitsprüfung von Cloudflare (HTTP {http}).": "Запит до календаря відхилено: перевірка безпеки Cloudflare (HTTP {http})."
 }
