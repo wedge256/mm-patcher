@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md)
 
+## 1.12.2 — 2026-11-22
+
+### Behoben
+
+- **Safari mit Userscripts sollte wieder laufen**
+
 ## 1.12.1 — 2026-11-18
 
 ### Behoben

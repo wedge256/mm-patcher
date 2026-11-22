@@ -2,7 +2,7 @@
 // @name         Miles & More: Prämienflug-Suche erweitert
 // @name:en      Miles & More: Award Flight Search Extended
 // @namespace    https://www.awardmap.net
-// @version      1.12.1
+// @version      1.12.2
 // @description  Erweitert die M&M um nützliche Features: Sitzpläne, erweiterter Kalender, mehr Städte, uvm.
 // @description:en  Adds useful features to Miles & More: seat maps, an extended calendar, more cities and more.
 // @author       wedge
@@ -754,7 +754,7 @@ if ("shop.miles-and-more.com" === location.hostname) {
         "Senden fehlgeschlagen. Später erneut versuchen.": "Sending failed. Try again later."
       }
     };
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.2/lang/{code}.json";
     const SOURCE = "de", SOURCE_LOCALE = "de-DE", FALLBACK = "en";
     const fmtCache = new Map;
     const ruleCache = new Map;
@@ -4264,7 +4264,7 @@ ${HOST} .passenger-desc.mmsp-noage { display: none !important; }
       "uk-UA": "ru-RU"
     };
     const CHOICE = "mm_page_lang";
-    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.1/lang/{code}.json";
+    const LANG_URL = "https://raw.githubusercontent.com/wedge256/mm-patcher/v1.12.2/lang/{code}.json";
     const FILE_RE = /\/(uk-UA)\.json(\?|$)/;
     const ANY_FILE_RE = /\/statics\/reward\/content\/.*\/[a-z]{2}-[A-Za-z]{2,4}\.json(\?|$)/;
     const NAME_FIX = [ "Украї́нська", "Українська" ];
@@ -20290,7 +20290,7 @@ textarea.mmrep-in { min-height: 120px; resize: vertical; }
     const VERSION = 14;
     if (window.__mmUpdate && window.__mmUpdate.version >= VERSION) return;
     const T = (s, p) => window.__mmI18n ? window.__mmI18n.t(s, p) : p ? String(s).replace(/\{(\w+)\}/g, (m, k) => null != p[k] ? String(p[k]) : m) : String(s);
-    const DIST_version = "1.12.1", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
+    const DIST_version = "1.12.2", DIST_meta = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.meta.js", DIST_page = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/mm-patcher.user.js", DIST_notes = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.md", DIST_notesPage = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.md", DIST_notesDe = "https://raw.githubusercontent.com/wedge256/mm-patcher/main/CHANGELOG.de.md", DIST_notesPageDe = "https://github.com/wedge256/mm-patcher/blob/main/CHANGELOG.de.md";
     const german = () => !window.__mmI18n || "de" === window.__mmI18n.lang();
     const notesUrl = () => german() && DIST_notesDe || DIST_notes;
     const notesPageUrl = () => german() && DIST_notesPageDe || DIST_notesPage;
@@ -20828,7 +20828,7 @@ textarea.mmrep-in { min-height: 120px; resize: vertical; }
 
     var sandboxed = false;
     try {
-        sandboxed = (typeof window.wrappedJSObject !== 'undefined') ||
+        sandboxed = !!gmXhr || (typeof window.wrappedJSObject !== 'undefined') ||
             (typeof unsafeWindow !== 'undefined' && unsafeWindow !== window);
     } catch (e) { }
 

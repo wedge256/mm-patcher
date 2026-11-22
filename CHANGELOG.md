@@ -2,6 +2,12 @@
 
 [Deutsch](CHANGELOG.de.md)
 
+## 1.12.2 — 2026-11-22
+
+### Fixed
+
+- **Safari with Userscripts should work again**
+
 ## 1.12.1 — 2026-11-18
 
 ### Fixed
